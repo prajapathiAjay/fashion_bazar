@@ -15,17 +15,17 @@ import AccountPage from './AccountPage'
 const Home = () => {
   return (
     <> 
-    {/* <Hero/>
+    <Hero/>
    <CategoryStrip/>
    <FeaturedProducts/>
    <PromoBanner/>
    <TrustBadges/>
-   <Newsletter/> */}
+   <Newsletter/>
    {/* <ShopPage/> */}
    {/* <ProductDetail/> */}
    {/* <CartPage/> */}
    {/* <CheckoutPage/> */}
-   <AuthPage/>
+   {/* <AuthPage/> */}
    {/* <AccountPage/> */}
    
    </>
