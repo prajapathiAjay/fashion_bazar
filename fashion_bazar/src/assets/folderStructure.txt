@@ -1,0 +1,108 @@
+src/
+│
+├── app/
+│   ├── store.js
+│   └── rootReducer.js                // Optional
+│
+├── assets/
+│   ├── images/
+│   ├── icons/
+│   └── fonts/
+│
+├── components/
+│   ├── Button/
+│   ├── Navbar/
+│   ├── Loader/
+│   ├── Modal/
+│   └── ProtectedRoute/
+│
+├── layouts/
+│   ├── MainLayout.jsx
+│   └── AuthLayout.jsx
+│
+├── pages/
+│   ├── Home/
+│   ├── Login/
+│   ├── Register/
+│   ├── Products/
+│   ├── ProductDetails/
+│   ├── Cart/
+│   ├── Checkout/
+│   └── Profile/
+│
+├── routes/
+│   └── AppRoutes.jsx
+│
+├── services/
+│   ├── axiosInstance.js
+│   └── apiEndpoints.js
+│
+├── hooks/
+│   ├── useAuth.js
+│   ├── useDebounce.js
+│   └── usePagination.js
+│
+├── utils/
+│   ├── formatDate.js
+│   ├── storage.js
+│   ├── constants.js
+│   └── helpers.js
+│
+├── features/
+│   │
+│   ├── auth/
+│   │   ├── authSlice.js
+│   │   ├── authThunks.js
+│   │   ├── authAPI.js
+│   │   ├── authSelectors.js
+│   │   ├── authTypes.js          // Optional
+│   │   ├── authUtils.js          // Optional
+│   │   ├── components/
+│   │   └── index.js
+│   │
+│   ├── products/
+│   │   ├── productSlice.js
+│   │   ├── productThunks.js
+│   │   ├── productAPI.js
+│   │   ├── productSelectors.js
+│   │   ├── productTypes.js
+│   │   ├── components/
+│   │   └── index.js
+│   │
+│   ├── cart/
+│   │   ├── cartSlice.js
+│   │   ├── cartThunks.js
+│   │   ├── cartAPI.js
+│   │   ├── cartSelectors.js
+│   │   └── index.js
+│   │
+│   ├── wishlist/
+│   │   ├── wishlistSlice.js
+│   │   ├── wishlistThunks.js
+│   │   ├── wishlistAPI.js
+│   │   ├── wishlistSelectors.js
+│   │   └── index.js
+│   │
+│   ├── orders/
+│   │   ├── orderSlice.js
+│   │   ├── orderThunks.js
+│   │   ├── orderAPI.js
+│   │   ├── orderSelectors.js
+│   │   └── index.js
+│   │
+│   └── user/
+│       ├── userSlice.js
+│       ├── userThunks.js
+│       ├── userAPI.js
+│       ├── userSelectors.js
+│       └── index.js
+│
+├── context/                         // Optional
+│
+├── styles/
+│   ├── globals.css
+│   └── variables.css
+│
+├── App.jsx
+├── main.jsx
+└── vite.config.js
