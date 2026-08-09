@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { Link } from "react-router-dom";
+import { fetchProducts } from "../features/products/productThunks";
+import { useDispatch, useSelector } from "react-redux";
 import {
   SlidersHorizontal,
   X,
@@ -21,6 +23,8 @@ const COLORS = [
 ];
 const SORT_OPTIONS = ["Most popular", "Newest", "Price: low to high", "Price: high to low", "Top rated"];
 
+
+
 const PRODUCTS = [
   { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 48, originalPrice: 64, rating: 4.8, bg: "#D9D2F0" },
   { id: "p2", name: "Linen shirt jacket", seller: "Halden & Co.", price: 62, originalPrice: null, rating: 4.6, bg: "#F0997B" },
@@ -37,6 +41,7 @@ const PRODUCTS = [
 ];
 
 function ProductCard({ product }) {
+
   const [wishlisted, setWishlisted] = useState(false);
   const discount = product.originalPrice
     ? Math.round(100 - (product.price / product.originalPrice) * 100)
@@ -195,6 +200,14 @@ function ShopPage() {
   const [priceMax, setPriceMax] = useState(100);
   const [selected, setSelected] = useState({ categories: [], sizes: [], colors: [] });
 
+const dispatch = useDispatch();
+const {products,loading,error}=useSelector((state)=>state.products) 
+console.log("products",products,loading,error)
+  useEffect(()=>{
+    console.log("dispatching fetchProducts")
+  dispatch(fetchProducts())
+
+},[])
   const toggleCategory = (cat) =>
     setSelected((s) => ({
       ...s,
@@ -228,7 +241,7 @@ function ShopPage() {
             <h1 className="font-display text-2xl font-bold text-[#1B1523] sm:text-[28px]">
               Shop the bazar
             </h1>
-            <p className="mt-1 text-sm text-[#9691A4]">{PRODUCTS.length} items</p>
+            <p className="mt-1 text-sm text-[#9691A4]">{products.length} items</p>
           </div>
         </div>
       </div>
@@ -293,7 +306,7 @@ function ShopPage() {
         {/* Grid */}
         <div className="flex-1">
           <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-            {PRODUCTS.map((product) => (
+            {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

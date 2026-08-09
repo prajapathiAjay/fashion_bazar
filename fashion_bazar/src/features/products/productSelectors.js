@@ -64,7 +64,7 @@ export const selectProductsError = (state) =>
 //         {products.map((product) => (
 //           <div key={product.id}>
 //             <h2>{product.name}</h2>
-//             <p>₹{product.price}</p>
+//             <p>${product.price}</p>
 
 //             <button
 //               type="button"
