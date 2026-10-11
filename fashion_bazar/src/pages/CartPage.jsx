@@ -24,15 +24,16 @@ import {
   X,
   Star,
 } from "lucide-react";
+import { formatPrice } from "../utils/formatPrice";
 
-const FREE_SHIPPING_AT = 50;
+const FREE_SHIPPING_AT = 999;
 
 const INITIAL_ITEMS = [
   {
     id: "p1",
     name: "Draped midi dress",
     seller: "Amara Studio",
-    price: 48,
+    price: 2499,
     size: "M",
     color: "Violet",
     qty: 1,
@@ -43,7 +44,7 @@ const INITIAL_ITEMS = [
     id: "p4",
     name: "Suede loafers",
     seller: "Marchetti",
-    price: 74,
+    price: 3899,
     size: "8",
     color: "Black",
     qty: 1,
@@ -54,7 +55,7 @@ const INITIAL_ITEMS = [
     id: "p6",
     name: "Gold hoop earrings",
     seller: "Luna Jewels",
-    price: 22,
+    price: 1199,
     size: "One size",
     color: "Gold",
     qty: 2,
@@ -64,10 +65,10 @@ const INITIAL_ITEMS = [
 ];
 
 const SUGGESTIONS = [
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 62, rating: 4.6, bg: "var(--color-coral-50)", image: unsplash(PHOTOS.bomberJacket, 400, 500) },
-  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 39, rating: 4.5, bg: "var(--color-sky-50)", image: unsplash(PHOTOS.knitTop, 400, 500) },
-  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 56, rating: 4.6, bg: "var(--color-mint-50)", image: unsplash(PHOTOS.wideLegTrousers, 400, 500) },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 35, rating: 4.9, bg: "var(--color-pop-50)", image: unsplash(PHOTOS.wovenTote, 400, 500) },
+  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, rating: 4.6, bg: "var(--color-coral-50)", image: unsplash(PHOTOS.bomberJacket, 400, 500) },
+  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 1999, rating: 4.5, bg: "var(--color-sky-50)", image: unsplash(PHOTOS.knitTop, 400, 500) },
+  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 2899, rating: 4.6, bg: "var(--color-mint-50)", image: unsplash(PHOTOS.wideLegTrousers, 400, 500) },
+  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, rating: 4.9, bg: "var(--color-pop-50)", image: unsplash(PHOTOS.wovenTote, 400, 500) },
 ];
 
 const EMPTY_CATEGORIES = [
@@ -77,7 +78,7 @@ const EMPTY_CATEGORIES = [
   { label: "Men", to: "/categories/men", tone: "bg-sky-50 text-ink hover:bg-sky hover:text-white" },
 ];
 
-const money = (n) => `$${n.toFixed(2)}`;
+const money = formatPrice;
 
 /* ---------------------------------------------------------------- */
 
@@ -501,11 +502,11 @@ function CartPage() {
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 5;
+  const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 99;
   const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
   const total = subtotal + shipping - discount;
   const unitCount = items.reduce((sum, item) => sum + item.qty, 0);
-  const savings = discount + (shipping === 0 ? 5 : 0);
+  const savings = discount + (shipping === 0 ? 99 : 0);
 
   if (items.length === 0) return <EmptyBag />;
 

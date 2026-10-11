@@ -25,11 +25,12 @@ import {
   Loader2,
   ShoppingBag,
 } from "lucide-react";
+import { formatPrice } from "../utils/formatPrice";
 
 const ORDER_ITEMS = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 48, qty: 1, size: "M", bg: "#D9D2F0", image: unsplash(PHOTOS.floralDress, 120, 150) },
-  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 74, qty: 1, size: "8", bg: "#F7DFA8", image: unsplash(PHOTOS.leatherShoes, 120, 150) },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 22, qty: 2, size: "One size", bg: "#F0C4C4", image: unsplash(PHOTOS.goldHoops, 120, 150) },
+  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, qty: 1, size: "M", bg: "#D9D2F0", image: unsplash(PHOTOS.floralDress, 120, 150) },
+  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 3899, qty: 1, size: "8", bg: "#F7DFA8", image: unsplash(PHOTOS.leatherShoes, 120, 150) },
+  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, qty: 2, size: "One size", bg: "#F0C4C4", image: unsplash(PHOTOS.goldHoops, 120, 150) },
 ];
 
 const STEPS = ["Shipping", "Payment", "Review"];
@@ -41,7 +42,7 @@ const PAYMENT_METHODS = [
   { id: "cod", label: "Cash on delivery", hint: "Pay when it arrives", icon: Banknote, tone: "bg-sun-50 text-sun-dark" },
 ];
 
-const money = (n) => `$${n.toFixed(2)}`;
+const money = formatPrice;
 
 const inputClass =
   "w-full rounded-xl border border-line-strong bg-white px-3.5 py-3 text-sm text-ink outline-none transition-colors placeholder:text-faint hover:border-line-hover focus:border-brand/50 focus:ring-4 focus:ring-brand/10";
@@ -231,7 +232,7 @@ function SummaryTotals({ subtotal, shipping, total }) {
       <div className="mt-4 flex items-end justify-between border-t border-line-strong pt-4">
         <div>
           <p className="text-sm font-bold text-ink">Total</p>
-          <p className="text-[11px] text-subtle">USD · taxes included</p>
+          <p className="text-[11px] text-subtle">INR · taxes included</p>
         </div>
         <p className="text-2xl font-extrabold tabular-nums text-ink">{money(total)}</p>
       </div>
@@ -387,7 +388,7 @@ function CheckoutPage() {
   });
 
   const subtotal = ORDER_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const shipping = shipMethod === "express" ? 12 : subtotal >= 50 ? 0 : 5;
+  const shipping = shipMethod === "express" ? 199 : subtotal >= 999 ? 0 : 99;
   const total = subtotal + shipping;
   const unitCount = ORDER_ITEMS.reduce((sum, i) => sum + i.qty, 0);
 
@@ -422,7 +423,7 @@ function CheckoutPage() {
       id: "standard",
       label: "Standard",
       eta: "4-6 business days",
-      price: subtotal >= 50 ? "Free" : "$5.00",
+      price: subtotal >= 999 ? "Free" : money(99),
       icon: Truck,
       tone: "bg-sky-50 text-sky",
     },
@@ -430,7 +431,7 @@ function CheckoutPage() {
       id: "express",
       label: "Express",
       eta: "1-2 business days",
-      price: "$12.00",
+      price: money(199),
       icon: Zap,
       tone: "bg-sun-50 text-sun-dark",
       badge: "Fastest",

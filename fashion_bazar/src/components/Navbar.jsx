@@ -35,7 +35,7 @@ const MEGA_CATEGORIES = [
 ];
 
 const ANNOUNCEMENTS = [
-  "Free shipping on orders over $50 — this week only",
+  "Free shipping on orders over ₹999 — this week only",
   "Bazar days: up to 50% off across 180+ stalls",
   "New drops land every Friday at 10am",
 ];
@@ -143,7 +143,7 @@ function Navbar() {
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-white/90 backdrop-blur-xl transition-shadow ${
+      className={`sticky top-0 z-50 bg-white transition-shadow ${
         scrolled ? "shadow-[0_8px_30px_-12px_rgba(26,16,51,0.18)]" : "border-b border-line"
       }`}
     >

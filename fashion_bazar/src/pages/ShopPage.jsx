@@ -23,6 +23,7 @@ import ProductCard from "../components/ProductCard";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { ProductGridSkeleton, ProductsEmpty } from "../components/ProductGridStatus";
+import { formatPrice } from "../utils/formatPrice";
 
 const CATEGORIES = ["Women", "Men", "Kids", "Footwear", "Jewelry", "Accessories"];
 const SIZES = ["XS", "S", "M", "L", "XL"];
@@ -35,7 +36,7 @@ const COLORS = [
   { name: "Sage", hex: "#9CAE98" },
 ];
 const SORT_OPTIONS = ["Most popular", "Newest", "Price: low to high", "Price: high to low", "Top rated"];
-const PRICE_CEILING = 100;
+const PRICE_CEILING = 5000;
 const PAGES = [1, 2, 3];
 
 // Category chips shown under the page heading. `match` decides which chip is active.
@@ -136,18 +137,18 @@ const BANDS = {
 };
 
 const PRODUCTS = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 48, originalPrice: 64, rating: 4.8, bg: "#D9D2F0" },
-  { id: "p2", name: "Linen shirt jacket", seller: "Halden & Co.", price: 62, originalPrice: null, rating: 4.6, bg: "#F0997B" },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 35, originalPrice: 45, rating: 4.9, bg: "#EAD7E6" },
-  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 74, originalPrice: null, rating: 4.7, bg: "#F7DFA8" },
-  { id: "p5", name: "Ribbed knit vest", seller: "Amara Studio", price: 39, originalPrice: 52, rating: 4.5, bg: "#C9DDF0" },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 22, originalPrice: null, rating: 4.9, bg: "#F0C4C4" },
-  { id: "p7", name: "Wide-leg trousers", seller: "Halden & Co.", price: 56, originalPrice: null, rating: 4.6, bg: "#CFE3D6" },
-  { id: "p8", name: "Structured tote", seller: "Bazar Leather", price: 68, originalPrice: 85, rating: 4.8, bg: "#E6D5C3" },
-  { id: "p9", name: "Silk scarf", seller: "Luna Jewels", price: 28, originalPrice: null, rating: 4.4, bg: "#EAD7E6" },
-  { id: "p10", name: "Denim overshirt", seller: "Marchetti", price: 58, originalPrice: 72, rating: 4.7, bg: "#C9DDF0" },
-  { id: "p11", name: "Pleated skirt", seller: "Amara Studio", price: 44, originalPrice: null, rating: 4.5, bg: "#F0997B" },
-  { id: "p12", name: "Leather sandals", seller: "Marchetti", price: 52, originalPrice: null, rating: 4.6, bg: "#F7DFA8" },
+  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, originalPrice: 3299, rating: 4.8, bg: "#D9D2F0" },
+  { id: "p2", name: "Linen shirt jacket", seller: "Halden & Co.", price: 3199, originalPrice: null, rating: 4.6, bg: "#F0997B" },
+  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, originalPrice: 2299, rating: 4.9, bg: "#EAD7E6" },
+  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 3899, originalPrice: null, rating: 4.7, bg: "#F7DFA8" },
+  { id: "p5", name: "Ribbed knit vest", seller: "Amara Studio", price: 1999, originalPrice: 2699, rating: 4.5, bg: "#C9DDF0" },
+  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, originalPrice: null, rating: 4.9, bg: "#F0C4C4" },
+  { id: "p7", name: "Wide-leg trousers", seller: "Halden & Co.", price: 2899, originalPrice: null, rating: 4.6, bg: "#CFE3D6" },
+  { id: "p8", name: "Structured tote", seller: "Bazar Leather", price: 3499, originalPrice: 4399, rating: 4.8, bg: "#E6D5C3" },
+  { id: "p9", name: "Silk scarf", seller: "Luna Jewels", price: 1499, originalPrice: null, rating: 4.4, bg: "#EAD7E6" },
+  { id: "p10", name: "Denim overshirt", seller: "Marchetti", price: 2999, originalPrice: 3699, rating: 4.7, bg: "#C9DDF0" },
+  { id: "p11", name: "Pleated skirt", seller: "Amara Studio", price: 2299, originalPrice: null, rating: 4.5, bg: "#F0997B" },
+  { id: "p12", name: "Leather sandals", seller: "Marchetti", price: 2699, originalPrice: null, rating: 4.6, bg: "#F7DFA8" },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -216,20 +217,20 @@ function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceM
             type="range"
             min="0"
             max={PRICE_CEILING}
-            step="5"
+            step="100"
             value={priceMax}
             onChange={(e) => setPriceMax(Number(e.target.value))}
             className="w-full accent-brand"
           />
           <div className="mt-3 flex items-center gap-2">
             <span className="flex-1 rounded-xl border border-line bg-snow px-3 py-2 text-xs text-subtle">
-              Min <span className="block text-sm font-semibold text-ink">$0</span>
+              Min <span className="block text-sm font-semibold text-ink">₹0</span>
             </span>
             <span className="text-faint">—</span>
             <span className="flex-1 rounded-xl border border-brand/30 bg-brand-50 px-3 py-2 text-xs text-brand">
               Max{" "}
               <span className="block text-sm font-semibold text-ink">
-                ${priceMax}
+                {formatPrice(priceMax)}
                 {priceMax === PRICE_CEILING ? "+" : ""}
               </span>
             </span>
@@ -556,7 +557,7 @@ console.log("products",products,loading,error)
                 {loading ? "Loading…" : `${itemCount} items`}
               </span>
               <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white/80 px-3 py-1.5 text-ink-soft shadow-sm backdrop-blur sm:inline-flex">
-                <Truck size={13} className="text-brand" /> Free shipping $50+
+                <Truck size={13} className="text-brand" /> Free shipping ₹999+
               </span>
               <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white/80 px-3 py-1.5 text-ink-soft shadow-sm backdrop-blur lg:inline-flex">
                 <RotateCcw size={13} className="text-pop" /> 30-day returns
@@ -674,7 +675,7 @@ console.log("products",products,loading,error)
               ))}
               {priceActive && (
                 <FilterChip label="price limit" onRemove={() => setPriceMax(PRICE_CEILING)}>
-                  Under ${priceMax}
+                  Under {formatPrice(priceMax)}
                 </FilterChip>
               )}
               <button

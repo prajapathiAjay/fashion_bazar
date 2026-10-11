@@ -26,6 +26,7 @@ import {
   Package,
   ArrowRight,
 } from "lucide-react";
+import { formatPrice } from "../utils/formatPrice";
 
 // Main shot plus close-up crops of the same photo
 const IMAGES = [
@@ -51,10 +52,10 @@ const SIZE_GUIDE = [
 ];
 
 const RELATED = [
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 62, bg: "#F0997B", photo: PHOTOS.bomberJacket },
-  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 39, bg: "#C9DDF0", photo: PHOTOS.knitTop },
-  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 56, bg: "#CFE3D6", photo: PHOTOS.wideLegTrousers },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 35, bg: "#EAD7E6", photo: PHOTOS.wovenTote },
+  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, bg: "#F0997B", photo: PHOTOS.bomberJacket },
+  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 1999, bg: "#C9DDF0", photo: PHOTOS.knitTop },
+  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 2899, bg: "#CFE3D6", photo: PHOTOS.wideLegTrousers },
+  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, bg: "#EAD7E6", photo: PHOTOS.wovenTote },
 ];
 
 const RATING = 4.8;
@@ -100,7 +101,7 @@ const REVIEWS = [
 ];
 
 const TRUST = [
-  { icon: Truck, label: "Free shipping", sub: "On orders $50+", chip: "bg-brand-50 text-brand" },
+  { icon: Truck, label: "Free shipping", sub: "On orders ₹999+", chip: "bg-brand-50 text-brand" },
   { icon: RotateCcw, label: "30-day returns", sub: "Free & easy", chip: "bg-pop-50 text-pop-dark" },
   { icon: ShieldCheck, label: "Secure checkout", sub: "Buyer protection", chip: "bg-mint-50 text-success" },
   { icon: Leaf, label: "Small-batch", sub: "Made to last", chip: "bg-sun-50 text-ink" },
@@ -336,8 +337,8 @@ function ProductDetail() {
   const [addedToBag, setAddedToBag] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
-  const price = 48;
-  const originalPrice = 64;
+  const price = 2499;
+  const originalPrice = 3299;
   const discount = Math.round(100 - (price / originalPrice) * 100);
 
   const handleAddToBag = () => {
@@ -426,12 +427,12 @@ function ProductDetail() {
 
             {/* Price block */}
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-gradient-to-r from-pop-50 via-white to-sun-50 p-4">
-              <span className="font-display text-3xl font-extrabold text-ink">${price}</span>
-              <span className="text-lg text-faint line-through">${originalPrice}</span>
+              <span className="font-display text-3xl font-extrabold text-ink">{formatPrice(price)}</span>
+              <span className="text-lg text-faint line-through">{formatPrice(originalPrice)}</span>
               <span className="rounded-full bg-pop px-2.5 py-1 text-xs font-bold text-white">
-                Save ${originalPrice - price} · {discount}% off
+                Save {formatPrice(originalPrice - price)} · {discount}% off
               </span>
-              <span className="w-full text-xs text-muted">Inclusive of all taxes · or 4 payments of ${(price / 4).toFixed(2)}</span>
+              <span className="w-full text-xs text-muted">Inclusive of all taxes · or 4 payments of {formatPrice(price / 4)}</span>
             </div>
 
             <p className="mt-5 text-sm leading-relaxed text-muted sm:text-[15px]">
@@ -623,7 +624,7 @@ function ProductDetail() {
               </Accordion>
               <Accordion title="Shipping & returns" icon={Truck} tone="bg-sky-50 text-info">
                 Ships in 1-2 business days from Amara Studio. Free standard
-                shipping on orders over $50. Returns accepted within 30 days,
+                shipping on orders over ₹999. Returns accepted within 30 days,
                 unworn with tags attached.
               </Accordion>
               <Accordion title="Seller — Amara Studio" icon={Store} tone="bg-pop-50 text-pop-dark">
@@ -762,7 +763,7 @@ function ProductDetail() {
                 <div className="px-3.5 py-3">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">{item.seller}</p>
                   <p className="truncate text-sm font-medium text-ink">{item.name}</p>
-                  <p className="mt-1 text-sm font-bold text-ink">${item.price}</p>
+                  <p className="mt-1 text-sm font-bold text-ink">{formatPrice(item.price)}</p>
                 </div>
               </Link>
             ))}
@@ -775,8 +776,8 @@ function ProductDetail() {
         <div className="mx-auto flex max-w-xl items-center gap-3">
           <div className="min-w-0">
             <p className="flex items-baseline gap-1.5">
-              <span className="text-lg font-extrabold text-ink">${price}</span>
-              <span className="text-xs text-faint line-through">${originalPrice}</span>
+              <span className="text-lg font-extrabold text-ink">{formatPrice(price)}</span>
+              <span className="text-xs text-faint line-through">{formatPrice(originalPrice)}</span>
             </p>
             <p className="truncate text-[11px] text-subtle">
               {selectedColor} · Size {selectedSize}

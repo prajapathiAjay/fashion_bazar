@@ -4,7 +4,7 @@ const TRUST_POINTS = [
   {
     icon: Truck,
     title: "Free shipping",
-    desc: "On orders over $50",
+    desc: "On orders over ₹999",
     tone: "bg-brand-50 text-brand",
   },
   {

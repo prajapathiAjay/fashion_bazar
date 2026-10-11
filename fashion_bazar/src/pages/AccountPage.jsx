@@ -40,6 +40,7 @@ import {
   CalendarDays,
   X,
 } from "lucide-react";
+import { formatPrice } from "../utils/formatPrice";
 
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
@@ -63,7 +64,7 @@ const ORDERS = [
     status: "In transit",
     step: 2,
     eta: "Arriving Fri, Oct 10",
-    total: 110.0,
+    total: 6098,
     products: [
       { photo: PHOTOS.bomberJacket, bg: "var(--color-coral-50)", name: "Satin bomber jacket" },
       { photo: PHOTOS.wideLegTrousers, bg: "var(--color-mint-50)", name: "Wide-leg trousers" },
@@ -74,7 +75,7 @@ const ORDERS = [
     date: "Sep 18, 2026",
     status: "Delivered",
     deliveredOn: "Delivered Sep 22, 2026",
-    total: 144.0,
+    total: 5497,
     products: [
       { photo: PHOTOS.floralDress, bg: "var(--color-brand-100)", name: "Draped midi dress" },
       { photo: PHOTOS.goldHoops, bg: "var(--color-pop-50)", name: "Gold hoop earrings" },
@@ -85,7 +86,7 @@ const ORDERS = [
     id: "BZ-10327",
     date: "Aug 30, 2026",
     status: "Cancelled",
-    total: 62.0,
+    total: 1999,
     products: [{ photo: PHOTOS.knitTop, bg: "var(--color-sky-50)", name: "Ribbed knit vest" }],
   },
   {
@@ -93,7 +94,7 @@ const ORDERS = [
     date: "Aug 09, 2026",
     status: "Delivered",
     deliveredOn: "Delivered Aug 13, 2026",
-    total: 89.0,
+    total: 4598,
     products: [
       { photo: PHOTOS.leatherShoes, bg: "var(--color-sun-50)", name: "Suede loafers" },
       { photo: PHOTOS.goldBangle, bg: "var(--color-shimmer)", name: "Gold bangle" },
@@ -148,10 +149,10 @@ const INITIAL_CARDS = [
 ];
 
 const WISHLIST = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 48, originalPrice: 64, photo: PHOTOS.floralDress, bg: "var(--color-brand-100)" },
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 62, originalPrice: null, photo: PHOTOS.bomberJacket, bg: "var(--color-coral-50)" },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 35, originalPrice: 45, photo: PHOTOS.wovenTote, bg: "var(--color-sun-50)" },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 22, originalPrice: null, photo: PHOTOS.goldHoops, bg: "var(--color-pop-50)" },
+  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, originalPrice: 3299, photo: PHOTOS.floralDress, bg: "var(--color-brand-100)" },
+  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, originalPrice: null, photo: PHOTOS.bomberJacket, bg: "var(--color-coral-50)" },
+  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, originalPrice: 2299, photo: PHOTOS.wovenTote, bg: "var(--color-sun-50)" },
+  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, originalPrice: null, photo: PHOTOS.goldHoops, bg: "var(--color-pop-50)" },
 ];
 
 const NOTIFICATION_SETTINGS = [
@@ -161,7 +162,7 @@ const NOTIFICATION_SETTINGS = [
   { id: "newsletter", title: "Weekly newsletter", desc: "Editor picks, style notes and bazar-day deals.", icon: Mail, tone: "bg-sun-50 text-sun-dark" },
 ];
 
-const money = (n) => `$${n.toFixed(2)}`;
+const money = formatPrice;
 
 const INPUT_CLASS =
   "w-full rounded-xl border border-line-strong bg-white px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-faint hover:border-line-hover focus:border-brand/40 focus:ring-4 focus:ring-brand/10";

@@ -4,7 +4,7 @@ import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 
 const TICKER_ITEMS = [
-  "Free shipping over $50",
+  "Free shipping over ₹999",
   "New arrivals every Friday",
   "1,200+ independent stalls",
   "Complimentary 30-day returns",
@@ -163,7 +163,7 @@ function Hero() {
                 </span>
                 <span className="block font-display text-[15px] text-ink">Draped midi dress</span>
                 <span className="block text-sm text-ink">
-                  $48 <span className="ml-1 text-xs text-faint line-through">$64</span>
+                  ₹2,499 <span className="ml-1 text-xs text-faint line-through">₹3,299</span>
                 </span>
               </span>
               <ArrowRight size={16} className="ml-2 text-ink transition-transform group-hover:translate-x-1" />

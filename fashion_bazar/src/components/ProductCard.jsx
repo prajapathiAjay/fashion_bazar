@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Star, ShoppingBag } from "lucide-react";
 import SmartImage from "./SmartImage";
+import { formatPrice } from "../utils/formatPrice";
 
 function ProductCard({ product }) {
 
@@ -48,9 +49,9 @@ function ProductCard({ product }) {
         <p className="font-display text-[17px] leading-snug text-ink transition-colors group-hover:text-brand">{product.name}</p>
         <div className="mt-auto flex items-center justify-between pt-1.5">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[15px] text-ink">${product.price}</span>
+            <span className="text-[15px] text-ink">{formatPrice(product.price)}</span>
             {product.originalPrice && (
-              <span className="text-xs text-subtle line-through">${product.originalPrice}</span>
+              <span className="text-xs text-subtle line-through">{formatPrice(product.originalPrice)}</span>
             )}
           </div>
           <div className="flex items-center gap-1 text-xs text-muted">
