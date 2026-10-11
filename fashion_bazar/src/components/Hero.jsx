@@ -1,200 +1,182 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Star, TrendingUp, Sparkles, Shield, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
+import SmartImage from "./SmartImage";
+import { PHOTOS, unsplash } from "../assets/images";
+
+const TICKER_ITEMS = [
+  "Free shipping over $50",
+  "New arrivals every Friday",
+  "1,200+ independent stalls",
+  "Complimentary 30-day returns",
+  "Secure checkout",
+];
+
+const HIGHLIGHTS = [
+  { value: "1,200+", label: "Independent stalls" },
+  { value: "4.8", label: "Average rating", star: true },
+  { value: "48h", label: "Average delivery" },
+];
+
+function Ticker() {
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS];
+  return (
+    <div className="overflow-hidden border-y border-ink bg-ink py-3">
+      <div className="flex w-max animate-marquee items-center hover:[animation-play-state:paused]">
+        {items.map((item, i) => (
+          <span key={i} className="flex items-center whitespace-nowrap">
+            <span className="px-8 text-[11px] font-medium uppercase tracking-[0.3em] text-white/85">{item}</span>
+            <span className="text-sun" aria-hidden="true">
+              ✦
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#FBFAFD] via-white to-[#F7F6FA]">
-      {/* Decorative Background Elements */}
-      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-[#EEEDFE] blur-3xl opacity-60" />
-      <div className="pointer-events-none absolute -right-24 top-20 h-80 w-80 rounded-full bg-[#FDF3DC] blur-3xl opacity-60" />
-      <div className="pointer-events-none absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[#F5D488] blur-3xl opacity-20" />
-      
-      {/* Animated dots pattern */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.03]">
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'radial-gradient(circle, #1B1523 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
-        }} />
-      </div>
+    <section className="relative overflow-hidden bg-mist">
+      {/* Soft champagne wash behind the imagery */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-sun-50 lg:block" />
 
-      <div className="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 md:py-20 lg:px-8 lg:py-28">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-          
-          {/* Left Column - Content */}
-          <div className="order-2 lg:order-1">
-            {/* Badge */}
-            <div className="inline-flex animate-fade-in items-center gap-2 rounded-full border border-[#ECE9F1] bg-white/80 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-[#5B21B6] shadow-sm transition-all hover:shadow-md">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5B21B6] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#5B21B6]" />
-              </span>
-              The bazar is open — autumn drop is live
-            </div>
-
-            {/* Main Heading */}
-            <h1 className="font-display mt-6 text-[40px] font-bold leading-[1.08] tracking-tight text-[#1B1523] sm:text-5xl lg:text-[56px] xl:text-[64px]">
-              Every stall,
-              <br />
-              <span className="relative inline-block">
-                one address
-                <svg
-                  className="absolute -bottom-2 left-0 w-full"
-                  viewBox="0 0 200 12"
-                  fill="none"
-                  preserveAspectRatio="none"
-                >
-                  <path
-                    d="M2 9C40 3 160 3 198 9"
-                    stroke="#F5D488"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    className="animate-draw"
-                  />
-                </svg>
-              </span>
-            </h1>
-
-            {/* Description */}
-            <p className="mt-6 max-w-md text-[17px] leading-relaxed text-[#6B6478] lg:text-lg">
-              Hundreds of independent sellers, one checkout. Curated fashion
-              from across the bazar, refreshed every week.
+      <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-12 sm:px-6 md:pt-16 lg:px-8 lg:pb-24 lg:pt-20">
+        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-12 lg:gap-12">
+          {/* ---------------- Copy ---------------- */}
+          <div className="animate-fade-up lg:col-span-5">
+            <p className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.3em] text-brand">
+              <span className="h-px w-10 bg-brand" />
+              Autumn / Winter 2026
             </p>
 
-            {/* CTA Buttons */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <h1 className="mt-6 text-[46px] font-medium leading-[1.04] text-ink sm:text-6xl lg:text-[64px] xl:text-[74px]">
+              Every stall,
+              <br />
+              one <span className="text-gradient">beautiful</span>
+              <br />
+              address.
+            </h1>
+
+            <p className="mt-7 max-w-md text-[17px] font-light leading-relaxed text-muted lg:text-lg">
+              Discover considered fashion from hundreds of independent ateliers and makers — curated,
+              collected and delivered in a single checkout.
+            </p>
+
+            <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
                 to="/products"
-                className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[#1B1523] px-7 py-3.5 text-sm font-semibold text-white transition-all hover:scale-105 hover:shadow-xl active:scale-[0.98]"
+                className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-brand"
               >
-                <span className="relative z-10">Browse the bazar</span>
-                <ArrowRight
-                  size={16}
-                  className="relative z-10 transition-transform duration-300 group-hover:translate-x-1"
-                />
-                <span className="absolute inset-0 bg-gradient-to-r from-[#F5D488] to-[#e8c477] opacity-0 transition-opacity group-hover:opacity-20" />
+                Shop the collection
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               </Link>
-              
               <Link
                 to="/new-arrivals"
-                className="group inline-flex items-center gap-2 rounded-full border border-[#E4E0EC] bg-white px-7 py-3.5 text-sm font-semibold text-[#1B1523] transition-all hover:scale-105 hover:border-[#F5D488] hover:shadow-md"
+                className="group inline-flex items-center gap-2 border-b border-ink pb-1 text-sm font-medium uppercase tracking-[0.15em] text-ink transition-colors hover:border-brand hover:text-brand"
               >
-                See new arrivals
-                <Sparkles size={16} className="text-[#F5D488]" />
+                New arrivals
+                <ArrowUpRight size={15} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </Link>
             </div>
 
-            {/* Trust Indicators - Enhanced */}
-            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-[#ECE9F1] pt-6">
-              <div className="group">
-                <p className="font-display text-2xl font-bold text-[#1B1523] transition-colors group-hover:text-[#5B21B6]">
-                  1,200+
-                </p>
-                <p className="text-xs text-[#9691A4] flex items-center gap-1">
-                  <Shield size={12} />
-                  sellers on the bazar
-                </p>
-              </div>
-              <div className="h-8 w-px bg-[#ECE9F1]" />
-              <div className="group">
-                <p className="font-display text-2xl font-bold text-[#1B1523] transition-colors group-hover:text-[#5B21B6]">
-                  4.8/5
-                </p>
-                <p className="text-xs text-[#9691A4] flex items-center gap-1">
-                  <Star size={12} className="fill-[#F5D488] text-[#F5D488]" />
-                  average seller rating
-                </p>
-              </div>
-              <div className="h-8 w-px bg-[#ECE9F1]" />
-              <div className="group">
-                <p className="font-display text-2xl font-bold text-[#1B1523] transition-colors group-hover:text-[#5B21B6]">
-                  48h
-                </p>
-                <p className="text-xs text-[#9691A4] flex items-center gap-1">
-                  <Truck size={12} />
-                  average delivery
-                </p>
-              </div>
-            </div>
+            <dl className="mt-12 grid max-w-md grid-cols-3 divide-x divide-line-strong border-t border-line-strong pt-6">
+              {HIGHLIGHTS.map(({ value, label, star }) => (
+                <div key={label} className="px-4 first:pl-0">
+                  <dt className="sr-only">{label}</dt>
+                  <dd className="flex items-center gap-1 font-display text-2xl text-ink sm:text-[28px]">
+                    {value}
+                    {star && <Star size={15} className="fill-sun text-sun" />}
+                  </dd>
+                  <dd className="mt-1 text-[11px] uppercase tracking-[0.15em] text-subtle">{label}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
 
-          {/* Right Column - Visual Grid */}
-          <div className="order-1 lg:order-2">
-            <div className="relative mx-auto grid h-[420px] max-w-md grid-cols-5 grid-rows-6 gap-3 sm:h-[480px] sm:max-w-lg lg:mx-0 lg:max-w-full">
-              {/* Colorful blocks */}
-              <div className="col-span-3 row-span-4 rounded-3xl bg-gradient-to-br from-[#D9D2F0] to-[#C4B8E8] shadow-lg transition-all hover:scale-[1.02] hover:shadow-2xl" />
-              <div className="col-span-2 row-span-3 rounded-3xl bg-gradient-to-br from-[#F0997B] to-[#E88463] shadow-lg transition-all hover:scale-[1.02] hover:shadow-2xl" />
-              <div className="col-span-2 col-start-4 row-span-3 row-start-4 rounded-3xl bg-gradient-to-br from-[#F7DFA8] to-[#F5D488] shadow-lg transition-all hover:scale-[1.02] hover:shadow-2xl" />
-              <div className="col-span-3 row-span-2 col-start-1 row-start-5 rounded-3xl bg-gradient-to-br from-[#EAD7E6] to-[#DFC8DA] shadow-lg transition-all hover:scale-[1.02] hover:shadow-2xl" />
+          {/* ---------------- Editorial imagery ---------------- */}
+          <div className="relative lg:col-span-7">
+            <div className="grid grid-cols-12 gap-4 sm:gap-5">
+              {/* Main look */}
+              <Link
+                to="/categories/women"
+                className="group relative col-span-8 aspect-[4/5] overflow-hidden rounded-sm"
+              >
+                <SmartImage
+                  src={unsplash(PHOTOS.womanCoat, 720, 900)}
+                  alt="Woman in a pale blue tailored coat"
+                  bg="var(--color-shimmer)"
+                  fetchPriority="high"
+                  imgClassName="transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                />
+                <span className="absolute inset-x-0 top-0 bg-gradient-to-b from-ink/55 to-transparent p-5 pb-20 sm:p-6 sm:pb-24">
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.3em] text-white/75">
+                    Look 01 · Women
+                  </span>
+                  <span className="mt-1 flex items-center gap-2 font-display text-xl text-white sm:text-2xl">
+                    The tailored coat edit
+                    <ArrowUpRight size={18} className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                  </span>
+                </span>
+              </Link>
 
-              {/* Floating Rating Card */}
-              <div className="absolute -left-4 top-6 animate-float flex items-center gap-2 rounded-2xl bg-white/90 backdrop-blur-sm px-4 py-3 shadow-[0_8px_30px_rgba(27,21,35,0.12)] transition-all hover:scale-105 hover:shadow-xl sm:-left-8">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5D488]">
-                  <Star size={18} className="fill-[#1B1523] text-[#1B1523]" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold leading-tight text-[#1B1523]">4.8 rating</p>
-                  <p className="text-xs leading-tight text-[#9691A4]">from 20k+ buyers</p>
-                </div>
-              </div>
-
-              {/* Floating Trend Card */}
-              <div className="absolute -right-4 bottom-8 animate-float-delayed flex items-center gap-2 rounded-2xl bg-[#1B1523] px-4 py-3 shadow-[0_8px_30px_rgba(27,21,35,0.25)] transition-all hover:scale-105 hover:shadow-xl sm:-right-8">
-                <TrendingUp size={18} className="text-[#F5D488]" />
-                <div>
-                  <p className="text-xs font-medium text-white">
-                    Trending in <span className="text-[#F5D488]">Footwear</span>
-                  </p>
-                  <p className="text-[10px] text-white/50">+42% this week</p>
-                </div>
-              </div>
-
-              {/* Floating Sparkle */}
-              <div className="absolute -top-2 right-12 animate-pulse">
-                <Sparkles size={20} className="text-[#F5D488]" />
+              {/* Side column */}
+              <div className="col-span-4 flex flex-col gap-4 sm:gap-5">
+                <Link to="/categories/men" className="group relative aspect-[3/4] overflow-hidden rounded-sm">
+                  <SmartImage
+                    src={unsplash(PHOTOS.manSuit, 400, 540)}
+                    alt="Man in a navy suit"
+                    bg="var(--color-shimmer)"
+                    imgClassName="transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                  />
+                  <span className="absolute bottom-3 left-3 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-ink">
+                    Men
+                  </span>
+                </Link>
+                <Link to="/categories/jewelry" className="group relative flex-1 overflow-hidden rounded-sm">
+                  <SmartImage
+                    src={unsplash(PHOTOS.goldHoops, 400, 400)}
+                    alt="Gold twisted hoop earrings"
+                    bg="var(--color-shimmer)"
+                    className="absolute inset-0"
+                    imgClassName="transition-transform duration-[1200ms] ease-out group-hover:scale-105"
+                  />
+                  <span className="absolute bottom-3 left-3 bg-white px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-ink">
+                    Jewelry
+                  </span>
+                </Link>
               </div>
             </div>
+
+            {/* Featured product card */}
+            <Link
+              to="/products/p1"
+              className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
+            >
+              <span className="h-16 w-12 overflow-hidden">
+                <SmartImage src={unsplash(PHOTOS.floralDress, 120, 160)} alt="" bg="var(--color-shimmer)" />
+              </span>
+              <span>
+                <span className="block text-[10px] font-medium uppercase tracking-[0.2em] text-subtle">
+                  Most loved
+                </span>
+                <span className="block font-display text-[15px] text-ink">Draped midi dress</span>
+                <span className="block text-sm text-ink">
+                  $48 <span className="ml-1 text-xs text-faint line-through">$64</span>
+                </span>
+              </span>
+              <ArrowRight size={16} className="ml-2 text-ink transition-transform group-hover:translate-x-1" />
+            </Link>
+
+            {/* Vertical editorial caption */}
+            <p className="absolute -right-2 top-1/2 hidden origin-center -translate-y-1/2 translate-x-1/2 rotate-90 text-[10px] font-medium uppercase tracking-[0.4em] text-subtle xl:block">
+              Fashion Bazar — Est. 2021
+            </p>
           </div>
         </div>
       </div>
 
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes draw {
-          from { stroke-dashoffset: 200; }
-          to { stroke-dashoffset: 0; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out;
-        }
-        
-        .animate-draw {
-          stroke-dasharray: 200;
-          animation: draw 1.5s ease-out forwards;
-        }
-        
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-        
-        .animate-float-delayed {
-          animation: float-delayed 4s ease-in-out infinite 0.5s;
-        }
-      `}</style>
+      <Ticker />
     </section>
   );
 }

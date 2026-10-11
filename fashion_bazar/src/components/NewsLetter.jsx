@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Mail, Check } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
+import SmartImage from "./SmartImage";
+import { PHOTOS, unsplash } from "../assets/images";
 
 function Newsletter() {
   const [email, setEmail] = useState("");
@@ -13,53 +15,60 @@ function Newsletter() {
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8 lg:py-20">
-      <div className="relative overflow-hidden rounded-3xl bg-[#F7F6FA] px-6 py-12 text-center sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-14 -top-14 h-48 w-48 rounded-full bg-[#EEEDFE] blur-3xl" />
-        <div className="pointer-events-none absolute -right-14 bottom-0 h-48 w-48 rounded-full bg-[#FDF3DC] blur-3xl" />
+      <div className="grid overflow-hidden rounded-sm bg-mist md:grid-cols-2">
+        <div className="relative min-h-64 md:min-h-[420px]">
+          <SmartImage
+            src={unsplash(PHOTOS.rackLight, 900, 760)}
+            alt="Clothing rail with neutral-toned blouses"
+            bg="var(--color-shimmer)"
+            className="absolute inset-0"
+          />
+        </div>
 
-        <div className="relative mx-auto max-w-lg">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
-            <Mail size={20} className="text-[#5B21B6]" />
-          </span>
-
-          <h2 className="font-display mt-5 text-2xl font-bold text-[#1B1523] sm:text-3xl">
-            First word on new stalls
+        <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-16">
+          <p className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.3em] text-brand">
+            <span className="h-px w-8 bg-brand" />
+            The Bazar letter
+          </p>
+          <h2 className="mt-5 text-3xl font-medium leading-tight text-ink sm:text-[40px]">
+            First word on <span className="text-gradient">new stalls</span>
           </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-[#6B6478]">
-            New sellers, early drops and bazar-day discounts — straight to
-            your inbox, once a week, no spam.
+          <p className="mt-4 max-w-md text-[15px] font-light leading-relaxed text-muted">
+            New makers, early drops and members-only bazar days — delivered once a week. Plus 10% off
+            your first order.
           </p>
 
           {status === "idle" ? (
-            <form
-              onSubmit={handleSubmit}
-              className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center"
-            >
+            <form onSubmit={handleSubmit} className="mt-8 flex max-w-md items-end gap-3 border-b border-ink pb-2">
+              <label htmlFor="newsletter-email" className="sr-only">
+                Email address
+              </label>
               <input
+                id="newsletter-email"
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="w-full rounded-full border border-[#E4E0EC] bg-white px-5 py-3.5 text-sm text-[#1B1523] outline-none transition-colors placeholder:text-[#9691A4] focus:border-[#5B21B6]/40 focus:ring-4 focus:ring-[#5B21B6]/10 sm:max-w-xs"
+                placeholder="Your email address"
+                className="w-full bg-transparent py-2 text-[15px] text-ink outline-none placeholder:text-subtle"
               />
               <button
                 type="submit"
-                className="shrink-0 rounded-full bg-[#1B1523] px-6 py-3.5 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+                className="group flex shrink-0 items-center gap-2 py-2 text-xs font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:text-brand"
               >
-                Join the list
+                Subscribe
+                <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
               </button>
             </form>
           ) : (
-            <div className="mt-7 flex items-center justify-center gap-2 rounded-full bg-[#EAF3DE] px-5 py-3.5 text-sm font-medium text-[#3B6D11]">
+            <p className="mt-8 flex max-w-md items-center gap-2 border-b border-success pb-3 text-sm text-success" role="status">
               <Check size={16} />
               You're on the list — welcome to the bazar.
-            </div>
+            </p>
           )}
 
-          <p className="mt-4 text-xs text-[#9691A4]">
-            No spam. Unsubscribe any time.
-          </p>
+          <p className="mt-4 text-xs text-subtle">No spam. Unsubscribe any time.</p>
         </div>
       </div>
     </section>

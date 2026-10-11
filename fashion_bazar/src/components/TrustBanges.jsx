@@ -5,36 +5,45 @@ const TRUST_POINTS = [
     icon: Truck,
     title: "Free shipping",
     desc: "On orders over $50",
+    tone: "bg-brand-50 text-brand",
   },
   {
     icon: RotateCcw,
     title: "Easy returns",
     desc: "30-day return window",
+    tone: "bg-pop-50 text-pop",
   },
   {
     icon: ShieldCheck,
     title: "Secure checkout",
     desc: "Encrypted payments",
+    tone: "bg-mint-50 text-mint",
   },
   {
     icon: Headphones,
     title: "Seller support",
     desc: "Real humans, 7 days a week",
+    tone: "bg-sun-50 text-sun-dark",
   },
 ];
 
 function TrustBadges() {
   return (
     <section className="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-8 border-y border-[#ECE9F1] py-8 sm:grid-cols-4 sm:gap-6 lg:py-10">
-        {TRUST_POINTS.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:text-left">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F7F6FA]">
-              <Icon size={20} className="text-[#5B21B6]" strokeWidth={1.75} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {TRUST_POINTS.map(({ icon: Icon, title, desc, tone }) => (
+          <div
+            key={title}
+            className="group flex flex-col items-start gap-4 rounded-3xl border border-line bg-white p-5 transition-all hover:-translate-y-1 hover:shadow-[0_14px_36px_rgba(26,16,51,0.08)] sm:flex-row sm:items-center sm:p-6"
+          >
+            <span
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${tone}`}
+            >
+              <Icon size={22} strokeWidth={2} />
             </span>
             <span>
-              <p className="text-sm font-semibold text-[#1B1523]">{title}</p>
-              <p className="mt-0.5 text-xs text-[#9691A4]">{desc}</p>
+              <p className="text-[15px] font-bold text-ink">{title}</p>
+              <p className="mt-0.5 text-xs text-subtle">{desc}</p>
             </span>
           </div>
         ))}

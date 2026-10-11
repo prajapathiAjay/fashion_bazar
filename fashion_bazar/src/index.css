@@ -1,2 +1,150 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------
+   Design tokens — the single source of truth for fonts and colours.
+   Change a value here and it updates across the whole site.
+   ------------------------------------------------------------------ */
+@theme {
+  /* Fonts (loaded in index.html) */
+  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+
+  /* Refined weights: headings never go heavier than semibold */
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
+
+  /* Subtler corners for a tailored, editorial feel */
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
+
+  /* Neutrals — warm ink on ivory, like a printed lookbook */
+  --color-ink: #1c1714;
+  --color-ink-hover: #3a302a;
+  --color-ink-soft: #3f3732;
+  --color-muted: #6b625b;
+  --color-subtle: #948a82;
+  --color-faint: #beb5ac;
+  --color-line: #ece5dd;
+  --color-line-strong: #e1d8ce;
+  --color-line-hover: #d1c6ba;
+  --color-mist: #f7f3ee;
+  --color-snow: #fbf9f6;
+  --color-shimmer: #efe8e0;
+
+  /* Brand — deep wine */
+  --color-brand-50: #faf1f2;
+  --color-brand-100: #f2dfe2;
+  --color-brand: #7b2d3d;
+  --color-brand-dark: #561e2a;
+
+  /* Pop — clay / terracotta, for sale tags and hearts */
+  --color-pop-50: #fbefea;
+  --color-pop: #b5523b;
+  --color-pop-dark: #923d29;
+
+  /* Sun — champagne gold, for badges and small highlights */
+  --color-sun-50: #f8f1e3;
+  --color-sun: #d4b06a;
+  --color-sun-dark: #a8853f;
+
+  /* Supporting accents — muted, never loud */
+  --color-mint-50: #eef3ee;
+  --color-mint: #6f8f78;
+  --color-coral-50: #faeee8;
+  --color-coral: #c98466;
+  --color-sky-50: #edf2f6;
+  --color-sky: #5d7d99;
+
+  /* Status */
+  --color-success-50: #e9f2ea;
+  --color-success: #3d6b47;
+  --color-danger-50: #f9ebe7;
+  --color-danger: #a33a2a;
+  --color-info-50: #ecf1f6;
+  --color-info: #3f6386;
+
+  /* Animations */
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-float-slow: float 7s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+  --animate-marquee: marquee 30s linear infinite;
+  --animate-blob: blob 12s ease-in-out infinite;
+  --animate-word: word-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-wiggle: wiggle 3s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+  @keyframes blob {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -40px) scale(1.08); }
+    66% { transform: translate(-25px, 20px) scale(0.95); }
+  }
+  @keyframes word-in {
+    from { opacity: 0; transform: translateY(0.4em) rotate(-3deg); }
+    to { opacity: 1; transform: translateY(0) rotate(0); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-white font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3 {
+    @apply font-display;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    @apply bg-brand text-white;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+  button:not(:disabled),
+  [role="button"],
+  label[for] {
+    cursor: pointer;
+  }
+  input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+  }
+}
+
+/* Editorial accent word: <span className="text-gradient">…</span> renders italic wine */
+@utility text-gradient {
+  color: var(--color-brand);
+  font-style: italic;
+}
+
+/* Brand gradient fill for buttons, badges and banners */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(115deg, var(--color-brand-dark) 0%, var(--color-brand) 60%, #8f3a3a 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

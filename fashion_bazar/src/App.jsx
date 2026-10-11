@@ -1,16 +1,14 @@
-import { useState } from 'react'
-
-import AppRoutes from './AppRoutes'
-import './App.css'
+import AppRoutes from "./AppRoutes";
+import ScrollToTop from "./components/ScrollToTop";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-     <AppRoutes/>
+      <ScrollToTop />
+      <AppRoutes />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

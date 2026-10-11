@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
-import { Shirt, Users, Baby, Footprints, Gem, Tag } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import SmartImage from "./SmartImage";
+import { PHOTOS, unsplash } from "../assets/images";
 
 const CATEGORIES = [
-  { to: "/categories/women", label: "Women", count: "480 items", icon: Shirt, bg: "#EEEDFE", fg: "#5B21B6" },
-  { to: "/categories/men", label: "Men", count: "365 items", icon: Users, bg: "#E6F1FB", fg: "#185FA5" },
-  { to: "/categories/kids", label: "Kids", count: "210 items", icon: Baby, bg: "#FBEAF0", fg: "#993556" },
-  { to: "/categories/footwear", label: "Footwear", count: "195 items", icon: Footprints, bg: "#FAECE7", fg: "#993C1D" },
-  { to: "/categories/jewelry", label: "Jewelry", count: "128 items", icon: Gem, bg: "#FAEEDA", fg: "#854F0B" },
-  { to: "/categories/sale", label: "Sale", count: "Up to 50% off", icon: Tag, bg: "#FBEAF0", fg: "#993556" },
+  { to: "/categories/women", label: "Women", count: "480 items", photo: PHOTOS.womanPlaid, bg: "#EEEDFE" },
+  { to: "/categories/men", label: "Men", count: "365 items", photo: PHOTOS.menswearFlatlay, bg: "#E6F1FB" },
+  { to: "/categories/kids", label: "Kids", count: "210 items", photo: PHOTOS.kidRaincoat, bg: "#FBEAF0" },
+  { to: "/categories/footwear", label: "Footwear", count: "195 items", photo: PHOTOS.sneakers, bg: "#FAECE7" },
+  { to: "/categories/jewelry", label: "Jewelry", count: "128 items", photo: PHOTOS.goldBangle, bg: "#FAEEDA" },
+  { to: "/categories/sale", label: "Sale", count: "Up to 50% off", photo: PHOTOS.shopper, bg: "#FBEAF0", accent: true },
 ];
 
 function CategoryStrip() {
@@ -15,16 +17,17 @@ function CategoryStrip() {
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8 lg:py-16">
       <div className="mb-6 flex items-end justify-between lg:mb-8">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-[#9691A4]">
+          <p className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.3em] text-brand">
+            <span className="h-px w-8 bg-brand" />
             Find your stall
           </p>
-          <h2 className="font-display mt-1 text-2xl font-bold text-[#1B1523] sm:text-[28px]">
+          <h2 className="font-display mt-4 text-3xl font-medium text-ink sm:text-[42px] sm:leading-tight">
             Shop by category
           </h2>
         </div>
         <Link
           to="/categories"
-          className="hidden text-sm font-semibold text-[#5B21B6] hover:text-[#3C3489] sm:block"
+          className="hidden border-b border-ink pb-0.5 text-xs font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:border-brand hover:text-brand sm:block"
         >
           View all
         </Link>
@@ -32,21 +35,33 @@ function CategoryStrip() {
 
       {/* Mobile / tablet: snap-scroll row. Desktop: even grid */}
       <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] snap-x snap-mandatory sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-6 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
-        {CATEGORIES.map(({ to, label, count, icon: Icon, bg, fg }) => (
+        {CATEGORIES.map(({ to, label, count, photo, bg, accent }) => (
           <Link
             key={label}
             to={to}
-            className="group flex shrink-0 basis-[132px] snap-start flex-col items-center gap-3 rounded-2xl border border-[#ECE9F1] bg-white px-4 py-5 text-center transition-all hover:-translate-y-0.5 hover:border-transparent hover:shadow-[0_10px_30px_rgba(27,21,35,0.08)] sm:basis-[150px] lg:basis-auto"
+            className="group relative block aspect-[3/4] shrink-0 basis-[150px] snap-start overflow-hidden rounded-2xl transition-shadow hover:shadow-[0_14px_36px_rgba(27,21,35,0.16)] sm:basis-[180px] lg:basis-auto"
           >
-            <span
-              className="flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105"
-              style={{ backgroundColor: bg }}
-            >
-              <Icon size={24} style={{ color: fg }} strokeWidth={1.75} />
+            <SmartImage
+              src={unsplash(photo, 360, 480)}
+              alt={`${label} category`}
+              bg={bg}
+              className="absolute inset-0"
+              imgClassName="transition-transform duration-700 group-hover:scale-110"
+            />
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
+            {accent && (
+              <span className="absolute left-3 top-3 rounded-full bg-sun px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ink">
+                Hot
+              </span>
+            )}
+            <span className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-ink opacity-0 transition-all duration-300 group-hover:opacity-100">
+              <ArrowUpRight size={15} />
             </span>
-            <span>
-              <p className="text-[15px] font-semibold text-[#1B1523]">{label}</p>
-              <p className="mt-0.5 text-xs text-[#9691A4]">{count}</p>
+            <span className="absolute inset-x-0 bottom-0 p-4">
+              <span className="block text-base font-semibold text-white">{label}</span>
+              <span className={`mt-0.5 block text-xs ${accent ? "text-sun" : "text-white/70"}`}>
+                {count}
+              </span>
             </span>
           </Link>
         ))}
@@ -55,7 +70,7 @@ function CategoryStrip() {
       {/* mobile-only "view all" link since desktop has it up top */}
       <Link
         to="/categories"
-        className="mt-6 block text-center text-sm font-semibold text-[#5B21B6] sm:hidden"
+        className="mt-6 block text-center text-sm font-semibold text-brand sm:hidden"
       >
         View all categories
       </Link>

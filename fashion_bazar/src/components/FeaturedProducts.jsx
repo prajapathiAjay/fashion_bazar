@@ -2,6 +2,7 @@ import { useState,useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Star, ShoppingBag } from "lucide-react";
 import ProductCard from "./ProductCard";
+import { ProductGridSkeleton, ProductsEmpty } from "./ProductGridStatus";
 import {useDispatch, useSelector} from 'react-redux'
 import {fetchProducts} from '../features/products/productThunks'
 const PRODUCTS = [
@@ -103,30 +104,35 @@ useEffect(()=>{
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8 lg:py-16">
       <div className="mb-6 flex items-end justify-between lg:mb-8">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-[#9691A4]">
+          <p className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.3em] text-brand">
+            <span className="h-px w-8 bg-brand" />
             Picked for you
           </p>
-          <h2 className="font-display mt-1 text-2xl font-bold text-[#1B1523] sm:text-[28px]">
+          <h2 className="font-display mt-4 text-3xl font-medium text-ink sm:text-[42px] sm:leading-tight">
             Featured this week
           </h2>
         </div>
         <Link
           to="/products"
-          className="hidden text-sm font-semibold text-[#5B21B6] hover:text-[#3C3489] sm:block"
+          className="hidden border-b border-ink pb-0.5 text-xs font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:border-brand hover:text-brand sm:block"
         >
           View all
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {products?.map((product) => (
-          <ProductCard key={product?.id} product={product} />
-        ))}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+        {loading ? (
+          <ProductGridSkeleton count={8} />
+        ) : products?.length ? (
+          products.slice(0, 8).map((product) => <ProductCard key={product?.id} product={product} />)
+        ) : (
+          <ProductsEmpty error={error} />
+        )}
       </div>
 
       <Link
         to="/products"
-        className="mt-8 block text-center text-sm font-semibold text-[#5B21B6] sm:hidden"
+        className="mt-8 block text-center text-sm font-semibold text-brand sm:hidden"
       >
         View all products
       </Link>
