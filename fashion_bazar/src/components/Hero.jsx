@@ -18,13 +18,14 @@ const HIGHLIGHTS = [
 ];
 
 function Ticker() {
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS];
+  // Four copies: the marquee shifts by exactly half (two copies), so the loop is seamless
+  const items = [...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS];
   return (
-    <div className="overflow-hidden border-y border-ink bg-ink py-3">
-      <div className="flex w-max animate-marquee items-center hover:[animation-play-state:paused]">
+    <div className="relative overflow-hidden border-y border-ink bg-ink py-3">
+      <div className="flex w-max animate-marquee items-center [animation-duration:40s] [backface-visibility:hidden] [will-change:transform] hover:[animation-play-state:paused]">
         {items.map((item, i) => (
           <span key={i} className="flex items-center whitespace-nowrap">
-            <span className="px-8 text-[11px] font-medium uppercase tracking-[0.3em] text-white/85">{item}</span>
+            <span className="px-8 text-xs font-medium uppercase tracking-[0.25em] text-white [-webkit-font-smoothing:subpixel-antialiased]">{item}</span>
             <span className="text-sun" aria-hidden="true">
               ✦
             </span>

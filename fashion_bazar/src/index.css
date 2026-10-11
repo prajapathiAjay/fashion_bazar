@@ -78,8 +78,8 @@
     50% { transform: translateY(-12px); }
   }
   @keyframes marquee {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
   }
   @keyframes blob {
     0%, 100% { transform: translate(0, 0) scale(1); }
