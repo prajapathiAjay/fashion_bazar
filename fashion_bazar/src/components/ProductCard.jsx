@@ -15,7 +15,7 @@ function ProductCard({ product }) {
 
   return (
     <div className="group relative flex flex-col bg-white">
-      <Link to={`/products/${productId}`} className="relative block aspect-[3/4] overflow-hidden rounded-sm bg-shimmer">
+      <Link to={`/products/${productId}`} className="relative block aspect-3/4 overflow-hidden rounded-sm bg-shimmer">
         <SmartImage
           src={product.image ?? product.images?.[0] ?? product.thumbnail}
           alt={product.name}
