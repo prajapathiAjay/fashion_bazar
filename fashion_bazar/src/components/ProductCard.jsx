@@ -7,13 +7,15 @@ import { formatPrice } from "../utils/formatPrice";
 function ProductCard({ product }) {
 
   const [wishlisted, setWishlisted] = useState(false);
+  const productId = product._id ?? product.id;
+  const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
   const discount = product.originalPrice
     ? Math.round(100 - (product.price / product.originalPrice) * 100)
     : null;
 
   return (
     <div className="group relative flex flex-col bg-white">
-      <Link to={`/products/${product.id}`} className="relative block aspect-[3/4] overflow-hidden rounded-sm bg-shimmer">
+      <Link to={`/products/${productId}`} className="relative block aspect-[3/4] overflow-hidden rounded-sm bg-shimmer">
         <SmartImage
           src={product.image ?? product.images?.[0] ?? product.thumbnail}
           alt={product.name}
@@ -44,8 +46,8 @@ function ProductCard({ product }) {
         </button>
       </Link>
 
-      <Link to={`/products/${product.id}`} className="flex flex-1 flex-col gap-1 pt-3.5">
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-subtle">{product.seller}</p>
+      <Link to={`/products/${productId}`} className="flex flex-1 flex-col gap-1 pt-3.5">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-subtle">{sellerName}</p>
         <p className="font-display text-[17px] leading-snug text-ink transition-colors group-hover:text-brand">{product.name}</p>
         <div className="mt-auto flex items-center justify-between pt-1.5">
           <div className="flex items-baseline gap-1.5">
@@ -56,7 +58,7 @@ function ProductCard({ product }) {
           </div>
           <div className="flex items-center gap-1 text-xs text-muted">
             <Star size={12} className="fill-sun text-sun" />
-            {product.rating}
+            {typeof product.rating === "object" ? product.rating?.average : product.rating}
           </div>
         </div>
       </Link>

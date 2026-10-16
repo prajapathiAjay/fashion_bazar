@@ -124,7 +124,7 @@ useEffect(()=>{
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : products?.length ? (
-          products.slice(0, 8).map((product) => <ProductCard key={product?.id} product={product} />)
+          products.slice(0, 8).map((product) => <ProductCard key={product?._id ?? product?.id} product={product} />)
         ) : (
           <ProductsEmpty error={error} />
         )}
