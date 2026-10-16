@@ -2,13 +2,15 @@ import { PackageSearch } from "lucide-react";
 
 export function ProductCardSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col overflow-hidden rounded-2xl border border-line bg-white">
-      <div className="aspect-[4/5] bg-shimmer" />
-      <div className="flex flex-col gap-2 px-3.5 py-3">
-        <div className="h-2.5 w-16 rounded bg-shimmer" />
-        <div className="h-3.5 w-3/4 rounded bg-shimmer" />
-        <div className="mt-1 h-3.5 w-10 rounded bg-shimmer" />
+    <div className="flex animate-pulse flex-col">
+      <div className="relative aspect-2/3 rounded-sm bg-shimmer">
+        <div className="absolute inset-x-3 bottom-3 flex flex-col gap-2">
+          <div className="h-2 w-14 rounded bg-line-strong" />
+          <div className="h-3.5 w-3/4 rounded bg-line-strong" />
+          <div className="h-3 w-12 rounded bg-line-strong" />
+        </div>
       </div>
+      <div className="mt-2.5 h-10 border border-line" />
     </div>
   );
 }
