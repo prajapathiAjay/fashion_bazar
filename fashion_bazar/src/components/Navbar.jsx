@@ -444,7 +444,7 @@ function Navbar() {
             </Link>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
             <nav className="flex flex-col gap-1" aria-label="Mobile">
               {NAV_LINKS.filter((l) => !l.mega).map((link) => (
                 <NavLink
@@ -468,23 +468,23 @@ function Navbar() {
             </nav>
 
             <p className="mb-2 mt-6 px-4 text-xs font-bold uppercase tracking-wider text-subtle">Categories</p>
-            <div className="grid grid-cols-2 gap-2 px-1">
+            <div className="grid grid-cols-2 gap-2">
               {MEGA_CATEGORIES.map((cat) => (
                 <Link
                   key={cat.to}
                   to={cat.to}
                   onClick={closeAll}
-                  className={`flex items-center gap-2.5 rounded-2xl p-2 ${cat.tone}`}
+                  className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 ${cat.tone}`}
                 >
-                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-xl">
+                  <span className="h-9 w-9 shrink-0 overflow-hidden rounded-xl">
                     <SmartImage src={unsplash(cat.photo, 80, 80)} alt="" />
                   </span>
-                  <span className="text-sm font-semibold text-ink">{cat.label}</span>
+                  <span className="min-w-0 truncate text-sm font-semibold text-ink">{cat.label}</span>
                 </Link>
               ))}
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-2 px-1">
+            <div className="mt-6 grid grid-cols-2 gap-2">
               <Link
                 to="/account?tab=wishlist"
                 onClick={closeAll}
