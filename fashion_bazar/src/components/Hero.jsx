@@ -40,18 +40,18 @@ function Hero() {
   return (
     <section className="relative overflow-hidden bg-mist">
       {/* Soft champagne wash behind the imagery */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-sun-50 lg:block" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] bg-sun-50 md:block" />
 
       <div className="relative mx-auto max-w-7xl px-5 pb-16 pt-12 sm:px-6 md:pt-16 lg:px-8 lg:pb-24 lg:pt-20">
-        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-12 lg:gap-12">
+        <div className="grid grid-cols-1 items-center gap-14 md:grid-cols-12 md:gap-8 lg:gap-12">
           {/* ---------------- Copy ---------------- */}
-          <div className="animate-fade-up lg:col-span-5">
+          <div className="animate-fade-up md:col-span-6 lg:col-span-5">
             <p className="flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.3em] text-brand">
               <span className="h-px w-10 bg-brand" />
               Autumn / Winter 2026
             </p>
 
-            <h1 className="mt-6 text-[46px] font-medium leading-[1.04] text-ink sm:text-6xl lg:text-[64px] xl:text-[74px]">
+            <h1 className="mt-6 text-[46px] font-medium leading-[1.04] text-ink sm:text-6xl md:text-5xl lg:text-[64px] xl:text-[74px]">
               Every stall,
               <br />
               one <span className="text-gradient">beautiful</span>
@@ -59,7 +59,7 @@ function Hero() {
               address.
             </h1>
 
-            <p className="mt-7 max-w-md text-[17px] font-light leading-relaxed text-muted lg:text-lg">
+            <p className="mt-7 max-w-md text-[17px] md:text-base font-light leading-relaxed text-muted lg:text-lg">
               Discover considered fashion from hundreds of independent ateliers and makers — curated,
               collected and delivered in a single checkout.
             </p>
@@ -81,7 +81,7 @@ function Hero() {
               </Link>
             </div>
 
-            <dl className="mt-12 grid max-w-md grid-cols-3 divide-x divide-line-strong border-t border-line-strong pt-6">
+            <dl className="mt-12 grid max-w-md grid-cols-3 md:mt-10 lg:mt-12 divide-x divide-line-strong border-t border-line-strong pt-6">
               {HIGHLIGHTS.map(({ value, label, star }) => (
                 <div key={label} className="px-4 first:pl-0">
                   <dt className="sr-only">{label}</dt>
@@ -96,12 +96,12 @@ function Hero() {
           </div>
 
           {/* ---------------- Editorial imagery ---------------- */}
-          <div className="relative lg:col-span-7">
+          <div className="relative md:col-span-6 lg:col-span-7">
             <div className="grid grid-cols-12 gap-4 sm:gap-5">
               {/* Main look */}
               <Link
                 to="/categories/women"
-                className="group relative col-span-8 aspect-[4/5] overflow-hidden rounded-sm"
+                className="group relative col-span-8 aspect-[4/5] overflow-hidden md:aspect-[3/5] lg:aspect-[4/5] rounded-sm"
               >
                 <SmartImage
                   src={unsplash(PHOTOS.womanCoat, 720, 900)}
@@ -152,7 +152,7 @@ function Hero() {
             {/* Featured product card */}
             <Link
               to="/products/p1"
-              className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
+              className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex md:hidden lg:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
             >
               <span className="h-16 w-12 overflow-hidden">
                 <SmartImage src={unsplash(PHOTOS.floralDress, 120, 160)} alt="" bg="var(--color-shimmer)" />
