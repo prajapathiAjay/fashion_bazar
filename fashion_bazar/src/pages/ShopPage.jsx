@@ -228,7 +228,7 @@ function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceM
         </div>
       </FilterSection>
 
-      <FilterSection title="Size" hint={selected.sizes.length || null}>
+      {/* <FilterSection title="Size" hint={selected.sizes.length || null}>
         <div className="grid grid-cols-5 gap-2">
           {SIZES.map((size) => {
             const active = selected.sizes.includes(size);
@@ -276,7 +276,7 @@ function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceM
             );
           })}
         </div>
-      </FilterSection>
+      </FilterSection> */}
     </div>
   );
 }
@@ -416,7 +416,8 @@ function ShopPage() {
 
 // const dispatch = useDispatch();
 // const {products,loading,error}=useSelector((state)=>state.products)
-const {data:products, isLoading:loading, error}=useGetProductsQuery()
+  const { categorySlug } = useParams();
+const {data:products, isFetching:loading, error}=useGetProductsQuery(categorySlug)
 const {data:categories}=useGetCategoryQuery()
 console.log("products",products,loading,error)
 //   useEffect(()=>{
@@ -465,7 +466,6 @@ console.log("products",products,loading,error)
 
   // Heading follows the route: /categories/women, /new-arrivals, /deals, ?q=search
   const { pathname } = useLocation();
-  const { categorySlug } = useParams();
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("q");
   const pageTitle = searchQuery

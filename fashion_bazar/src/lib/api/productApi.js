@@ -3,7 +3,11 @@ import { baseApi } from './baseApi';
 export const productapi = baseApi.injectEndpoints({
     endpoints: (build) => ({
         getProducts: build.query({
-            query: () => "/products",
+            // Pass a category slug to get only that category's products
+            query: (categorySlug) =>
+                categorySlug
+                    ? { url: "/products", params: { category: categorySlug } }
+                    : "/products",
             transformResponse: (response) => response.data,
             providesTags: ["Product"]
 
