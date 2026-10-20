@@ -24,6 +24,9 @@ import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { ProductGridSkeleton, ProductsEmpty } from "../components/ProductGridStatus";
 import { formatPrice } from "../utils/formatPrice";
+import {useGetProductsQuery} from "../lib/api/productApi";
+import {useGetCategoryQuery} from "../lib/api/categoryApi";
+
 
 const CATEGORIES = ["Women", "Men", "Kids", "Footwear", "Jewelry", "Accessories"];
 const SIZES = ["XS", "S", "M", "L", "XL"];
@@ -183,7 +186,7 @@ function FilterSection({ title, hint, children, defaultOpen = true }) {
 function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceMax, setPriceMax, idPrefix }) {
   return (
     <div>
-      <FilterSection title="Category" hint={selected.categories.length || null}>
+      {/* <FilterSection title="Category" hint={selected.categories.length || null}>
         <div className="flex flex-col gap-1">
           {CATEGORIES.map((cat) => {
             const checked = selected.categories.includes(cat);
@@ -205,7 +208,7 @@ function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceM
             );
           })}
         </div>
-      </FilterSection>
+      </FilterSection> */}
 
       <FilterSection title="Price">
         <div>
@@ -424,14 +427,16 @@ function ShopPage() {
   const [dense, setDense] = useState(false);
   const [page, setPage] = useState(1);
 
-const dispatch = useDispatch();
-const {products,loading,error}=useSelector((state)=>state.products)
+// const dispatch = useDispatch();
+// const {products,loading,error}=useSelector((state)=>state.products)
+const {data:products, isLoading:loading, error}=useGetProductsQuery()
+const {data:categories}=useGetCategoryQuery()
 console.log("products",products,loading,error)
-  useEffect(()=>{
-    console.log("dispatching fetchProducts")
-  dispatch(fetchProducts())
+//   useEffect(()=>{
+//     console.log("dispatching fetchProducts")
+//   dispatch(fetchProducts())
 
-},[])
+// },[])
   const toggleCategory = (cat) =>
     setSelected((s) => ({
       ...s,

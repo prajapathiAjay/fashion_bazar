@@ -5,6 +5,7 @@ import ProductCard from "./ProductCard";
 import { ProductGridSkeleton, ProductsEmpty } from "./ProductGridStatus";
 import {useDispatch, useSelector} from 'react-redux'
 import {fetchProducts} from '../features/products/productThunks'
+import { useGetProductsQuery } from "../lib/api/productApi";
 const PRODUCTS = [
   {
     id: "p1",
@@ -92,13 +93,9 @@ const PRODUCTS = [
 
 function FeaturedProducts() {
 
+const {data:products,loading,error}=useGetProductsQuery()
 
-const dispatch = useDispatch()
-const {products,loading,error} = useSelector((state)=>state.products)
-useEffect(()=>{
-  dispatch(fetchProducts())
 
-},[])
 
   return (
     <section className="mx-auto max-w-7xl px-5 py-12 sm:px-6 lg:px-8 lg:py-16">
@@ -124,7 +121,7 @@ useEffect(()=>{
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : products?.length ? (
-          products.slice(0, 8).map((product) => <ProductCard key={product?._id ?? product?.id} product={product} />)
+          products.slice(0, 8).map((product) => <ProductCard key={product?._id ?? product?._id} product={product} />)
         ) : (
           <ProductsEmpty error={error} />
         )}

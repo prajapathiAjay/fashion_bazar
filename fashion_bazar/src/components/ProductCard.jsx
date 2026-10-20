@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
+import {useGetProductsByIdQuery} from '../lib/api/productApi'
 
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
 function ProductCard({ product }) {
-
+  
   const [wishlisted, setWishlisted] = useState(false);
-  const productId = product._id ?? product.id;
+  const productId = product?._id ;
   const href = `/products/${productId}`;
   const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
   const discount = product.originalPrice > product.price
@@ -21,7 +22,6 @@ function ProductCard({ product }) {
   // A second photo, if there is one, fades in on hover (desktop only)
   const mainImage = product.image ?? product.images?.[0] ?? product.thumbnail;
   const hoverImage = product.images?.find((img) => img && img !== mainImage);
-
   return (
     <article className="group relative flex flex-col bg-white">
       <div className="relative aspect-2/3 overflow-hidden rounded-sm bg-shimmer">

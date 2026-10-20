@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useRef, useState, } from "react";
+import { Link,useParams } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash, unsplashZoom } from "../assets/images";
 
@@ -27,7 +27,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-
+import { useGetProductsByIdQuery } from "../lib/api/productApi";
 // Main shot plus close-up crops of the same photo
 const IMAGES = [
   { src: unsplash(PHOTOS.floralDress, 900, 1125), thumb: unsplash(PHOTOS.floralDress, 160, 160), bg: "#D9D2F0" },
@@ -336,7 +336,8 @@ function ProductDetail() {
   const [wishlisted, setWishlisted] = useState(false);
   const [addedToBag, setAddedToBag] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-
+  const { productId } = useParams();
+ const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
   const price = 2499;
   const originalPrice = 3299;
   const discount = Math.round(100 - (price / originalPrice) * 100);
@@ -404,7 +405,7 @@ function ProductDetail() {
             </div>
 
             <div className="mt-5 flex items-start justify-between gap-3">
-              <h1 className="text-3xl font-extrabold leading-tight text-ink sm:text-4xl">Draped midi dress</h1>
+              <h1 className="text-3xl font-extrabold leading-tight text-ink sm:text-4xl">{product?.name}</h1>
               <button
                 type="button"
                 aria-label="Share product"
