@@ -573,26 +573,26 @@ console.log("products",products,loading,error)
           {/* Category chips */}
           <nav aria-label="Shop categories" className="mt-6">
             <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-wrap lg:px-0 [&::-webkit-scrollbar]:hidden">
-              {CHIPS.map((chip) => {
-                const active = chip.match(chipCtx) && !searchQuery;
+              {categories?.map((chip) => {
+                // const active = chip?.match(chipCtx) && !searchQuery;
                 return (
-                  <li key={chip.label} className="shrink-0">
+                  <li key={chip?.categoryName} className="shrink-0">
                     <Link
-                      to={chip.to}
-                      aria-current={active ? "page" : undefined}
-                      className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all ${
-                        active
-                          ? chip.sale
-                            ? "border-transparent bg-pop text-white shadow-md"
-                            : "border-transparent bg-ink text-white shadow-md"
-                          : chip.sale
-                          ? "border-pop/30 bg-white text-pop-dark hover:-translate-y-0.5 hover:bg-pop-50"
-                          : "border-line bg-white/90 text-ink-soft hover:-translate-y-0.5 hover:border-line-hover hover:text-ink"
-                      }`}
+                      to={`${chip?.slug}`}
+                      // aria-current={active ? "page" : undefined}
+                      // className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all ${
+                      //   active
+                      //     ? chip?.sale
+                      //       ? "border-transparent bg-pop text-white shadow-md"
+                      //       : "border-transparent bg-ink text-white shadow-md"
+                      //     : chip?.sale
+                      //     ? "border-pop/30 bg-white text-pop-dark hover:-translate-y-0.5 hover:bg-pop-50"
+                      //     : "border-line bg-white/90 text-ink-soft hover:-translate-y-0.5 hover:border-line-hover hover:text-ink"
+                      // }`}
                     >
-                      {chip.dot && <span className={`h-2 w-2 rounded-full ${chip.dot}`} />}
-                      {chip.sale && <Sparkles size={14} />}
-                      {chip.label}
+                      {chip?.dot && <span className={`h-2 w-2 rounded-full ${chip?.dot}`} />}
+                      {chip?.sale && <Sparkles size={14} />}
+                      {chip?.categoryName}
                     </Link>
                   </li>
                 );

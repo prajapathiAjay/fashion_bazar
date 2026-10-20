@@ -15,12 +15,12 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/products" element={<ShopPage />} />
+        {/* <Route path="/products" element={<ShopPage />} /> */}
         <Route path="/products/:productId" element={<ProductDetail />} />
         <Route path="/categories" element={<ShopPage />} />
         <Route path="/categories/:categorySlug" element={<ShopPage />} />
-        <Route path="/new-arrivals" element={<ShopPage />} />
-        <Route path="/deals" element={<ShopPage />} />
+        {/* <Route path="/new-arrivals" element={<ShopPage />} /> */}
+        {/* <Route path="/deals" element={<ShopPage />} /> */}
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/account" element={<AccountPage />} />

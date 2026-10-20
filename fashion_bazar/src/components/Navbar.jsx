@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
+import {useGetCategoryQuery} from "../lib/api/categoryApi";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -63,7 +64,7 @@ function Navbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const megaTimer = useRef(null);
-
+ const { data: categories } = useGetCategoryQuery();
   // Small delay so the menu survives the mouse travelling from button to panel
   const openMega = () => {
     clearTimeout(megaTimer.current);
@@ -304,26 +305,27 @@ function Navbar() {
           <div className="col-span-8">
             <p className="text-xs font-bold uppercase tracking-wider text-subtle">Shop by category</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              {MEGA_CATEGORIES.map((cat) => (
+              {categories?.map((cat) => (
                 <Link
-                  key={cat.to}
-                  to={cat.to}
+                  key={cat.slug}
+                  to={`categories/${cat.slug}`}
                   onClick={closeAll}
                   className={`group flex items-center gap-3 rounded-2xl p-2.5 pr-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${cat.tone}`}
                 >
                   <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
                     <SmartImage
-                      src={unsplash(cat.photo, 120, 120)}
+                      // src={unsplash(cat?.image, 120, 120)}
+                      src={cat?.image}
                       alt=""
                       imgClassName="transition-transform duration-500 group-hover:scale-110"
                     />
                   </span>
                   <span className="min-w-0">
                     <span className="flex items-center gap-1 text-sm font-bold text-ink">
-                      {cat.label}
+                      {cat.categoryName}
                       <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                     </span>
-                    <span className="block truncate text-xs text-muted">{cat.note}</span>
+                    <span className="block truncate text-xs text-muted">{cat.description}</span>
                   </span>
                 </Link>
               ))}
@@ -469,17 +471,18 @@ function Navbar() {
 
             <p className="mb-2 mt-6 px-4 text-xs font-bold uppercase tracking-wider text-subtle">Categories</p>
             <div className="grid grid-cols-2 gap-2">
-              {MEGA_CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <Link
-                  key={cat.to}
-                  to={cat.to}
+                  key={cat.slug}
+                  to={`categories/${cat.slug}`}
                   onClick={closeAll}
-                  className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 ${cat.tone}`}
+                  className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 `}
                 >
                   <span className="h-9 w-9 shrink-0 overflow-hidden rounded-xl">
-                    <SmartImage src={unsplash(cat.photo, 80, 80)} alt="" />
+                    {/* <SmartImage src={unsplash(cat.photo, 80, 80)} alt="" /> */}
+                    <SmartImage src={cat.image} alt="" />
                   </span>
-                  <span className="min-w-0 truncate text-sm font-semibold text-ink">{cat.label}</span>
+                  <span className="min-w-0 truncate text-sm font-semibold text-ink">{cat.categoryName}</span>
                 </Link>
               ))}
             </div>
