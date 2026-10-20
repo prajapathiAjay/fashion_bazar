@@ -471,10 +471,10 @@ function Navbar() {
 
             <p className="mb-2 mt-6 px-4 text-xs font-bold uppercase tracking-wider text-subtle">Categories</p>
             <div className="grid grid-cols-2 gap-2">
-              {categories.map((cat) => (
+              {categories?.map((cat) => (
                 <Link
                   key={cat.slug}
-                  to={`categories/${cat.slug}`}
+                  to={`/categories/${cat.slug}`}
                   onClick={closeAll}
                   className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 `}
                 >
