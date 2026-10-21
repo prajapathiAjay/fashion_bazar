@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, Star } from "lucide-react";
-
+import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";      
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -46,30 +46,43 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [signup] = useSignupMutation();   // top level ✅
+  const [signin] = useSigninMutation();
 
-  const handleSubmit = (e) => {
+  const handleSubmit=async (e)=>{
     e.preventDefault();
     setError("");
-    const form = new FormData(e.target);
-    const email = form.get("email");
-    const password = form.get("password");
-
-    if (!email || !password) {
-      setError("Fill in all required fields.");
-      return;
-    }
-    if (mode === "signup" && password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
     setSubmitting(true);
-    setTimeout(() => {
+    const formData=new FormData(e.target);
+    const name=formData.get("name");
+    const email=formData.get("email");
+    const password=formData.get("password");
+
+    if(!email || !password || (mode==="signup" && !name)){
+      setError("Fill in all required fields.");
       setSubmitting(false);
-      // hook up real auth call here
-      navigate("/account");
-    }, 1000);
-  };
+      return;
+    }
+
+   try {
+  if (mode === "signup") {
+    await signup({ name, email, password }).unwrap();
+    navigate("/");
+  } else {
+    await signin({ email, password }).unwrap();
+    
+    navigate("/");
+  }
+} catch (err) {
+  console.log("auth error", err);
+  setError(typeof err?.data === "string" ? err.data : "Something went wrong");
+} finally {
+  setSubmitting(false);
+}
+
+    
+
+  }
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-84px)] max-w-7xl items-center px-5 pb-12 pt-4 sm:px-6 lg:px-8">

@@ -41,7 +41,7 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-
+import { useGetUserByIdQuery } from "../lib/api/userApi";
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
    ------------------------------------------------------------------ */
@@ -1142,7 +1142,7 @@ function AccountPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { orderId } = useParams();
   const navigate = useNavigate();
-
+  const {data:user,isLoading} = useGetUserByIdQuery();
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
 

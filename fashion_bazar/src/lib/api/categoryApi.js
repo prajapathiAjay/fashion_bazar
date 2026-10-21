@@ -7,8 +7,7 @@ const categoryApi = baseApi.injectEndpoints({
             query: () => "/category",
             transformResponse: (response) => response.data,
             providesTags: [{ type: "Category", id: "LIST" }]
-
-
+          
         })
 
 
