@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   User,
   Package,
@@ -42,6 +43,8 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetUserByIdQuery } from "../lib/api/userApi";
+import { baseApi } from "../lib/api/baseApi";
+import { logout } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
    ------------------------------------------------------------------ */
@@ -248,9 +251,12 @@ function ActionButton({ icon: Icon, children, onClick, tone = "default" }) {
    Profile hero + stats
    ------------------------------------------------------------------ */
 
-function ProfileHero({ onEdit }) {
+function ProfileHero({ user, onEdit }) {
   const points = 1680;
   const nextTier = 2000;
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+    : "";
 
   return (
     <section className={`${CARD_CLASS} relative animate-fade-up overflow-hidden`}>
@@ -273,26 +279,28 @@ function ProfileHero({ onEdit }) {
             <div className="relative -mt-12 h-24 w-24 shrink-0 overflow-hidden rounded-3xl shadow-[0_12px_30px_rgba(26,16,51,0.18)] ring-4 ring-white sm:-mt-14 sm:h-28 sm:w-28">
               <SmartImage
                 src={unsplash(PHOTOS.womanCoat, 160, 160, "&crop=faces")}
-                alt="Ananya Rao"
+                alt={user?.name || ""}
                 bg="var(--color-brand-100)"
               />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">Ananya Rao</h1>
+                <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">{user?.name || "Loading..."}</h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-ink">
                   <Crown size={12} />
                   Gold member
                 </span>
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-subtle">
-                <span className="inline-flex items-center gap-1">
-                  <CalendarDays size={14} />
-                  Member since March 2024
-                </span>
+                {memberSince && (
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarDays size={14} />
+                    Member since {memberSince}
+                  </span>
+                )}
                 <span className="inline-flex min-w-0 items-center gap-1">
                   <Mail size={14} />
-                  <span className="truncate">ananya.rao@example.com</span>
+                  <span className="truncate">{user?.email}</span>
                 </span>
               </p>
             </div>
@@ -634,7 +642,9 @@ function PasswordInput({ id, placeholder }) {
   );
 }
 
-function ProfilePanel() {
+function ProfilePanel({ user }) {
+  const [firstName = "", ...rest] = (user?.name || "").split(" ");
+  const lastName = rest.join(" ");
   const [saved, setSaved] = useState(false);
   const [shopFor, setShopFor] = useState(["Women"]);
   const [size, setSize] = useState("M");
@@ -654,13 +664,13 @@ function ProfilePanel() {
       <FormSection icon={User} tone="bg-pop-50 text-pop" title="Personal information" desc="How sellers and couriers reach you.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="first-name" label="First name">
-            <input id="first-name" defaultValue="Ananya" autoComplete="given-name" className={INPUT_CLASS} />
+            <input id="first-name" defaultValue={firstName} autoComplete="given-name" className={INPUT_CLASS} />
           </Field>
           <Field id="last-name" label="Last name">
-            <input id="last-name" defaultValue="Rao" autoComplete="family-name" className={INPUT_CLASS} />
+            <input id="last-name" defaultValue={lastName} autoComplete="family-name" className={INPUT_CLASS} />
           </Field>
           <Field id="email" label="Email">
-            <input id="email" type="email" defaultValue="ananya.rao@example.com" autoComplete="email" className={INPUT_CLASS} />
+            <input id="email" type="email" defaultValue={user?.email} autoComplete="email" className={INPUT_CLASS} />
           </Field>
           <Field id="phone" label="Phone">
             <input id="phone" type="tel" defaultValue="+91 90000 00000" autoComplete="tel" className={INPUT_CLASS} />
@@ -1142,7 +1152,10 @@ function AccountPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const {data:user,isLoading} = useGetUserByIdQuery();
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  const { data } = useGetUserByIdQuery(undefined, { skip: !token });
+  const user = data?.user;
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
 
@@ -1155,9 +1168,18 @@ function AccountPage() {
 
   const counts = { orders: ORDERS.length, wishlist: wishlist.length, addresses: addresses.length };
 
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(baseApi.util.resetApiState());
+    navigate("/login");
+  };
+
+  // account page is only for logged-in users
+  if (!token) return <Navigate to="/login" replace />;
+
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-10">
-      <ProfileHero onEdit={() => setActive("profile")} />
+      <ProfileHero user={user} onEdit={() => setActive("profile")} />
       <StatTiles onSelect={setActive} wishlistCount={wishlist.length} addressCount={addresses.length} />
 
       <div className="mt-6 flex flex-col gap-6 lg:mt-8 lg:flex-row lg:items-start lg:gap-8">
@@ -1208,7 +1230,7 @@ function AccountPage() {
               <li className="shrink-0 lg:mt-1 lg:border-t lg:border-line lg:pt-1">
                 <button
                   type="button"
-                  onClick={() => navigate("/login")}
+                  onClick={handleLogout}
                   className="flex w-full items-center gap-3 rounded-full border border-danger/20 bg-danger-50 px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger-50 lg:rounded-2xl lg:border-transparent lg:bg-transparent lg:px-2.5"
                 >
                   <span className="hidden h-9 w-9 items-center justify-center rounded-xl bg-danger-50 lg:flex">
@@ -1232,7 +1254,8 @@ function AccountPage() {
         {/* Content */}
         <div key={active} className="min-w-0 flex-1 animate-fade-up">
           {active === "orders" && <OrdersPanel orderId={orderId} />}
-          {active === "profile" && <ProfilePanel />}
+          {/* key remounts the form once the user loads, so defaultValue picks it up */}
+          {active === "profile" && <ProfilePanel key={user?._id} user={user} />}
           {active === "addresses" && <AddressesPanel addresses={addresses} setAddresses={setAddresses} />}
           {active === "payment" && <PaymentPanel />}
           {active === "wishlist" && <WishlistPanel items={wishlist} setItems={setWishlist} />}

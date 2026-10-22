@@ -4,6 +4,10 @@ import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, Star } from "lucide-react";
 import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";      
+import { useDispatch } from "react-redux";
+import { setCredentials } from "../lib/slices/authSlice";
+
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -43,6 +47,7 @@ function AuthPage() {
     setError("");
     navigate(next === "signup" ? "/register" : "/login");
   };
+  const dispatch=useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -69,13 +74,14 @@ function AuthPage() {
     await signup({ name, email, password }).unwrap();
     navigate("/");
   } else {
-    await signin({ email, password }).unwrap();
-    
+    const response=await signin({ email, password }).unwrap();
+    dispatch(setCredentials(response.token));
+  
     navigate("/");
   }
 } catch (err) {
   console.log("auth error", err);
-  setError(typeof err?.data === "string" ? err.data : "Something went wrong");
+  setError(err?.data?.message || "Something went wrong");
 } finally {
   setSubmitting(false);
 }

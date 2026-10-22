@@ -13,11 +13,15 @@ import {
   Sparkles,
   Truck,
   Store,
+  LogOut,
 } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
-
+import { useGetUserByIdQuery } from "../lib/api/userApi";
+import { baseApi } from "../lib/api/baseApi";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../lib/slices/authSlice";
 const NAV_LINKS = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Shop" },
@@ -64,7 +68,21 @@ function Navbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const megaTimer = useRef(null);
+
  const { data: categories } = useGetCategoryQuery();
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  // skip until logged in, otherwise /users returns 401
+  const { data: userData } = useGetUserByIdQuery(undefined, { skip: !token });
+  const firstName = userData?.user?.name?.split(" ")[0] || "Account";
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(baseApi.util.resetApiState());
+    closeAll();
+    navigate("/");
+  };
+
   // Small delay so the menu survives the mouse travelling from button to panel
   const openMega = () => {
     clearTimeout(megaTimer.current);
@@ -275,21 +293,43 @@ function Navbar() {
           </Link>
 
           <Link
-            to="/login"
+            to={token ? "/account" : "/login"}
             className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-brand-50 max-sm:hidden xl:hidden"
-            aria-label="Sign in"
+            aria-label={token ? "Account" : "Sign in"}
           >
             <User size={20} />
           </Link>
-          <Link
-            to="/login"
-            className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
-              <User size={14} />
-            </span>
-            Sign in
-          </Link>
+          {token ? (
+            <>
+              <Link
+                to="/account"
+                className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
+                  <User size={14} />
+                </span>
+                Hi, {firstName}
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="hidden h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-brand-50 xl:flex"
+                aria-label="Log out"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
+            >
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
+                <User size={14} />
+              </span>
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
 
@@ -436,14 +476,29 @@ function Navbar() {
                 <X size={20} />
               </button>
             </div>
-            <p className="relative mt-4 text-sm text-white/85">Welcome! Sign in for faster checkout and order tracking.</p>
-            <Link
-              to="/login"
-              onClick={closeAll}
-              className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
-            >
-              Sign in / Join <ArrowRight size={14} />
-            </Link>
+            {token ? (
+              <>
+                <p className="relative mt-4 text-sm text-white/85">Welcome back, {firstName}!</p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
+                >
+                  Log out <LogOut size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="relative mt-4 text-sm text-white/85">Welcome! Sign in for faster checkout and order tracking.</p>
+                <Link
+                  to="/login"
+                  onClick={closeAll}
+                  className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
+                >
+                  Sign in / Join <ArrowRight size={14} />
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
