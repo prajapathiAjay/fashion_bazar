@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   User,
@@ -42,20 +48,50 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import { useGetUserByIdQuery } from "../lib/api/userApi";
+import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
    ------------------------------------------------------------------ */
-
+import { useForm } from "react-hook-form";
 const NAV_ITEMS = [
-  { id: "orders", label: "Orders", icon: Package, tone: "bg-brand-50 text-brand" },
-  { id: "profile", label: "Profile details", icon: User, tone: "bg-pop-50 text-pop" },
-  { id: "addresses", label: "Addresses", icon: MapPin, tone: "bg-mint-50 text-mint" },
-  { id: "payment", label: "Payment methods", icon: CreditCard, tone: "bg-sky-50 text-sky" },
-  { id: "wishlist", label: "Wishlist", icon: Heart, tone: "bg-coral-50 text-coral" },
-  { id: "notifications", label: "Notifications", icon: Bell, tone: "bg-sun-50 text-sun-dark" },
+  {
+    id: "orders",
+    label: "Orders",
+    icon: Package,
+    tone: "bg-brand-50 text-brand",
+  },
+  {
+    id: "profile",
+    label: "Profile details",
+    icon: User,
+    tone: "bg-pop-50 text-pop",
+  },
+  {
+    id: "addresses",
+    label: "Addresses",
+    icon: MapPin,
+    tone: "bg-mint-50 text-mint",
+  },
+  // {
+  //   id: "payment",
+  //   label: "Payment methods",
+  //   icon: CreditCard,
+  //   tone: "bg-sky-50 text-sky",
+  // },
+  {
+    id: "wishlist",
+    label: "Wishlist",
+    icon: Heart,
+    tone: "bg-coral-50 text-coral",
+  },
+  // {
+  //   id: "notifications",
+  //   label: "Notifications",
+  //   icon: Bell,
+  //   tone: "bg-sun-50 text-sun-dark",
+  // },
 ];
 
 const ORDER_STEPS = ["Ordered", "Packed", "Shipped", "Delivered"];
@@ -69,8 +105,16 @@ const ORDERS = [
     eta: "Arriving Fri, Oct 10",
     total: 6098,
     products: [
-      { photo: PHOTOS.bomberJacket, bg: "var(--color-coral-50)", name: "Satin bomber jacket" },
-      { photo: PHOTOS.wideLegTrousers, bg: "var(--color-mint-50)", name: "Wide-leg trousers" },
+      {
+        photo: PHOTOS.bomberJacket,
+        bg: "var(--color-coral-50)",
+        name: "Satin bomber jacket",
+      },
+      {
+        photo: PHOTOS.wideLegTrousers,
+        bg: "var(--color-mint-50)",
+        name: "Wide-leg trousers",
+      },
     ],
   },
   {
@@ -80,9 +124,21 @@ const ORDERS = [
     deliveredOn: "Delivered Sep 22, 2026",
     total: 5497,
     products: [
-      { photo: PHOTOS.floralDress, bg: "var(--color-brand-100)", name: "Draped midi dress" },
-      { photo: PHOTOS.goldHoops, bg: "var(--color-pop-50)", name: "Gold hoop earrings" },
-      { photo: PHOTOS.wovenTote, bg: "var(--color-sun-50)", name: "Woven tote bag" },
+      {
+        photo: PHOTOS.floralDress,
+        bg: "var(--color-brand-100)",
+        name: "Draped midi dress",
+      },
+      {
+        photo: PHOTOS.goldHoops,
+        bg: "var(--color-pop-50)",
+        name: "Gold hoop earrings",
+      },
+      {
+        photo: PHOTOS.wovenTote,
+        bg: "var(--color-sun-50)",
+        name: "Woven tote bag",
+      },
     ],
   },
   {
@@ -90,7 +146,13 @@ const ORDERS = [
     date: "Aug 30, 2026",
     status: "Cancelled",
     total: 1999,
-    products: [{ photo: PHOTOS.knitTop, bg: "var(--color-sky-50)", name: "Ribbed knit vest" }],
+    products: [
+      {
+        photo: PHOTOS.knitTop,
+        bg: "var(--color-sky-50)",
+        name: "Ribbed knit vest",
+      },
+    ],
   },
   {
     id: "BZ-10188",
@@ -99,8 +161,16 @@ const ORDERS = [
     deliveredOn: "Delivered Aug 13, 2026",
     total: 4598,
     products: [
-      { photo: PHOTOS.leatherShoes, bg: "var(--color-sun-50)", name: "Suede loafers" },
-      { photo: PHOTOS.goldBangle, bg: "var(--color-shimmer)", name: "Gold bangle" },
+      {
+        photo: PHOTOS.leatherShoes,
+        bg: "var(--color-sun-50)",
+        name: "Suede loafers",
+      },
+      {
+        photo: PHOTOS.goldBangle,
+        bg: "var(--color-shimmer)",
+        name: "Gold bangle",
+      },
     ],
   },
 ];
@@ -118,14 +188,22 @@ const INITIAL_ADDRESSES = [
     id: "a1",
     tag: "Home",
     name: "Ananya Rao",
-    lines: ["Flat 4B, Lotus Residency", "14th Cross, Indiranagar", "Bengaluru, KA 560038"],
+    lines: [
+      "Flat 4B, Lotus Residency",
+      "14th Cross, Indiranagar",
+      "Bengaluru, KA 560038",
+    ],
     phone: "+91 90000 00000",
   },
   {
     id: "a2",
     tag: "Work",
     name: "Ananya Rao",
-    lines: ["Level 6, Prestige Tech Park", "Outer Ring Road, Marathahalli", "Bengaluru, KA 560103"],
+    lines: [
+      "Level 6, Prestige Tech Park",
+      "Outer Ring Road, Marathahalli",
+      "Bengaluru, KA 560103",
+    ],
     phone: "+91 90000 00001",
   },
 ];
@@ -152,17 +230,73 @@ const INITIAL_CARDS = [
 ];
 
 const WISHLIST = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, originalPrice: 3299, photo: PHOTOS.floralDress, bg: "var(--color-brand-100)" },
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, originalPrice: null, photo: PHOTOS.bomberJacket, bg: "var(--color-coral-50)" },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, originalPrice: 2299, photo: PHOTOS.wovenTote, bg: "var(--color-sun-50)" },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, originalPrice: null, photo: PHOTOS.goldHoops, bg: "var(--color-pop-50)" },
+  {
+    id: "p1",
+    name: "Draped midi dress",
+    seller: "Amara Studio",
+    price: 2499,
+    originalPrice: 3299,
+    photo: PHOTOS.floralDress,
+    bg: "var(--color-brand-100)",
+  },
+  {
+    id: "p2",
+    name: "Satin bomber jacket",
+    seller: "Halden & Co.",
+    price: 3199,
+    originalPrice: null,
+    photo: PHOTOS.bomberJacket,
+    bg: "var(--color-coral-50)",
+  },
+  {
+    id: "p3",
+    name: "Woven tote bag",
+    seller: "Bazar Leather",
+    price: 1799,
+    originalPrice: 2299,
+    photo: PHOTOS.wovenTote,
+    bg: "var(--color-sun-50)",
+  },
+  {
+    id: "p6",
+    name: "Gold hoop earrings",
+    seller: "Luna Jewels",
+    price: 1199,
+    originalPrice: null,
+    photo: PHOTOS.goldHoops,
+    bg: "var(--color-pop-50)",
+  },
 ];
 
 const NOTIFICATION_SETTINGS = [
-  { id: "orders", title: "Order updates", desc: "Shipping, delivery and return status for every order.", icon: Truck, tone: "bg-brand-50 text-brand" },
-  { id: "drops", title: "New drops", desc: "First look when sellers you follow add new pieces.", icon: Sparkles, tone: "bg-pop-50 text-pop" },
-  { id: "prices", title: "Price drops", desc: "A heads-up when something in your wishlist goes on sale.", icon: Percent, tone: "bg-mint-50 text-mint" },
-  { id: "newsletter", title: "Weekly newsletter", desc: "Editor picks, style notes and bazar-day deals.", icon: Mail, tone: "bg-sun-50 text-sun-dark" },
+  {
+    id: "orders",
+    title: "Order updates",
+    desc: "Shipping, delivery and return status for every order.",
+    icon: Truck,
+    tone: "bg-brand-50 text-brand",
+  },
+  {
+    id: "drops",
+    title: "New drops",
+    desc: "First look when sellers you follow add new pieces.",
+    icon: Sparkles,
+    tone: "bg-pop-50 text-pop",
+  },
+  {
+    id: "prices",
+    title: "Price drops",
+    desc: "A heads-up when something in your wishlist goes on sale.",
+    icon: Percent,
+    tone: "bg-mint-50 text-mint",
+  },
+  {
+    id: "newsletter",
+    title: "Weekly newsletter",
+    desc: "Editor picks, style notes and bazar-day deals.",
+    icon: Mail,
+    tone: "bg-sun-50 text-sun-dark",
+  },
 ];
 
 const money = formatPrice;
@@ -191,7 +325,9 @@ function PanelHeader({ title, desc, action }) {
 function IconChip({ icon: Icon, tone, size = "md" }) {
   const box = size === "sm" ? "h-9 w-9 rounded-xl" : "h-11 w-11 rounded-2xl";
   return (
-    <span className={`flex shrink-0 items-center justify-center ${box} ${tone}`}>
+    <span
+      className={`flex shrink-0 items-center justify-center ${box} ${tone}`}
+    >
       <Icon size={size === "sm" ? 16 : 20} strokeWidth={2} />
     </span>
   );
@@ -200,7 +336,10 @@ function IconChip({ icon: Icon, tone, size = "md" }) {
 function Field({ id, label, hint, children }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-xs font-semibold text-ink-soft">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-xs font-semibold text-ink-soft"
+      >
         {label}
       </label>
       {children}
@@ -232,7 +371,8 @@ function Switch({ checked, onChange, labelId }) {
 
 function ActionButton({ icon: Icon, children, onClick, tone = "default" }) {
   const tones = {
-    default: "border-line-strong text-ink-soft hover:border-line-hover hover:bg-mist",
+    default:
+      "border-line-strong text-ink-soft hover:border-line-hover hover:bg-mist",
     brand: "border-transparent bg-brand-50 text-brand hover:bg-brand-100",
   };
   return (
@@ -255,11 +395,16 @@ function ProfileHero({ user, onEdit }) {
   const points = 1680;
   const nextTier = 2000;
   const memberSince = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+    ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+        month: "long",
+        year: "numeric",
+      })
     : "";
 
   return (
-    <section className={`${CARD_CLASS} relative animate-fade-up overflow-hidden`}>
+    <section
+      className={`${CARD_CLASS} relative animate-fade-up overflow-hidden`}
+    >
       {/* gradient band */}
       <div className="relative h-28 overflow-hidden bg-brand-gradient sm:h-36">
         <div className="pointer-events-none absolute -left-10 -top-16 h-48 w-48 animate-blob rounded-full bg-sun/40 blur-3xl" />
@@ -285,7 +430,9 @@ function ProfileHero({ user, onEdit }) {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">{user?.name || "Loading..."}</h1>
+                <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">
+                  {user?.firstName || "Loading..."}
+                </h1>
                 <span className="inline-flex items-center gap-1 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-ink">
                   <Crown size={12} />
                   Gold member
@@ -322,7 +469,8 @@ function ProfileHero({ user, onEdit }) {
           <div className="flex-1">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <p className="text-sm font-semibold text-ink">
-                {nextTier - points} points to <span className="text-gradient">Platinum</span>
+                {nextTier - points} points to{" "}
+                <span className="text-gradient">Platinum</span>
               </p>
               <p className="text-xs text-muted">
                 {points.toLocaleString()} / {nextTier.toLocaleString()} pts
@@ -350,10 +498,34 @@ function ProfileHero({ user, onEdit }) {
 
 function StatTiles({ onSelect, wishlistCount, addressCount }) {
   const stats = [
-    { label: "Orders", value: ORDERS.length, icon: Package, tone: "bg-brand-50 text-brand", tab: "orders" },
-    { label: "Wishlist", value: wishlistCount, icon: Heart, tone: "bg-pop-50 text-pop", tab: "wishlist" },
-    { label: "Reward points", value: "1,680", icon: Gift, tone: "bg-sun-50 text-sun-dark", tab: null },
-    { label: "Saved addresses", value: addressCount, icon: MapPin, tone: "bg-mint-50 text-mint", tab: "addresses" },
+    {
+      label: "Orders",
+      value: ORDERS.length,
+      icon: Package,
+      tone: "bg-brand-50 text-brand",
+      tab: "orders",
+    },
+    {
+      label: "Wishlist",
+      value: wishlistCount,
+      icon: Heart,
+      tone: "bg-pop-50 text-pop",
+      tab: "wishlist",
+    },
+    {
+      label: "Reward points",
+      value: "1,680",
+      icon: Gift,
+      tone: "bg-sun-50 text-sun-dark",
+      tab: null,
+    },
+    {
+      label: "Saved addresses",
+      value: addressCount,
+      icon: MapPin,
+      tone: "bg-mint-50 text-mint",
+      tab: "addresses",
+    },
   ];
 
   return (
@@ -361,17 +533,30 @@ function StatTiles({ onSelect, wishlistCount, addressCount }) {
       {stats.map(({ label, value, icon, tone, tab }, i) => {
         const inner = (
           <>
-            <IconChip icon={icon} tone={`${tone} transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110`} />
+            <IconChip
+              icon={icon}
+              tone={`${tone} transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110`}
+            />
             <span className="min-w-0 text-left">
-              <span className="block font-display text-xl font-extrabold text-ink sm:text-2xl">{value}</span>
-              <span className="block truncate text-xs text-subtle">{label}</span>
+              <span className="block font-display text-xl font-extrabold text-ink sm:text-2xl">
+                {value}
+              </span>
+              <span className="block truncate text-xs text-subtle">
+                {label}
+              </span>
             </span>
           </>
         );
         const cls = `group flex animate-fade-up items-center gap-3 rounded-3xl border border-line bg-white p-4 transition-all hover:-translate-y-1 hover:shadow-[0_14px_36px_rgba(26,16,51,0.08)] sm:p-5`;
         const style = { animationDelay: `${80 + i * 60}ms` };
         return tab ? (
-          <button key={label} type="button" onClick={() => onSelect(tab)} className={cls} style={style}>
+          <button
+            key={label}
+            type="button"
+            onClick={() => onSelect(tab)}
+            className={cls}
+            style={style}
+          >
             {inner}
           </button>
         ) : (
@@ -393,8 +578,14 @@ function OrderTracker({ step }) {
   return (
     <div className="mt-4 rounded-2xl bg-mist px-3 py-4 sm:px-5">
       <div className="relative">
-        <div className="absolute left-[12.5%] right-[12.5%] top-4 h-1 rounded-full bg-line-strong" aria-hidden="true">
-          <div className="h-full rounded-full bg-brand-gradient" style={{ width: `${pct}%` }} />
+        <div
+          className="absolute left-[12.5%] right-[12.5%] top-4 h-1 rounded-full bg-line-strong"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full rounded-full bg-brand-gradient"
+            style={{ width: `${pct}%` }}
+          />
         </div>
         <ol className="relative grid grid-cols-4">
           {ORDER_STEPS.map((label, i) => {
@@ -419,7 +610,11 @@ function OrderTracker({ step }) {
                 </span>
                 <span
                   className={`text-[11px] font-semibold sm:text-xs ${
-                    current ? "text-brand" : done ? "text-ink-soft" : "text-subtle"
+                    current
+                      ? "text-brand"
+                      : done
+                        ? "text-ink-soft"
+                        : "text-subtle"
                   }`}
                 >
                   {label}
@@ -442,7 +637,9 @@ function OrderCard({ order, highlighted }) {
     <article
       id={`order-${order.id}`}
       className={`${CARD_CLASS} scroll-mt-28 p-4 transition-all hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] sm:p-5 ${
-        highlighted ? "border-brand/40 ring-4 ring-brand/10" : "hover:border-line-hover"
+        highlighted
+          ? "border-brand/40 ring-4 ring-brand/10"
+          : "hover:border-line-hover"
       }`}
     >
       <div className="flex items-start gap-4">
@@ -454,15 +651,23 @@ function OrderCard({ order, highlighted }) {
               className="h-16 w-14 overflow-hidden rounded-2xl ring-2 ring-white sm:h-20 sm:w-16"
               style={{ zIndex: thumbs.length - i }}
             >
-              <SmartImage src={unsplash(p.photo, 128, 160)} alt={p.name} bg={p.bg} />
+              <SmartImage
+                src={unsplash(p.photo, 128, 160)}
+                alt={p.name}
+                bg={p.bg}
+              />
             </div>
           ))}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-bold text-ink sm:text-[15px]">#{order.id}</p>
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${pill}`}>
+            <p className="text-sm font-bold text-ink sm:text-[15px]">
+              #{order.id}
+            </p>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${pill}`}
+            >
               <StatusIcon size={12} />
               {order.status}
             </span>
@@ -473,7 +678,8 @@ function OrderCard({ order, highlighted }) {
             )}
           </div>
           <p className="mt-1 text-xs text-subtle">
-            Placed {order.date} · {itemCount} {itemCount === 1 ? "item" : "items"}
+            Placed {order.date} · {itemCount}{" "}
+            {itemCount === 1 ? "item" : "items"}
           </p>
           <p className="mt-1 truncate text-xs text-muted">
             {order.products.map((p) => p.name).join(", ")}
@@ -481,8 +687,12 @@ function OrderCard({ order, highlighted }) {
         </div>
 
         <div className="hidden text-right sm:block">
-          <p className="text-[11px] uppercase tracking-wide text-subtle">Total</p>
-          <p className="font-display text-lg font-bold text-ink">{money(order.total)}</p>
+          <p className="text-[11px] uppercase tracking-wide text-subtle">
+            Total
+          </p>
+          <p className="font-display text-lg font-bold text-ink">
+            {money(order.total)}
+          </p>
         </div>
       </div>
 
@@ -504,7 +714,8 @@ function OrderCard({ order, highlighted }) {
       {order.status === "Cancelled" && (
         <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
           <PackageX size={15} />
-          Cancelled by you · Refund of {money(order.total)} issued to your original payment method
+          Cancelled by you · Refund of {money(order.total)} issued to your
+          original payment method
         </p>
       )}
 
@@ -531,7 +742,9 @@ function OrderCard({ order, highlighted }) {
           )}
         </div>
         <div className="flex items-center justify-between gap-3">
-          <p className="font-display text-lg font-bold text-ink sm:hidden">{money(order.total)}</p>
+          <p className="font-display text-lg font-bold text-ink sm:hidden">
+            {money(order.total)}
+          </p>
           <Link
             to={`/orders/${order.id}`}
             className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold text-ink transition-colors hover:text-brand"
@@ -547,20 +760,33 @@ function OrderCard({ order, highlighted }) {
 
 function OrdersPanel({ orderId }) {
   const [filter, setFilter] = useState("All");
-  const visible = filter === "All" ? ORDERS : ORDERS.filter((o) => o.status === filter);
+  const visible =
+    filter === "All" ? ORDERS : ORDERS.filter((o) => o.status === filter);
 
   useEffect(() => {
     if (!orderId) return;
-    document.getElementById(`order-${orderId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document
+      .getElementById(`order-${orderId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [orderId]);
 
   return (
     <div>
-      <PanelHeader title="Your orders" desc="Track, return or buy your favourites again." />
+      <PanelHeader
+        title="Your orders"
+        desc="Track, return or buy your favourites again."
+      />
 
-      <div className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Filter orders by status">
+      <div
+        className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1"
+        role="group"
+        aria-label="Filter orders by status"
+      >
         {ORDER_FILTERS.map((f) => {
-          const count = f === "All" ? ORDERS.length : ORDERS.filter((o) => o.status === f).length;
+          const count =
+            f === "All"
+              ? ORDERS.length
+              : ORDERS.filter((o) => o.status === f).length;
           const on = filter === f;
           return (
             <button
@@ -569,7 +795,9 @@ function OrdersPanel({ orderId }) {
               aria-pressed={on}
               onClick={() => setFilter(f)}
               className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                on ? "border-ink bg-ink text-white" : "border-line-strong bg-white text-ink-soft hover:border-line-hover"
+                on
+                  ? "border-ink bg-ink text-white"
+                  : "border-line-strong bg-white text-ink-soft hover:border-line-hover"
               }`}
             >
               {f}
@@ -586,14 +814,22 @@ function OrdersPanel({ orderId }) {
       {visible.length ? (
         <div className="flex flex-col gap-4">
           {visible.map((order) => (
-            <OrderCard key={order.id} order={order} highlighted={order.id === orderId} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              highlighted={order.id === orderId}
+            />
           ))}
         </div>
       ) : (
         <div className="flex flex-col items-center rounded-3xl border border-dashed border-line-strong px-6 py-14 text-center">
           <IconChip icon={Package} tone="bg-brand-50 text-brand" />
-          <p className="mt-4 text-sm font-semibold text-ink">No {filter.toLowerCase()} orders</p>
-          <p className="mt-1 text-xs text-subtle">Orders with this status will show up here.</p>
+          <p className="mt-4 text-sm font-semibold text-ink">
+            No {filter.toLowerCase()} orders
+          </p>
+          <p className="mt-1 text-xs text-subtle">
+            Orders with this status will show up here.
+          </p>
         </div>
       )}
     </div>
@@ -627,7 +863,9 @@ function PasswordInput({ id, placeholder }) {
         id={id}
         type={show ? "text" : "password"}
         placeholder={placeholder}
-        autoComplete={id === "current-password" ? "current-password" : "new-password"}
+        autoComplete={
+          id === "current-password" ? "current-password" : "new-password"
+        }
         className={`${INPUT_CLASS} pr-11`}
       />
       <button
@@ -643,53 +881,117 @@ function PasswordInput({ id, placeholder }) {
 }
 
 function ProfilePanel({ user }) {
-  const [firstName = "", ...rest] = (user?.name || "").split(" ");
-  const lastName = rest.join(" ");
+  // const [firstName = "", ...rest] = (user?.firatName || "").split(" ");
+  const lastName = "kkkk";
+  console.log("user data", user);
   const [saved, setSaved] = useState(false);
   const [shopFor, setShopFor] = useState(["Women"]);
   const [size, setSize] = useState("M");
+  const { register, error, handleSubmit } = useForm({
+    defauktValues: {
+      firstName: user?.firstName ?? "",
+      lastName: user?.lastName ?? "",
+      email: user?.email ?? "",
+    },
+  });
+  const [updateUser, { isLoading }] = useUpdateUserMutation();
 
   const toggleShopFor = (v) =>
-    setShopFor((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
+    setShopFor((cur) =>
+      cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v],
+    );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSaved(true);
+  const onSubmit = async (value) => {
+    console.log("Formvalues", value);
+    try {
+      await updateUser(value).unwrap();
+      setSaved(true);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} onChange={() => setSaved(false)} className="flex flex-col gap-4">
-      <PanelHeader title="Profile details" desc="Keep your details up to date for faster checkout." />
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      onChange={() => setSaved(false)}
+      className="flex flex-col gap-4"
+    >
+      <PanelHeader
+        title="Profile details"
+        desc="Keep your details up to date for faster checkout."
+      />
 
-      <FormSection icon={User} tone="bg-pop-50 text-pop" title="Personal information" desc="How sellers and couriers reach you.">
+      <FormSection
+        icon={User}
+        tone="bg-pop-50 text-pop"
+        title="Personal information"
+        desc="How sellers and couriers reach you."
+      >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="first-name" label="First name">
-            <input id="first-name" defaultValue={firstName} autoComplete="given-name" className={INPUT_CLASS} />
+            <input
+              id="first-name"
+              defaultValue={user?.firstName}
+              autoComplete="given-name"
+              className={INPUT_CLASS}
+              {...register("firstName")}
+            />
           </Field>
           <Field id="last-name" label="Last name">
-            <input id="last-name" defaultValue={lastName} autoComplete="family-name" className={INPUT_CLASS} />
+            <input
+              id="last-name"
+              defaultValue={user?.lastName}
+              autoComplete="family-name"
+              className={INPUT_CLASS}
+              {...register("lastName")}
+            />
           </Field>
           <Field id="email" label="Email">
-            <input id="email" type="email" defaultValue={user?.email} autoComplete="email" className={INPUT_CLASS} />
+            <input
+              id="email"
+              type="email"
+              defaultValue={user?.email}
+              autoComplete="email"
+              className={INPUT_CLASS}
+              {...register("email")}
+            />
           </Field>
           <Field id="phone" label="Phone">
-            <input id="phone" type="tel" defaultValue="+91 90000 00000" autoComplete="tel" className={INPUT_CLASS} />
+            <input
+              id="phone"
+              type="tel"
+              defaultValue={user?.phone}
+              autoComplete="tel"
+              className={INPUT_CLASS}
+              {...register("phone")}
+            />
           </Field>
-          <Field id="dob" label="Date of birth" hint="We'll send you a birthday treat.">
-            <input id="dob" type="date" defaultValue="1997-04-12" className={INPUT_CLASS} />
+          <Field
+            id="dob"
+            label="Date of birth"
+            hint="We'll send you a birthday treat."
+          >
+            <input
+              id="dob"
+              type="date"
+              defaultValue={user?.dob}
+              className={INPUT_CLASS}
+              {...register("dob")}
+            />
           </Field>
-          <Field id="pronouns" label="Pronouns (optional)">
+          {/* <Field id="pronouns" label="Pronouns (optional)">
             <select id="pronouns" defaultValue="she/her" className={INPUT_CLASS}>
               <option value="">Prefer not to say</option>
               <option value="she/her">she/her</option>
               <option value="he/him">he/him</option>
               <option value="they/them">they/them</option>
             </select>
-          </Field>
+          </Field> */}
         </div>
       </FormSection>
 
-      <FormSection icon={Lock} tone="bg-sky-50 text-sky" title="Password" desc="Use 8+ characters with a mix of letters and numbers.">
+      {/* <FormSection icon={Lock} tone="bg-sky-50 text-sky" title="Password" desc="Use 8+ characters with a mix of letters and numbers.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
             <Field id="current-password" label="Current password">
@@ -746,11 +1048,14 @@ function ProfilePanel({ user }) {
             ))}
           </div>
         </fieldset>
-      </FormSection>
+      </FormSection> */}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         {saved && (
-          <p role="status" className="flex items-center gap-1.5 text-sm font-semibold text-success">
+          <p
+            role="status"
+            className="flex items-center gap-1.5 text-sm font-semibold text-success"
+          >
             <Check size={16} />
             Changes saved
           </p>
@@ -777,25 +1082,194 @@ function ProfilePanel({ user }) {
    Addresses
    ------------------------------------------------------------------ */
 
+// function AddressesPanel({ addresses, setAddresses }) {
+//   const [defaultId, setDefaultId] = useState("a1");
+//   const TAGS = {
+//     Home: { icon: House, tone: "bg-brand-50 text-brand" },
+//     Work: { icon: Briefcase, tone: "bg-sky-50 text-sky" },
+//   };
+
+//   return (
+//     <div>
+//       <PanelHeader title="Saved addresses" desc="Where should we send your bazar finds?" />
+//       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+//         {addresses.map((a) => {
+//           const { icon, tone } = TAGS[a.tag];
+//           const isDefault = a.id === defaultId;
+//           return (
+//             <article
+//               key={a.id}
+//               className={`${CARD_CLASS} flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] ${
+//                 isDefault ? "border-mint/50" : ""
+//               }`}
+//             >
+//               <div className="flex items-center justify-between gap-3">
+//                 <div className="flex items-center gap-3">
+//                   <IconChip icon={icon} tone={tone} size="sm" />
+//                   <span className="text-sm font-bold text-ink">{a.tag}</span>
+//                 </div>
+//                 {isDefault && (
+//                   <span className="inline-flex items-center gap-1 rounded-full bg-mint-50 px-2.5 py-1 text-[11px] font-semibold text-mint">
+//                     <Check size={12} strokeWidth={3} />
+//                     Default
+//                   </span>
+//                 )}
+//               </div>
+//               <div className="mt-4 flex-1 text-sm leading-relaxed text-muted">
+//                 <p className="font-semibold text-ink">{a.name}</p>
+//                 {a.lines.map((l) => (
+//                   <p key={l}>{l}</p>
+//                 ))}
+//                 <p className="mt-1 text-subtle">{a.phone}</p>
+//               </div>
+//               <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
+//                 <ActionButton icon={Pencil}>Edit</ActionButton>
+//                 {!isDefault && (
+//                   <>
+//                     <ActionButton icon={Check} onClick={() => setDefaultId(a.id)}>
+//                       Set as default
+//                     </ActionButton>
+//                     <button
+//                       type="button"
+//                       onClick={() => setAddresses((cur) => cur.filter((x) => x.id !== a.id))}
+//                       className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-50"
+//                     >
+//                       <Trash2 size={14} />
+//                       Remove
+//                     </button>
+//                   </>
+//                 )}
+//               </div>
+//             </article>
+//           );
+//         })}
+
+//         <button
+//           type="button"
+//           className="group flex min-h-52 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-line-strong p-6 text-center transition-colors hover:border-brand/40 hover:bg-brand-50/50"
+//         >
+//           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gradient text-white transition-transform duration-300 group-hover:rotate-90">
+//             <Plus size={22} />
+//           </span>
+//           <span className="text-sm font-bold text-ink">Add new address</span>
+//           <span className="text-xs text-subtle">Home, work or a friend's place</span>
+//         </button>
+//       </div>
+//     </div>
+//   );
+// }
+
+const EMPTY_FORM = {
+  tag: "Home",
+  name: "",
+  line1: "",
+  line2: "",
+  city: "",
+  state: "",
+  pincode: "",
+  phone: "",
+};
+
 function AddressesPanel({ addresses, setAddresses }) {
   const [defaultId, setDefaultId] = useState("a1");
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [updateUser] = useUpdateUserMutation();
+  const { register, handleSubmit, reset, watch, setValue } = useForm({
+    defaultValues: {
+      tag: "Home",
+      line1: "",
+      line2: "",
+      city: "",
+      state: "",
+      pincode: "",
+    },
+  });
+
+  const tag = watch("tag");
   const TAGS = {
     Home: { icon: House, tone: "bg-brand-50 text-brand" },
     Work: { icon: Briefcase, tone: "bg-sky-50 text-sky" },
+    Other: { icon: MapPin, tone: "bg-mint-50 text-mint" },
+  };
+
+  const update = (key) => (e) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  };
+
+  const setDefaultAddress = async (i) => {
+    const next=addresses.map((a,idx)=>({...a,isDefault:idx===i}))
+    try {
+      await updateUser({addresses: next}).unwrap();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteAddress = async (i) => {
+    const remAddress = [...addresses];
+    remAddress.splice(i, 1);
+    await updateUser({ addresses: remAddress }).unwrap();
+  };
+
+  const openEdit = (a) => {
+    setEditingId(a.id);
+    // lines: [line1, line2, "City, ST 560038"] -> split back into fields
+    const [line1 = "", line2 = "", last = ""] = a.lines;
+    const [city = "", rest = ""] = last.split(", ");
+    const [state = "", pincode = ""] = rest.split(" ");
+    setForm({
+      tag: a.tag,
+      name: a.name,
+      line1,
+      line2,
+      city,
+      state,
+      pincode,
+      phone: a.phone,
+    });
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+  };
+  const onSubmit = async (values) => {
+    try {
+      await updateUser({
+        addresses: [...(addresses ?? []), values],
+      }).unwrap();
+      reset();
+      closeForm();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
     <div>
-      <PanelHeader title="Saved addresses" desc="Where should we send your bazar finds?" />
+      <PanelHeader
+        title="Saved addresses"
+        desc="Where should we send your bazar finds?"
+      />
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {addresses.map((a) => {
-          const { icon, tone } = TAGS[a.tag];
+        {addresses?.map((a, index) => {
+          const { icon, tone } = TAGS[a.tag] ?? TAGS.Other;
           const isDefault = a.id === defaultId;
           return (
             <article
               key={a.id}
               className={`${CARD_CLASS} flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] ${
-                isDefault ? "border-mint/50" : ""
+                a.isDefault ? "border-mint/50" : ""
               }`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -803,7 +1277,7 @@ function AddressesPanel({ addresses, setAddresses }) {
                   <IconChip icon={icon} tone={tone} size="sm" />
                   <span className="text-sm font-bold text-ink">{a.tag}</span>
                 </div>
-                {isDefault && (
+                {a?.isDefault && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-mint-50 px-2.5 py-1 text-[11px] font-semibold text-mint">
                     <Check size={12} strokeWidth={3} />
                     Default
@@ -811,43 +1285,167 @@ function AddressesPanel({ addresses, setAddresses }) {
                 )}
               </div>
               <div className="mt-4 flex-1 text-sm leading-relaxed text-muted">
-                <p className="font-semibold text-ink">{a.name}</p>
-                {a.lines.map((l) => (
+                <p className="font-semibold text-ink">{a?.name}</p>
+                {/* {a?.lines?.map((l) => (
                   <p key={l}>{l}</p>
-                ))}
-                <p className="mt-1 text-subtle">{a.phone}</p>
+                ))} */}
+
+                <p>{a?.line1}</p>
+                <p>{a?.line2}</p>
+                <p>{a?.city}</p>
+                <p>{a?.state}</p>
+                <p>{a?.pinCode}</p>
+                <p className="mt-1 text-subtle">{a?.phone}</p>
               </div>
-              <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
-                <ActionButton icon={Pencil}>Edit</ActionButton>
-                {!isDefault && (
+             {!a?.isDefault&& <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
+                {/* <ActionButton icon={Pencil} onClick={() => openEdit(a)}>
+                  Edit
+                </ActionButton> */}
+             
                   <>
-                    <ActionButton icon={Check} onClick={() => setDefaultId(a.id)}>
+                    <ActionButton
+                      icon={Check}
+                      onClick={() => setDefaultAddress(index)}
+                    >
                       Set as default
                     </ActionButton>
                     <button
                       type="button"
-                      onClick={() => setAddresses((cur) => cur.filter((x) => x.id !== a.id))}
+                      onClick={() => deleteAddress(index)}
                       className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-50"
                     >
                       <Trash2 size={14} />
                       Remove
                     </button>
                   </>
-                )}
-              </div>
+           
+              </div>}
             </article>
           );
         })}
 
+        {showForm && (
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className={`${CARD_CLASS} mb-4 p-5 sm:p-6`}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h3 className="text-base font-bold text-ink">
+                {editingId ? "Edit address" : "Add new address"}
+              </h3>
+              <button
+                type="button"
+                onClick={closeForm}
+                aria-label="Close form"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-subtle hover:bg-mist hover:text-ink"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-2">
+              {["Home", "Work", "Other"].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  aria-pressed={tag === t}
+                  onClick={() => setValue("tag", t)}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                    tag === t
+                      ? "border-ink bg-ink text-white"
+                      : "border-line-strong text-ink-soft hover:border-line-hover"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* <Field id="addr-name" label="Full name">
+              <input id="addr-name" required value={form.name} onChange={update("name")} className={INPUT_CLASS} />
+            </Field>
+            <Field id="addr-phone" label="Phone">
+              <input id="addr-phone" type="tel" required value={form.phone} onChange={update("phone")} className={INPUT_CLASS} />
+            </Field> */}
+              <div className="sm:col-span-2">
+                <Field id="addr-line1" label="Address line 1">
+                  <input
+                    id="addr-line1"
+                    required
+                    {...register("line1")}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              </div>
+              <div className="sm:col-span-2">
+                <Field id="addr-line2" label="Address line 2 (optional)">
+                  <input
+                    id="addr-line2"
+                    {...register("line2")}
+                    className={INPUT_CLASS}
+                  />
+                </Field>
+              </div>
+              <Field id="addr-city" label="City">
+                <input
+                  id="addr-city"
+                  required
+                  {...register("city")}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field id="addr-state" label="State">
+                <input
+                  id="addr-state"
+                  required
+                  {...register("state")}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field id="addr-pin" label="Pincode">
+                <input
+                  id="addr-pin"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  {...register("pinCode")}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="rounded-full border border-line-strong px-6 py-2.5 text-sm font-semibold text-ink-soft hover:bg-mist"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-full bg-brand-gradient px-7 py-2.5 text-sm font-semibold text-white"
+              >
+                {editingId ? "Update address" : "Save address"}
+              </button>
+            </div>
+          </form>
+        )}
+
         <button
           type="button"
+          onClick={openAdd}
           className="group flex min-h-52 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-line-strong p-6 text-center transition-colors hover:border-brand/40 hover:bg-brand-50/50"
         >
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gradient text-white transition-transform duration-300 group-hover:rotate-90">
             <Plus size={22} />
           </span>
           <span className="text-sm font-bold text-ink">Add new address</span>
-          <span className="text-xs text-subtle">Home, work or a friend's place</span>
+          <span className="text-xs text-subtle">
+            Home, work or a friend's place
+          </span>
         </button>
       </div>
     </div>
@@ -873,7 +1471,10 @@ function PaymentPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PanelHeader title="Payment methods" desc="Saved securely — we never store your CVV." />
+      <PanelHeader
+        title="Payment methods"
+        desc="Saved securely — we never store your CVV."
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((c, i) => (
@@ -881,23 +1482,37 @@ function PaymentPanel() {
             <div
               className={`relative aspect-[1.586/1] overflow-hidden rounded-3xl p-5 text-white shadow-[0_18px_40px_rgba(26,16,51,0.18)] transition-transform hover:-translate-y-1 ${c.style}`}
             >
-              <div className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 animate-blob rounded-full blur-2xl ${c.blob}`} />
+              <div
+                className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 animate-blob rounded-full blur-2xl ${c.blob}`}
+              />
               <div className="pointer-events-none absolute -bottom-16 -left-8 h-40 w-40 rounded-full border-[18px] border-white/10" />
               <div className="relative flex h-full flex-col justify-between">
                 <div className="flex items-start justify-between">
-                  <span className="h-7 w-10 rounded-md bg-sun/90" aria-hidden="true" />
-                  <span className="text-sm font-extrabold italic tracking-wider">{c.network}</span>
+                  <span
+                    className="h-7 w-10 rounded-md bg-sun/90"
+                    aria-hidden="true"
+                  />
+                  <span className="text-sm font-extrabold italic tracking-wider">
+                    {c.network}
+                  </span>
                 </div>
-                <p className="font-mono text-base tracking-[0.18em] sm:text-lg" aria-label={`Card ending in ${c.last4}`}>
+                <p
+                  className="font-mono text-base tracking-[0.18em] sm:text-lg"
+                  aria-label={`Card ending in ${c.last4}`}
+                >
                   •••• •••• •••• {c.last4}
                 </p>
                 <div className="flex items-end justify-between text-xs">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">Card holder</p>
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">
+                      Card holder
+                    </p>
                     <p className="font-semibold">{c.holder}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">Expires</p>
+                    <p className="text-[10px] uppercase tracking-wide text-white/60">
+                      Expires
+                    </p>
                     <p className="font-semibold">{c.expiry}</p>
                   </div>
                 </div>
@@ -914,7 +1529,9 @@ function PaymentPanel() {
               )}
               <button
                 type="button"
-                onClick={() => setCards((cur) => cur.filter((x) => x.id !== c.id))}
+                onClick={() =>
+                  setCards((cur) => cur.filter((x) => x.id !== c.id))
+                }
                 className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-danger hover:bg-danger-50"
               >
                 <Trash2 size={13} />
@@ -941,12 +1558,17 @@ function PaymentPanel() {
           <IconChip icon={Smartphone} tone="bg-mint-50 text-mint" size="sm" />
           <div>
             <h3 className="text-base font-bold text-ink">UPI</h3>
-            <p className="text-xs text-subtle">Pay instantly from any UPI app.</p>
+            <p className="text-xs text-subtle">
+              Pay instantly from any UPI app.
+            </p>
           </div>
         </div>
         <ul className="flex flex-col gap-2">
           {upiIds.map((id) => (
-            <li key={id} className="flex items-center justify-between gap-3 rounded-2xl bg-mist px-4 py-3">
+            <li
+              key={id}
+              className="flex items-center justify-between gap-3 rounded-2xl bg-mist px-4 py-3"
+            >
               <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
                 <ShieldCheck size={16} className="shrink-0 text-mint" />
                 <span className="truncate">{id}</span>
@@ -962,7 +1584,10 @@ function PaymentPanel() {
             </li>
           ))}
         </ul>
-        <form onSubmit={addUpi} className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end">
+        <form
+          onSubmit={addUpi}
+          className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end"
+        >
           <div className="flex-1">
             <Field id="upi-id" label="Add a UPI ID">
               <input
@@ -1000,9 +1625,16 @@ function WishlistPanel({ items, setItems }) {
         <PanelHeader title="Your wishlist" />
         <div className="flex flex-col items-center rounded-3xl border border-dashed border-line-strong px-6 py-16 text-center">
           <IconChip icon={Heart} tone="bg-pop-50 text-pop" />
-          <p className="mt-4 text-sm font-semibold text-ink">Your wishlist is empty</p>
-          <p className="mt-1 text-xs text-subtle">Tap the heart on anything you love to save it here.</p>
-          <Link to="/products" className="mt-5 rounded-full bg-brand-gradient px-6 py-2.5 text-sm font-semibold text-white">
+          <p className="mt-4 text-sm font-semibold text-ink">
+            Your wishlist is empty
+          </p>
+          <p className="mt-1 text-xs text-subtle">
+            Tap the heart on anything you love to save it here.
+          </p>
+          <Link
+            to="/products"
+            className="mt-5 rounded-full bg-brand-gradient px-6 py-2.5 text-sm font-semibold text-white"
+          >
             Browse the shop
           </Link>
         </div>
@@ -1041,7 +1673,9 @@ function WishlistPanel({ items, setItems }) {
                 )}
                 <button
                   type="button"
-                  onClick={() => setItems((cur) => cur.filter((x) => x.id !== p.id))}
+                  onClick={() =>
+                    setItems((cur) => cur.filter((x) => x.id !== p.id))
+                  }
                   aria-label={`Remove ${p.name} from wishlist`}
                   className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-pop shadow-sm backdrop-blur transition-transform hover:scale-110"
                 >
@@ -1050,25 +1684,38 @@ function WishlistPanel({ items, setItems }) {
               </div>
               <div className="mt-3 flex flex-1 flex-col px-1">
                 <p className="text-[11px] text-subtle">{p.seller}</p>
-                <Link to={`/products/${p.id}`} className="truncate text-sm font-semibold text-ink hover:text-brand">
+                <Link
+                  to={`/products/${p.id}`}
+                  className="truncate text-sm font-semibold text-ink hover:text-brand"
+                >
                   {p.name}
                 </Link>
                 <p className="mt-1 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-ink">{money(p.price)}</span>
+                  <span className="text-sm font-bold text-ink">
+                    {money(p.price)}
+                  </span>
                   {p.originalPrice && (
-                    <span className="text-xs text-faint line-through">{money(p.originalPrice)}</span>
+                    <span className="text-xs text-faint line-through">
+                      {money(p.originalPrice)}
+                    </span>
                   )}
                 </p>
                 <button
                   type="button"
-                  onClick={() => setBagged((cur) => (inBag ? cur : [...cur, p.id]))}
+                  onClick={() =>
+                    setBagged((cur) => (inBag ? cur : [...cur, p.id]))
+                  }
                   className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-all ${
                     inBag
                       ? "bg-success-50 text-success"
                       : "bg-ink text-white hover:-translate-y-0.5 hover:bg-ink-hover"
                   }`}
                 >
-                  {inBag ? <Check size={14} strokeWidth={3} /> : <ShoppingBag size={14} />}
+                  {inBag ? (
+                    <Check size={14} strokeWidth={3} />
+                  ) : (
+                    <ShoppingBag size={14} />
+                  )}
                   {inBag ? "Added to bag" : "Move to bag"}
                 </button>
               </div>
@@ -1085,11 +1732,19 @@ function WishlistPanel({ items, setItems }) {
    ------------------------------------------------------------------ */
 
 function NotificationsPanel() {
-  const [prefs, setPrefs] = useState({ orders: true, drops: true, prices: false, newsletter: true });
+  const [prefs, setPrefs] = useState({
+    orders: true,
+    drops: true,
+    prices: false,
+    newsletter: true,
+  });
 
   return (
     <div>
-      <PanelHeader title="Notifications" desc="Choose what lands in your inbox and on your phone." />
+      <PanelHeader
+        title="Notifications"
+        desc="Choose what lands in your inbox and on your phone."
+      />
       <ul className={`${CARD_CLASS} divide-y divide-line`}>
         {NOTIFICATION_SETTINGS.map(({ id, title, desc, icon, tone }) => (
           <li key={id} className="flex items-center gap-4 p-4 sm:p-5">
@@ -1110,7 +1765,8 @@ function NotificationsPanel() {
       </ul>
       <p className="mt-4 flex items-start gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs text-ink-soft">
         <Zap size={14} className="mt-0.5 shrink-0 text-sky" />
-        Security alerts about your account are always on, so you never miss something important.
+        Security alerts about your account are always on, so you never miss
+        something important.
       </p>
     </div>
   );
@@ -1122,13 +1778,17 @@ function NotificationsPanel() {
 
 function SupportCard({ className = "" }) {
   return (
-    <div className={`relative overflow-hidden rounded-3xl bg-mint-50 p-5 ${className}`}>
+    <div
+      className={`relative overflow-hidden rounded-3xl bg-mint-50 p-5 ${className}`}
+    >
       <div className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 animate-blob rounded-full bg-sky/20 blur-2xl" />
       <div className="relative">
         <span className="flex h-11 w-11 -rotate-6 items-center justify-center rounded-2xl bg-white text-mint shadow-sm">
           <Headphones size={20} />
         </span>
-        <p className="mt-3 font-display text-base font-bold text-ink">Need help?</p>
+        <p className="mt-3 font-display text-base font-bold text-ink">
+          Need help?
+        </p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
           Real humans, 7 days a week. Average reply in under 5 minutes.
         </p>
@@ -1158,7 +1818,6 @@ function AccountPage() {
   const user = data?.user;
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
-
   const [wishlist, setWishlist] = useState(WISHLIST);
   const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
 
@@ -1166,7 +1825,11 @@ function AccountPage() {
     setSearchParams(id === "orders" ? {} : { tab: id }, { replace: true });
   };
 
-  const counts = { orders: ORDERS.length, wishlist: wishlist.length, addresses: addresses.length };
+  const counts = {
+    orders: ORDERS.length,
+    wishlist: wishlist.length,
+    addresses: user?.addresses?.length,
+  };
 
   const handleLogout = () => {
     dispatch(logout());
@@ -1180,12 +1843,19 @@ function AccountPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-10">
       <ProfileHero user={user} onEdit={() => setActive("profile")} />
-      <StatTiles onSelect={setActive} wishlistCount={wishlist.length} addressCount={addresses.length} />
+      <StatTiles
+        onSelect={setActive}
+        wishlistCount={wishlist.length}
+        addressCount={addresses.length}
+      />
 
       <div className="mt-6 flex flex-col gap-6 lg:mt-8 lg:flex-row lg:items-start lg:gap-8">
         {/* Sidebar / tab strip */}
         <aside className="min-w-0 lg:sticky lg:top-32 lg:w-64 lg:shrink-0">
-          <nav aria-label="Account sections" className="lg:rounded-3xl lg:border lg:border-line lg:bg-white lg:p-2">
+          <nav
+            aria-label="Account sections"
+            className="lg:rounded-3xl lg:border lg:border-line lg:bg-white lg:p-2"
+          >
             <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0 lg:pb-0">
               {NAV_ITEMS.map(({ id, label, icon: Icon, tone }) => {
                 const on = active === id;
@@ -1209,11 +1879,15 @@ function AccountPage() {
                         <Icon size={17} />
                       </span>
                       <Icon size={15} className="lg:hidden" />
-                      <span className="whitespace-nowrap lg:flex-1 lg:text-left">{label}</span>
+                      <span className="whitespace-nowrap lg:flex-1 lg:text-left">
+                        {label}
+                      </span>
                       {counts[id] !== undefined && (
                         <span
                           className={`hidden rounded-full px-2 py-0.5 text-[11px] lg:inline ${
-                            on ? "bg-white/20 text-white" : "bg-mist text-subtle"
+                            on
+                              ? "bg-white/20 text-white"
+                              : "bg-mist text-subtle"
                           }`}
                         >
                           {counts[id]}
@@ -1256,9 +1930,16 @@ function AccountPage() {
           {active === "orders" && <OrdersPanel orderId={orderId} />}
           {/* key remounts the form once the user loads, so defaultValue picks it up */}
           {active === "profile" && <ProfilePanel key={user?._id} user={user} />}
-          {active === "addresses" && <AddressesPanel addresses={addresses} setAddresses={setAddresses} />}
+          {active === "addresses" && (
+            <AddressesPanel
+              addresses={user?.addresses}
+              setAddresses={setAddresses}
+            />
+          )}
           {active === "payment" && <PaymentPanel />}
-          {active === "wishlist" && <WishlistPanel items={wishlist} setItems={setWishlist} />}
+          {active === "wishlist" && (
+            <WishlistPanel items={wishlist} setItems={setWishlist} />
+          )}
           {active === "notifications" && <NotificationsPanel />}
         </div>
 
