@@ -49,6 +49,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
+import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
@@ -1616,10 +1617,11 @@ function PaymentPanel() {
    Wishlist
    ------------------------------------------------------------------ */
 
-function WishlistPanel({ items, setItems }) {
+function WishlistPanel({watchListItems, setItems }) {
   const [bagged, setBagged] = useState([]);
-
-  if (!items.length) {
+  console.log("wishlist items", watchListItems);
+  const [deleteFromWishList] = useDeleteFromWishListMutation();
+  if (!watchListItems?.length) {
     return (
       <div>
         <PanelHeader title="Your wishlist" />
@@ -1646,10 +1648,10 @@ function WishlistPanel({ items, setItems }) {
     <div>
       <PanelHeader
         title="Your wishlist"
-        desc={`${items.length} ${items.length === 1 ? "piece" : "pieces"} saved for later`}
+        desc={`${watchListItems.length} ${watchListItems.length === 1 ? "piece" : "pieces"} saved for later`}
       />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {items.map((p) => {
+        {watchListItems.map((p) => {
           const inBag = bagged.includes(p.id);
           return (
             <article key={p.id} className="group flex flex-col">
@@ -1660,8 +1662,8 @@ function WishlistPanel({ items, setItems }) {
                   aria-label={p.name}
                 >
                   <SmartImage
-                    src={unsplash(p.photo, 400, 500)}
-                    alt={p.name}
+                    src={p?.productId?.images?.[0]}
+                    alt={p?.productId?.name}
                     bg={p.bg}
                     imgClassName="transition-transform duration-500 group-hover:scale-105"
                   />
@@ -1673,8 +1675,7 @@ function WishlistPanel({ items, setItems }) {
                 )}
                 <button
                   type="button"
-                  onClick={() =>
-                    setItems((cur) => cur.filter((x) => x.id !== p.id))
+                  onClick={() =>deleteFromWishList(p._id).unwrap()
                   }
                   aria-label={`Remove ${p.name} from wishlist`}
                   className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-pop shadow-sm backdrop-blur transition-transform hover:scale-110"
@@ -1688,15 +1689,15 @@ function WishlistPanel({ items, setItems }) {
                   to={`/products/${p.id}`}
                   className="truncate text-sm font-semibold text-ink hover:text-brand"
                 >
-                  {p.name}
+                  {p.productId?.name}
                 </Link>
                 <p className="mt-1 flex items-baseline gap-2">
                   <span className="text-sm font-bold text-ink">
-                    {money(p.price)}
+                    {money(p.productId?.price)}
                   </span>
                   {p.originalPrice && (
                     <span className="text-xs text-faint line-through">
-                      {money(p.originalPrice)}
+                      {money(p?.productId?.originalPrice)}
                     </span>
                   )}
                 </p>
@@ -1820,14 +1821,14 @@ function AccountPage() {
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
   const [wishlist, setWishlist] = useState(WISHLIST);
   const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
-
+ const {data:watchListItems}=useGetWishlistQuery()
   const setActive = (id) => {
     setSearchParams(id === "orders" ? {} : { tab: id }, { replace: true });
   };
 
   const counts = {
     orders: ORDERS.length,
-    wishlist: wishlist.length,
+    wishlist: watchListItems?.length || 0,
     addresses: user?.addresses?.length,
   };
 
@@ -1938,7 +1939,7 @@ function AccountPage() {
           )}
           {active === "payment" && <PaymentPanel />}
           {active === "wishlist" && (
-            <WishlistPanel items={wishlist} setItems={setWishlist} />
+            <WishlistPanel watchListItems={watchListItems} setItems={setWishlist} />
           )}
           {active === "notifications" && <NotificationsPanel />}
         </div>

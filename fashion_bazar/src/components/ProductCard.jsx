@@ -3,12 +3,11 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
-import {useGetProductsByIdQuery} from '../lib/api/productApi'
-
+import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
 function ProductCard({ product }) {
-  
+  const [addToWishlist] = useAddToWishlistMutation();
   const [wishlisted, setWishlisted] = useState(false);
   const productId = product?._id ;
   const href = `/products/${productId}`;
@@ -60,15 +59,16 @@ function ProductCard({ product }) {
           </div>
         </Link>
 
-        {tag && (
+        {!tag && (
           <span className="pointer-events-none absolute left-2.5 top-2.5 border border-white/70 px-1.5 py-1 text-[9px] font-medium uppercase tracking-[0.2em] text-white sm:left-3 sm:top-3 sm:px-2">
-            {tag}
+            {tag}sdfg
+            
           </span>
         )}
 
         <button
           type="button"
-          onClick={() => setWishlisted((v) => !v)}
+          onClick={() => addToWishlist( productId)}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={wishlisted}
           className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-all hover:bg-white active:scale-90 sm:right-3 sm:top-3 sm:h-10 sm:w-10"
