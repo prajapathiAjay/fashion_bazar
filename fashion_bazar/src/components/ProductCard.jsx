@@ -4,10 +4,13 @@ import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
 import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
+import {useAddToCartMutation} from "../lib/api/cartApi";
+
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
 function ProductCard({ product }) {
   const [addToWishlist] = useAddToWishlistMutation();
+  const [addToCart] = useAddToCartMutation();
   const [wishlisted, setWishlisted] = useState(false);
   const productId = product?._id ;
   const href = `/products/${productId}`;
@@ -83,6 +86,10 @@ function ProductCard({ product }) {
 
       <button
         type="button"
+       onClick={() => {
+    console.log("productId", productId);
+    addToCart({ productID: productId });
+  }}
         aria-label={`Add ${product.name} to bag`}
         className="mt-2.5 w-full border border-ink bg-white py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs"
       >

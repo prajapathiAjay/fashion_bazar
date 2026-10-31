@@ -25,7 +25,7 @@ import {
   Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-
+import { useAddToCartMutation,useGetCartItemsQuery } from "../lib/api/cartApi";
 const FREE_SHIPPING_AT = 999;
 
 const INITIAL_ITEMS = [
@@ -167,7 +167,7 @@ function QtyStepper({ item, onChange }) {
         <Minus size={14} />
       </button>
       <span className="w-7 text-center text-sm font-semibold tabular-nums text-ink" aria-live="polite">
-        {item.qty}
+        {item.quantity}
       </span>
       <button
         type="button"
@@ -183,16 +183,16 @@ function QtyStepper({ item, onChange }) {
 
 function CartItem({ item, onQty, onRemove }) {
   const [saved, setSaved] = useState(null); // "wishlist" | "later" | null
-
+ console.log("itemss", item);
   return (
     <li className="group relative flex gap-4 rounded-3xl border border-line bg-white p-3.5 transition-all hover:border-line-hover hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] sm:gap-5 sm:p-4">
       <Link
-        to={`/products/${item.id}`}
+        to={`/products/${item.productID?._id}`}
         className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl sm:h-40 sm:w-32"
       >
         <SmartImage
-          src={item.image}
-          alt={item.name}
+          src={item.productID?.images?.[0]}
+          alt={item.productID?.name}
           bg={item.bg}
           imgClassName="transition-transform duration-500 group-hover:scale-105"
         />
@@ -205,16 +205,16 @@ function CartItem({ item, onQty, onRemove }) {
               {item.seller}
             </p>
             <Link
-              to={`/products/${item.id}`}
+              to={`/products/${item.productID?._id}`}
               className="mt-0.5 block truncate text-[15px] font-semibold text-ink hover:text-brand sm:text-base"
             >
-              {item.name}
+              {item.productID?.name}
             </Link>
           </div>
           <button
             type="button"
-            onClick={() => onRemove(item.id)}
-            aria-label={`Remove ${item.name} from bag`}
+            onClick={() => onRemove(item?._id)}
+            aria-label={`Remove ${item?.productID?.name} from bag`}
             className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-subtle transition-colors hover:bg-danger-50 hover:text-danger"
           >
             <Trash2 size={16} />
@@ -223,7 +223,7 @@ function CartItem({ item, onQty, onRemove }) {
 
         <div className="mt-2 flex flex-wrap gap-1.5">
           <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-            Size: <span className="font-semibold text-ink">{item.size}</span>
+            Size: <span className="font-semibold text-ink">{item?.size}</span>
           </span>
           <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
             Colour: <span className="font-semibold text-ink">{item.color}</span>
@@ -240,7 +240,7 @@ function CartItem({ item, onQty, onRemove }) {
               {money(item.price * item.qty)}
             </p>
             {item.qty > 1 && (
-              <p className="text-[11px] text-subtle">{money(item.price)} each</p>
+              <p className="text-[11px] text-subtle">{money(item?.productID?.price)} each</p>
             )}
           </div>
         </div>
@@ -472,7 +472,9 @@ function CartPage() {
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState(null);
   const [promoError, setPromoError] = useState("");
-
+  const [addToCart] = useAddToCartMutation();
+  const {data:cartItems, isLoading, isError} = useGetCartItemsQuery();
+  console.log({ cartItems, isLoading, });
   const updateQty = (id, delta) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -508,7 +510,7 @@ function CartPage() {
   const unitCount = items.reduce((sum, item) => sum + item.qty, 0);
   const savings = discount + (shipping === 0 ? 99 : 0);
 
-  if (items.length === 0) return <EmptyBag />;
+  if (cartItems?.length === 0) return <EmptyBag />;
 
   return (
     <div className="mx-auto max-w-7xl px-5 pb-36 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-10">
@@ -522,7 +524,7 @@ function CartPage() {
             </span>
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            From {items.length} independent {items.length === 1 ? "seller" : "sellers"} · items aren&apos;t reserved until checkout
+            From {cartItems?.length} independent {cartItems?.length === 1 ? "seller" : "sellers"} · items aren&apos;t reserved until checkout
           </p>
         </div>
         <Link
@@ -539,8 +541,8 @@ function CartPage() {
         <section aria-label="Items in your bag" className="flex min-w-0 flex-col gap-4">
           <FreeShippingBar subtotal={subtotal} />
           <ul className="flex flex-col gap-3 sm:gap-4">
-            {items.map((item) => (
-              <CartItem key={item.id} item={item} onQty={updateQty} onRemove={removeItem} />
+            {cartItems?.map((item) => (
+              <CartItem key={item?._id} item={item} onQty={updateQty} onRemove={removeItem} />
             ))}
           </ul>
 
