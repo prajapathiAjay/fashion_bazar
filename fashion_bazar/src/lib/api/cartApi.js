@@ -1,4 +1,4 @@
-import {baseApi} from './baseApi';
+import { baseApi } from './baseApi';
 
 
 
@@ -6,9 +6,9 @@ export const cartItemsApi = baseApi.injectEndpoints({
 
     endpoints: (builder) => ({
         addToCart: builder.mutation({
-            
+
             query: (data) => ({
-       
+
                 url: '/cartItems',
                 method: 'POST',
                 body: data
@@ -25,15 +25,24 @@ export const cartItemsApi = baseApi.injectEndpoints({
             query: () => ({ url: "/cartItems" }),
             transformResponse: (response) => response.data,
             providesTags: ["CartItem"]
+        }),
+
+        deleteCartItem: builder.mutation({
+            query: (id) => ({
+                url: `/cartItems/${id}`,
+                method: 'DELETE'
+
+            }),
+            invalidatesTags: ["CartItem"]
+
+
+
+
         })
 
 
 
-
     })
-
-
-
 })
 
-export const { useAddToCartMutation, useGetCartItemsQuery } = cartItemsApi;
+export const { useAddToCartMutation, useGetCartItemsQuery, useDeleteCartItemMutation } = cartItemsApi;

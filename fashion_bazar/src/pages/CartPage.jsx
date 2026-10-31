@@ -25,7 +25,8 @@ import {
   Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import { useAddToCartMutation,useGetCartItemsQuery } from "../lib/api/cartApi";
+import { useAddToCartMutation,useGetCartItemsQuery,useDeleteCartItemMutation } from "../lib/api/cartApi";
+import {useAddToWishlistMutation} from "../lib/api/wishlistApi";  
 const FREE_SHIPPING_AT = 999;
 
 const INITIAL_ITEMS = [
@@ -183,7 +184,9 @@ function QtyStepper({ item, onChange }) {
 
 function CartItem({ item, onQty, onRemove }) {
   const [saved, setSaved] = useState(null); // "wishlist" | "later" | null
- console.log("itemss", item);
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [deleteCartItem] = useDeleteCartItemMutation();
+  console.log("itemss", item);
   return (
     <li className="group relative flex gap-4 rounded-3xl border border-line bg-white p-3.5 transition-all hover:border-line-hover hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] sm:gap-5 sm:p-4">
       <Link
@@ -213,7 +216,7 @@ function CartItem({ item, onQty, onRemove }) {
           </div>
           <button
             type="button"
-            onClick={() => onRemove(item?._id)}
+            onClick={() => deleteCartItem(item?._id)}
             aria-label={`Remove ${item?.productID?.name} from bag`}
             className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-subtle transition-colors hover:bg-danger-50 hover:text-danger"
           >
@@ -237,9 +240,9 @@ function CartItem({ item, onQty, onRemove }) {
           <QtyStepper item={item} onChange={onQty} />
           <div className="text-right">
             <p className="text-base font-bold tabular-nums text-ink sm:text-lg">
-              {money(item.price * item.qty)}
+              {money(item?.productID?.price * item?.quantity)}
             </p>
-            {item.qty > 1 && (
+            {item?.productID?.price && item?.quantity > 1 && (
               <p className="text-[11px] text-subtle">{money(item?.productID?.price)} each</p>
             )}
           </div>
@@ -248,7 +251,7 @@ function CartItem({ item, onQty, onRemove }) {
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-2.5 text-xs font-semibold">
           <button
             type="button"
-            onClick={() => setSaved(saved === "wishlist" ? null : "wishlist")}
+            onClick={() => addToWishlist(  item?.productID?._id) }
             aria-pressed={saved === "wishlist"}
             className={`inline-flex items-center gap-1.5 rounded-full py-1 transition-colors ${
               saved === "wishlist" ? "text-pop" : "text-muted hover:text-pop"
@@ -257,7 +260,7 @@ function CartItem({ item, onQty, onRemove }) {
             <Heart size={13} className={saved === "wishlist" ? "fill-pop" : ""} />
             {saved === "wishlist" ? "In wishlist" : "Move to wishlist"}
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => setSaved(saved === "later" ? null : "later")}
             aria-pressed={saved === "later"}
@@ -267,7 +270,7 @@ function CartItem({ item, onQty, onRemove }) {
           >
             <Bookmark size={13} className={saved === "later" ? "fill-brand" : ""} />
             {saved === "later" ? "Saved" : "Save for later"}
-          </button>
+          </button> */}
         </div>
       </div>
     </li>
