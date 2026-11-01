@@ -277,61 +277,61 @@ function CartItem({ item, onQty, onRemove }) {
   );
 }
 
-function PromoForm({ promoCode, setPromoCode, appliedPromo, promoError, onApply }) {
-  const status = appliedPromo ? "success" : promoError ? "error" : "idle";
-  return (
-    <div>
-      <form onSubmit={onApply} className="flex gap-2">
-        <label htmlFor="promo-code" className="sr-only">
-          Promo code
-        </label>
-        <div
-          className={`flex min-w-0 flex-1 items-center rounded-full border bg-white px-3.5 transition-colors focus-within:ring-4 ${
-            status === "success"
-              ? "border-success/50 focus-within:ring-success/10"
-              : status === "error"
-              ? "border-danger/50 focus-within:ring-danger/10"
-              : "border-line-strong focus-within:border-brand/40 focus-within:ring-brand/10"
-          }`}
-        >
-          <Tag size={14} className="shrink-0 text-subtle" aria-hidden="true" />
-          <input
-            id="promo-code"
-            type="text"
-            autoComplete="off"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
-            placeholder="Promo code"
-            aria-invalid={status === "error"}
-            aria-describedby="promo-status"
-            className="ml-2 w-full min-w-0 bg-transparent py-2.5 text-sm uppercase text-ink outline-none placeholder:normal-case placeholder:text-subtle"
-          />
-        </div>
-        <button
-          type="submit"
-          className="shrink-0 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
-        >
-          Apply
-        </button>
-      </form>
-      <div id="promo-status" aria-live="polite">
-        {promoError && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
-            <AlertCircle size={13} /> {promoError} Try <span className="font-bold">BAZAR10</span>.
-          </p>
-        )}
-        {appliedPromo && (
-          <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-success-50 px-3 py-2 text-xs font-medium text-success">
-            <CheckCircle2 size={14} />
-            <span>
-              <span className="font-bold">{appliedPromo.code}</span> applied — {appliedPromo.percent}% off
-            </span>
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
+// function PromoForm({ promoCode, setPromoCode, appliedPromo, promoError, onApply }) {
+//   const status = appliedPromo ? "success" : promoError ? "error" : "idle";
+//   return (
+//     <div>
+//       <form onSubmit={onApply} className="flex gap-2">
+//         <label htmlFor="promo-code" className="sr-only">
+//           Promo code
+//         </label>
+//         <div
+//           className={`flex min-w-0 flex-1 items-center rounded-full border bg-white px-3.5 transition-colors focus-within:ring-4 ${
+//             status === "success"
+//               ? "border-success/50 focus-within:ring-success/10"
+//               : status === "error"
+//               ? "border-danger/50 focus-within:ring-danger/10"
+//               : "border-line-strong focus-within:border-brand/40 focus-within:ring-brand/10"
+//           }`}
+//         >
+//           <Tag size={14} className="shrink-0 text-subtle" aria-hidden="true" />
+//           <input
+//             id="promo-code"
+//             type="text"
+//             autoComplete="off"
+//             value={promoCode}
+//             onChange={(e) => setPromoCode(e.target.value)}
+//             placeholder="Promo code"
+//             aria-invalid={status === "error"}
+//             aria-describedby="promo-status"
+//             className="ml-2 w-full min-w-0 bg-transparent py-2.5 text-sm uppercase text-ink outline-none placeholder:normal-case placeholder:text-subtle"
+//           />
+//         </div>
+//         <button
+//           type="submit"
+//           className="shrink-0 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
+//         >
+//           Apply
+//         </button>
+//       </form>
+//       <div id="promo-status" aria-live="polite">
+//         {promoError && (
+//           <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
+//             <AlertCircle size={13} /> {promoError} Try <span className="font-bold">BAZAR10</span>.
+//           </p>
+//         )}
+//         {appliedPromo && (
+//           <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-success-50 px-3 py-2 text-xs font-medium text-success">
+//             <CheckCircle2 size={14} />
+//             <span>
+//               <span className="font-bold">{appliedPromo.code}</span> applied — {appliedPromo.percent}% off
+//             </span>
+//           </p>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 function SummaryRow({ label, value, tone = "text-ink" }) {
   return (
@@ -506,11 +506,11 @@ function CartPage() {
     setPromoCode("");
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = cartItems?.reduce((sum, item) => sum + item.productID.price * item.quantity, 0);
   const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 99;
   const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
   const total = subtotal + shipping - discount;
-  const unitCount = items.reduce((sum, item) => sum + item.qty, 0);
+  const unitCount = cartItems?.reduce((sum, item) => sum + item.quantity, 0);
   const savings = discount + (shipping === 0 ? 99 : 0);
 
   if (cartItems?.length === 0) return <EmptyBag />;
@@ -575,7 +575,7 @@ function CartPage() {
               Order summary
             </h2>
 
-            <div className="mt-5">
+            {/* <div className="mt-5">
               <PromoForm
                 promoCode={promoCode}
                 setPromoCode={setPromoCode}
@@ -583,7 +583,7 @@ function CartPage() {
                 promoError={promoError}
                 onApply={applyPromo}
               />
-            </div>
+            </div> */}
 
             <dl className="mt-5 flex flex-col gap-3 border-t border-dashed border-line-strong pt-5 text-sm">
               <SummaryRow label={`Subtotal (${unitCount} items)`} value={money(subtotal)} />

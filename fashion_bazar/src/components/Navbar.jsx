@@ -74,7 +74,7 @@ function Navbar() {
   const token = useSelector((state) => state.auth.token);
   // skip until logged in, otherwise /users returns 401
   const { data: userData } = useGetUserByIdQuery(undefined, { skip: !token });
-  const firstName = userData?.user?.name?.split(" ")[0] || "Account";
+  const firstName = userData?.user?.firstName ;
 
   const handleLogout = () => {
     dispatch(logout());

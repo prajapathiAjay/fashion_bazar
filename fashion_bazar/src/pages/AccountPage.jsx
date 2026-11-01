@@ -1083,82 +1083,6 @@ function ProfilePanel({ user }) {
    Addresses
    ------------------------------------------------------------------ */
 
-// function AddressesPanel({ addresses, setAddresses }) {
-//   const [defaultId, setDefaultId] = useState("a1");
-//   const TAGS = {
-//     Home: { icon: House, tone: "bg-brand-50 text-brand" },
-//     Work: { icon: Briefcase, tone: "bg-sky-50 text-sky" },
-//   };
-
-//   return (
-//     <div>
-//       <PanelHeader title="Saved addresses" desc="Where should we send your bazar finds?" />
-//       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-//         {addresses.map((a) => {
-//           const { icon, tone } = TAGS[a.tag];
-//           const isDefault = a.id === defaultId;
-//           return (
-//             <article
-//               key={a.id}
-//               className={`${CARD_CLASS} flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] ${
-//                 isDefault ? "border-mint/50" : ""
-//               }`}
-//             >
-//               <div className="flex items-center justify-between gap-3">
-//                 <div className="flex items-center gap-3">
-//                   <IconChip icon={icon} tone={tone} size="sm" />
-//                   <span className="text-sm font-bold text-ink">{a.tag}</span>
-//                 </div>
-//                 {isDefault && (
-//                   <span className="inline-flex items-center gap-1 rounded-full bg-mint-50 px-2.5 py-1 text-[11px] font-semibold text-mint">
-//                     <Check size={12} strokeWidth={3} />
-//                     Default
-//                   </span>
-//                 )}
-//               </div>
-//               <div className="mt-4 flex-1 text-sm leading-relaxed text-muted">
-//                 <p className="font-semibold text-ink">{a.name}</p>
-//                 {a.lines.map((l) => (
-//                   <p key={l}>{l}</p>
-//                 ))}
-//                 <p className="mt-1 text-subtle">{a.phone}</p>
-//               </div>
-//               <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
-//                 <ActionButton icon={Pencil}>Edit</ActionButton>
-//                 {!isDefault && (
-//                   <>
-//                     <ActionButton icon={Check} onClick={() => setDefaultId(a.id)}>
-//                       Set as default
-//                     </ActionButton>
-//                     <button
-//                       type="button"
-//                       onClick={() => setAddresses((cur) => cur.filter((x) => x.id !== a.id))}
-//                       className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-50"
-//                     >
-//                       <Trash2 size={14} />
-//                       Remove
-//                     </button>
-//                   </>
-//                 )}
-//               </div>
-//             </article>
-//           );
-//         })}
-
-//         <button
-//           type="button"
-//           className="group flex min-h-52 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-line-strong p-6 text-center transition-colors hover:border-brand/40 hover:bg-brand-50/50"
-//         >
-//           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gradient text-white transition-transform duration-300 group-hover:rotate-90">
-//             <Plus size={22} />
-//           </span>
-//           <span className="text-sm font-bold text-ink">Add new address</span>
-//           <span className="text-xs text-subtle">Home, work or a friend's place</span>
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
 
 const EMPTY_FORM = {
   tag: "Home",
@@ -1195,8 +1119,7 @@ function AddressesPanel({ addresses, setAddresses }) {
     Other: { icon: MapPin, tone: "bg-mint-50 text-mint" },
   };
 
-  const update = (key) => (e) =>
-    setForm((f) => ({ ...f, [key]: e.target.value }));
+
 
   const openAdd = () => {
     setEditingId(null);
