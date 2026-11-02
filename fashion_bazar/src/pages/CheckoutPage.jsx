@@ -27,7 +27,8 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-
+import {useGetCartItemsQuery} from "../lib/api/cartApi";
+import { useGetUserByIdQuery } from "../lib/api/userApi";
 /* ------------------------------------------------------------------ */
 /* Dummy data — replace with API data later                            */
 /* ------------------------------------------------------------------ */
@@ -116,26 +117,26 @@ function PrimaryButton({ children, className = "", ...props }) {
   );
 }
 
-function SummaryItems() {
+function SummaryItems({ items }) {
   return (
     <ul className="flex flex-col gap-3.5">
-      {ORDER_ITEMS.map((item) => (
+      {items?.map((item) => (
         <li key={item.id} className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div className="h-16 w-13 overflow-hidden rounded-xl border border-line">
-              <SmartImage src={item.image} alt={item.name} bg={item.bg} />
+              <SmartImage src={item?.productID?.images?.[0]} alt={item.name} bg={item.bg} />
             </div>
             <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white ring-2 ring-white">
-              {item.qty}
+              {item.quantity}
             </span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">{item.name}</p>
+            <p className="truncate text-sm font-semibold text-ink">{item?.productID?.name}</p>
             <p className="truncate text-[11px] text-subtle">
               {item.seller} · Size {item.size}
             </p>
           </div>
-          <p className="text-sm font-semibold tabular-nums text-ink">{money(item.price * item.qty)}</p>
+          <p className="text-sm font-semibold tabular-nums text-ink">{money(item.productID?.price * item.quantity)}</p>
         </li>
       ))}
     </ul>
@@ -305,10 +306,14 @@ function CheckoutPage() {
     (DUMMY_ADDRESSES.find((a) => a.isDefault) || DUMMY_ADDRESSES[0])?.id ?? null
   );
 
-  const subtotal = ORDER_ITEMS.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+
+  const { data: cartItems } = useGetCartItemsQuery();
+const { data: userData } = useGetUserByIdQuery();
+  const subtotal = cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
   const shipping = shipMethod === "express" ? 199 : subtotal >= 999 ? 0 : 99;
   const total = subtotal + shipping;
-  const unitCount = ORDER_ITEMS.reduce((sum, i) => sum + i.qty, 0);
+  const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
 
   const addressList = addresses && addresses.length ? addresses : DUMMY_ADDRESSES;
   const selectedAddress = addressList.find((a) => a.id === selectedAddressId) || addressList[0];
@@ -403,7 +408,7 @@ function CheckoutPage() {
               <span>
                 <span className="block text-lg font-bold text-ink">Order summary</span>
                 <span className="block text-xs text-subtle">
-                  {unitCount} items · {summaryOpen ? "Hide" : "Show"} details
+                  {cartItems?.length || 0} items · {summaryOpen ? "Hide" : "Show"} details
                 </span>
               </span>
             </span>
@@ -411,7 +416,7 @@ function CheckoutPage() {
           </button>
           {summaryOpen && (
             <div id="order-items" className="border-t border-line p-5 sm:p-6">
-              <SummaryItems />
+              <SummaryItems items={cartItems} />
               <div className="mt-4 text-right">
                 <Link to="/cart" className="text-xs font-semibold text-brand hover:text-brand-dark">
                   Edit bag
@@ -443,15 +448,15 @@ function CheckoutPage() {
                 <ul className="mt-2.5 flex flex-col gap-2 text-sm text-ink">
                   <li className="flex items-center gap-2.5">
                     <User size={14} className="shrink-0 text-brand" />
-                    <span className="font-semibold">{user?.name || DUMMY_USER.name}</span>
+                    <span className="font-semibold">{userData?.user?.firstName+" "+userData?.user?.lastName}</span>
                   </li>
                   <li className="flex items-center gap-2.5">
                     <Mail size={14} className="shrink-0 text-brand" />
-                    <span className="break-all">{user?.email || DUMMY_USER.email}</span>
+                    <span className="break-all">{userData?.user?.email }</span>
                   </li>
                   <li className="flex items-center gap-2.5">
                     <Phone size={14} className="shrink-0 text-brand" />
-                    <span>{user?.phone || DUMMY_USER.phone}</span>
+                    <span>{userData?.user?.phone }</span>
                   </li>
                 </ul>
               </div>
@@ -461,7 +466,7 @@ function CheckoutPage() {
                 <fieldset className="mt-4">
                   <legend className="sr-only">Delivery address</legend>
                   <div className="flex flex-col gap-3">
-                    {addressList.map((a) => {
+                    {userData?.user?.addresses?.map((a) => {
                       const selected = a.id === (selectedAddressId ?? addressList[0].id);
                       const line =
                         [a.line1, a.line2, a.city, a.state, a.pin].filter(Boolean).join(", ") ||
@@ -471,7 +476,7 @@ function CheckoutPage() {
                           key={a.id}
                           htmlFor={`addr-${a.id}`}
                           className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
-                            selected ? "border-brand bg-brand-50/60" : "border-line hover:border-line-hover"
+                            a?.isDefault ? "border-brand bg-brand-50/60" : "border-line hover:border-line-hover"
                           }`}
                         >
                           <input
@@ -479,23 +484,23 @@ function CheckoutPage() {
                             type="radio"
                             name="address"
                             value={a.id}
-                            checked={selected}
+                            checked={a.isDefault}
                             onChange={() => setSelectedAddressId(a.id)}
                             className="sr-only"
                           />
                           <span
                             aria-hidden="true"
                             className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                              selected ? "border-brand bg-brand text-white" : "border-line-strong bg-white"
+                             a?.isDefault ? "border-brand bg-brand text-white" : "border-line-strong bg-white"
                             }`}
                           >
-                            {selected && <Check size={11} strokeWidth={3.5} />}
+                            {a.isDefault && <Check size={11} strokeWidth={3.5} />}
                           </span>
                           <span className="min-w-0 flex-1 text-sm">
                             <span className="flex flex-wrap items-center gap-2">
-                              <span className="font-bold text-ink">{a.name || user?.name || DUMMY_USER.name}</span>
+                              <span className="font-bold text-ink">{a.name || userData?.user?.firstName + " " + userData?.user?.lastName }</span>
                               <span className="rounded-full bg-mist px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-                                {a.label || "Home"}
+                                {a.tag  }
                               </span>
                               {a.isDefault && (
                                 <span className="rounded-full bg-mint-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mint">
@@ -503,10 +508,12 @@ function CheckoutPage() {
                                 </span>
                               )}
                             </span>
-                            <span className="mt-1 block text-muted">{line}</span>
-                            <span className="mt-1 block text-xs text-subtle">
-                              Phone: {a.phone || user?.phone || DUMMY_USER.phone}
-                            </span>
+                            <span className="mt-1 block text-muted">{a?.line1}</span>
+                               <span className="mt-1 block text-muted">{a?.line2}</span>
+                                  <span className="mt-1 block text-muted">{a?.city}</span>
+                            <span className="mt-1 block text-muted">{a?.state}</span>
+                            <span className="mt-1 block text-muted">{a?.pinCode}</span>
+                           
                           </span>
                         </label>
                       );
