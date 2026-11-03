@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
-import { PHOTOS, unsplash } from "../assets/images";
 import {
   ChevronLeft,
   ChevronDown,
@@ -27,53 +26,12 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import {useGetCartItemsQuery} from "../lib/api/cartApi";
-import { useGetUserByIdQuery } from "../lib/api/userApi";
-/* ------------------------------------------------------------------ */
-/* Dummy data — replace with API data later                            */
-/* ------------------------------------------------------------------ */
-
-const DUMMY_USER = {
-  name: "Ananya Rao",
-  email: "ananya@example.com",
-  phone: "+91 98765 43210",
-};
-
-const DUMMY_ADDRESSES = [
-  {
-    id: "a1",
-    label: "Home",
-    name: "Ananya Rao",
-    phone: "+91 98765 43210",
-    line1: "123 Bazar Street",
-    line2: "Flat 4B",
-    city: "Bengaluru",
-    state: "Karnataka",
-    pin: "560001",
-    isDefault: true,
-  },
-  {
-    id: "a2",
-    label: "Work",
-    name: "Ananya Rao",
-    phone: "+91 98765 43210",
-    line1: "45 Residency Road",
-    line2: "",
-    city: "Bengaluru",
-    state: "Karnataka",
-    pin: "560025",
-    isDefault: false,
-  },
-];
+import { useGetCartItemsQuery } from "../lib/api/cartApi";
+import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 
 /* ------------------------------------------------------------------ */
 
-const ORDER_ITEMS = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, qty: 1, size: "M", bg: "#D9D2F0", image: unsplash(PHOTOS.floralDress, 120, 150) },
-  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 3899, qty: 1, size: "8", bg: "#F7DFA8", image: unsplash(PHOTOS.leatherShoes, 120, 150) },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, qty: 2, size: "One size", bg: "#F0C4C4", image: unsplash(PHOTOS.goldHoops, 120, 150) },
-];
-
+// TODO: replace with the order number returned by your order API
 const ORDER_NUMBER = "#BZ-10521";
 
 const PAYMENT_METHODS = [
@@ -120,25 +78,34 @@ function PrimaryButton({ children, className = "", ...props }) {
 function SummaryItems({ items }) {
   return (
     <ul className="flex flex-col gap-3.5">
-      {items?.map((item) => (
-        <li key={item.id} className="flex items-center gap-3">
-          <div className="relative shrink-0">
-            <div className="h-16 w-13 overflow-hidden rounded-xl border border-line">
-              <SmartImage src={item?.productID?.images?.[0]} alt={item.name} bg={item.bg} />
+      {items?.map((item) => {
+        const meta = [item.productID?.seller, item.size && `Size ${item.size}`]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <li key={item._id || item.id} className="flex items-center gap-3">
+            <div className="relative shrink-0">
+              <div className="h-16 w-13 overflow-hidden rounded-xl border border-line">
+                <SmartImage
+                  src={item?.productID?.images?.[0]}
+                  alt={item?.productID?.name || ""}
+                  bg={item.bg}
+                />
+              </div>
+              <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                {item.quantity}
+              </span>
             </div>
-            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white ring-2 ring-white">
-              {item.quantity}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-ink">{item?.productID?.name}</p>
-            <p className="truncate text-[11px] text-subtle">
-              {item.seller} · Size {item.size}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-ink">{item?.productID?.name}</p>
+              {meta && <p className="truncate text-[11px] text-subtle">{meta}</p>}
+            </div>
+            <p className="text-sm font-semibold tabular-nums text-ink">
+              {money((item.productID?.price || 0) * item.quantity)}
             </p>
-          </div>
-          <p className="text-sm font-semibold tabular-nums text-ink">{money(item.productID?.price * item.quantity)}</p>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -196,7 +163,7 @@ function SecurityNote() {
   );
 }
 
-function SuccessScreen({ total, shipMethod, email }) {
+function SuccessScreen({ total, shipMethod, email, itemCount }) {
   const timeline = [
     { label: "Ordered", icon: Check, done: true },
     { label: "Packed", icon: Package, done: false },
@@ -235,8 +202,8 @@ function SuccessScreen({ total, shipMethod, email }) {
           </h1>
           <p className="mx-auto mt-3 max-w-md text-[15px] text-muted">
             Confirmation sent to{" "}
-            <span className="font-semibold text-ink">{email || "your email"}</span>. Your order from{" "}
-            {ORDER_ITEMS.length} sellers is being packed with care.
+            <span className="font-semibold text-ink">{email || "your email"}</span>. Your{" "}
+            {itemCount} {itemCount === 1 ? "item is" : "items are"} being packed with care.
           </p>
 
           <div className="mx-auto mt-7 grid max-w-md grid-cols-2 gap-3 text-left">
@@ -298,32 +265,50 @@ function CheckoutPage() {
   const [payMethod, setPayMethod] = useState("cod");
   const [placing, setPlacing] = useState(false);
   const [placed, setPlaced] = useState(false);
-
   const [summaryOpen, setSummaryOpen] = useState(false);
-  const [user] = useState(DUMMY_USER);
-  const [addresses] = useState(DUMMY_ADDRESSES);
-  const [selectedAddressId, setSelectedAddressId] = useState(
-    (DUMMY_ADDRESSES.find((a) => a.isDefault) || DUMMY_ADDRESSES[0])?.id ?? null
-  );
 
-
-
+  /* ---- data from API ---- */
   const { data: cartItems } = useGetCartItemsQuery();
-const { data: userData } = useGetUserByIdQuery();
-  const subtotal = cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
+  const { data: userData } = useGetUserByIdQuery();
+  const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
+
+  const user = userData?.user;
+  const addresses = user?.addresses ?? [];
+  const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
+
+  // null until the user picks one -> the default address is used automatically.
+  // Picking here only affects this order, it does not change the saved default.
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const selectedAddress =
+    addresses.find((a) => a._id === selectedAddressId) || defaultAddress;
+
+  // Marks one address as the saved default (same approach as the account page)
+  const setDefaultAddress = async (id) => {
+    const next = addresses.map((a) => ({ ...a, isDefault: a._id === id }));
+    try {
+      await updateUser({ addresses: next }).unwrap();
+      setSelectedAddressId(id); // also use it for this order
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /* ---- totals ---- */
+  const subtotal =
+    cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
   const shipping = shipMethod === "express" ? 199 : subtotal >= 999 ? 0 : 99;
   const total = subtotal + shipping;
   const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
+  const lineCount = cartItems?.length || 0;
 
-  const addressList = addresses && addresses.length ? addresses : DUMMY_ADDRESSES;
-  const selectedAddress = addressList.find((a) => a.id === selectedAddressId) || addressList[0];
-  const canPlace = Boolean(selectedAddress) && payMethod === "cod" && !placing;
+  const canPlace =
+    Boolean(selectedAddress) && lineCount > 0 && payMethod === "cod" && !placing;
 
   const placeOrder = () => {
     if (!canPlace) return;
     setPlacing(true);
     // TODO: replace with your real order API call, e.g.
-    // await fetch(`${API_BASE}/api/orders`, { method: "POST", body: JSON.stringify({ addressId: selectedAddress.id, shipMethod, payMethod, items: ORDER_ITEMS }) })
+    // await createOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
     setTimeout(() => {
       setPlacing(false);
       setPlaced(true);
@@ -332,7 +317,14 @@ const { data: userData } = useGetUserByIdQuery();
   };
 
   if (placed) {
-    return <SuccessScreen total={total} shipMethod={shipMethod} email={user?.email || DUMMY_USER.email} />;
+    return (
+      <SuccessScreen
+        total={total}
+        shipMethod={shipMethod}
+        email={user?.email}
+        itemCount={unitCount}
+      />
+    );
   }
 
   const shipOptions = [
@@ -374,7 +366,7 @@ const { data: userData } = useGetUserByIdQuery();
       <div className="mt-5">
         <h1 className="text-3xl font-extrabold text-ink sm:text-4xl">Checkout</h1>
         <p className="mt-1 text-sm text-muted">
-          {unitCount} items · {ORDER_ITEMS.length} sellers · one smooth checkout
+          {unitCount} {unitCount === 1 ? "item" : "items"} · one smooth checkout
         </p>
       </div>
 
@@ -392,295 +384,324 @@ const { data: userData } = useGetUserByIdQuery();
         </aside>
 
         <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
-        {/* 1. Order summary dropdown */}
-        <section className="overflow-hidden rounded-3xl border border-line bg-white">
-          <button
-            type="button"
-            onClick={() => setSummaryOpen((o) => !o)}
-            aria-expanded={summaryOpen}
-            aria-controls="order-items"
-            className="flex w-full items-center justify-between gap-3 p-5 text-left sm:p-6"
-          >
-            <span className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand">
-                <ShoppingBag size={18} />
-              </span>
-              <span>
-                <span className="block text-lg font-bold text-ink">Order summary</span>
-                <span className="block text-xs text-subtle">
-                  {cartItems?.length || 0} items · {summaryOpen ? "Hide" : "Show"} details
+          {/* 1. Order summary dropdown */}
+          <section className="overflow-hidden rounded-3xl border border-line bg-white">
+            <button
+              type="button"
+              onClick={() => setSummaryOpen((o) => !o)}
+              aria-expanded={summaryOpen}
+              aria-controls="order-items"
+              className="flex w-full items-center justify-between gap-3 p-5 text-left sm:p-6"
+            >
+              <span className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-50 text-brand">
+                  <ShoppingBag size={18} />
+                </span>
+                <span>
+                  <span className="block text-lg font-bold text-ink">Order summary</span>
+                  <span className="block text-xs text-subtle">
+                    {lineCount} {lineCount === 1 ? "item" : "items"} · {summaryOpen ? "Hide" : "Show"} details
+                  </span>
                 </span>
               </span>
-            </span>
-            <ChevronDown size={20} className={`shrink-0 text-muted transition-transform ${summaryOpen ? "rotate-180" : ""}`} />
-          </button>
-          {summaryOpen && (
-            <div id="order-items" className="border-t border-line p-5 sm:p-6">
-              <SummaryItems items={cartItems} />
-              <div className="mt-4 text-right">
-                <Link to="/cart" className="text-xs font-semibold text-brand hover:text-brand-dark">
-                  Edit bag
-                </Link>
+              <ChevronDown
+                size={20}
+                className={`shrink-0 text-muted transition-transform ${summaryOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {summaryOpen && (
+              <div id="order-items" className="border-t border-line p-5 sm:p-6">
+                <SummaryItems items={cartItems} />
+                <div className="mt-4 text-right">
+                  <Link to="/cart" className="text-xs font-semibold text-brand hover:text-brand-dark">
+                    Edit bag
+                  </Link>
+                </div>
               </div>
+            )}
+          </section>
+
+          {/* 2. Account details + addresses */}
+          <Section
+            icon={MapPin}
+            title="Delivery address"
+            subtitle="Choose where we should deliver"
+            action={
+              <Link
+                to="/account?tab=addresses"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand-50"
+              >
+                <Plus size={12} /> Add new
+              </Link>
+            }
+          >
+            {/* User details */}
+            <div className="rounded-2xl bg-mist p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">Your details</p>
+              <ul className="mt-2.5 flex flex-col gap-2 text-sm text-ink">
+                <li className="flex items-center gap-2.5">
+                  <User size={14} className="shrink-0 text-brand" />
+                  <span className="font-semibold">
+                    {[user?.firstName, user?.lastName].filter(Boolean).join(" ")}
+                  </span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Mail size={14} className="shrink-0 text-brand" />
+                  <span className="break-all">{user?.email}</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Phone size={14} className="shrink-0 text-brand" />
+                  <span>{user?.phone}</span>
+                </li>
+              </ul>
             </div>
-          )}
-        </section>
 
-        {/* 2. Account details + addresses (from API) */}
-        <Section
-          icon={MapPin}
-          title="Delivery address"
-          subtitle="Choose where we should deliver"
-          action={
-            <Link
-              to="/account?tab=addresses"
-              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand-50"
-            >
-              <Plus size={12} /> Add new
-            </Link>
-          }
-        >
-          {(
-            <>
-              {/* User details */}
-              <div className="rounded-2xl bg-mist p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">Your details</p>
-                <ul className="mt-2.5 flex flex-col gap-2 text-sm text-ink">
-                  <li className="flex items-center gap-2.5">
-                    <User size={14} className="shrink-0 text-brand" />
-                    <span className="font-semibold">{userData?.user?.firstName+" "+userData?.user?.lastName}</span>
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <Mail size={14} className="shrink-0 text-brand" />
-                    <span className="break-all">{userData?.user?.email }</span>
-                  </li>
-                  <li className="flex items-center gap-2.5">
-                    <Phone size={14} className="shrink-0 text-brand" />
-                    <span>{userData?.user?.phone }</span>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Saved addresses */}
-              {(
-                <fieldset className="mt-4">
-                  <legend className="sr-only">Delivery address</legend>
-                  <div className="flex flex-col gap-3">
-                    {userData?.user?.addresses?.map((a) => {
-                      const selected = a.id === (selectedAddressId ?? addressList[0].id);
-                      const line =
-                        [a.line1, a.line2, a.city, a.state, a.pin].filter(Boolean).join(", ") ||
-                        "123 Bazar Street, Bengaluru, Karnataka, 560001";
-                      return (
-                        <label
-                          key={a.id}
-                          htmlFor={`addr-${a.id}`}
-                          className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
-                            a?.isDefault ? "border-brand bg-brand-50/60" : "border-line hover:border-line-hover"
-                          }`}
-                        >
-                          <input
-                            id={`addr-${a.id}`}
-                            type="radio"
-                            name="address"
-                            value={a.id}
-                            checked={a.isDefault}
-                            onChange={() => setSelectedAddressId(a.id)}
-                            className="sr-only"
-                          />
-                          <span
-                            aria-hidden="true"
-                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                             a?.isDefault ? "border-brand bg-brand text-white" : "border-line-strong bg-white"
-                            }`}
-                          >
-                            {a.isDefault && <Check size={11} strokeWidth={3.5} />}
-                          </span>
-                          <span className="min-w-0 flex-1 text-sm">
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="font-bold text-ink">{a.name || userData?.user?.firstName + " " + userData?.user?.lastName }</span>
-                              <span className="rounded-full bg-mist px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-                                {a.tag  }
-                              </span>
-                              {a.isDefault && (
-                                <span className="rounded-full bg-mint-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mint">
-                                  Default
-                                </span>
-                              )}
-                            </span>
-                            <span className="mt-1 block text-muted">{a?.line1}</span>
-                               <span className="mt-1 block text-muted">{a?.line2}</span>
-                                  <span className="mt-1 block text-muted">{a?.city}</span>
-                            <span className="mt-1 block text-muted">{a?.state}</span>
-                            <span className="mt-1 block text-muted">{a?.pinCode}</span>
-                           
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              )}
-            </>
-          )}
-        </Section>
-
-        {/* 3. Delivery method */}
-        <Section icon={Truck} title="Delivery method" subtitle="Each seller ships separately" tone="bg-sky-50 text-sky">
-          <fieldset>
-            <legend className="sr-only">Delivery method</legend>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {shipOptions.map((opt) => {
-                const selected = shipMethod === opt.id;
-                const Icon = opt.icon;
-                return (
-                  <label
-                    key={opt.id}
-                    htmlFor={`ship-${opt.id}`}
-                    className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
-                      selected
-                        ? "border-brand bg-brand-50/60"
-                        : "border-line hover:-translate-y-0.5 hover:border-line-hover"
-                    }`}
-                  >
-                    <input
-                      id={`ship-${opt.id}`}
-                      type="radio"
-                      name="ship"
-                      value={opt.id}
-                      checked={selected}
-                      onChange={() => setShipMethod(opt.id)}
-                      className="sr-only"
-                    />
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${opt.tone}`}>
-                      <Icon size={18} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2 text-sm font-bold text-ink">
-                        {opt.label}
-                        {opt.badge && (
-                          <span className="rounded-full bg-pop px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                            {opt.badge}
-                          </span>
-                        )}
-                      </span>
-                      <span className="block text-xs text-subtle">{opt.eta}</span>
-                    </span>
-                    <span className="text-sm font-bold text-ink">{opt.price}</span>
-                    <span
-                      aria-hidden="true"
-                      className={`absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white ring-2 ring-white transition-transform ${
-                        selected ? "scale-100" : "scale-0"
-                      }`}
-                    >
-                      <Check size={13} strokeWidth={3} />
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        </Section>
-
-        {/* 4. Payment method */}
-        <Section icon={CreditCard} title="Payment" subtitle="Choose how you'd like to pay">
-          <fieldset>
-            <legend className="sr-only">Payment method</legend>
-            <div className="flex flex-col gap-3">
-              {PAYMENT_METHODS.map((m) => {
-                const selected = payMethod === m.id;
-                const Icon = m.icon;
-                return (
-                  <label
-                    key={m.id}
-                    htmlFor={`pay-${m.id}`}
-                    className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
-                      !m.available
-                        ? "cursor-not-allowed border-line bg-mist/60"
-                        : selected
-                        ? "cursor-pointer border-brand bg-brand-50/60"
-                        : "cursor-pointer border-line hover:border-line-hover"
-                    }`}
-                  >
-                    <input
-                      id={`pay-${m.id}`}
-                      type="radio"
-                      name="payMethod"
-                      value={m.id}
-                      checked={selected}
-                      disabled={!m.available}
-                      onChange={() => m.available && setPayMethod(m.id)}
-                      className="sr-only"
-                    />
-                    <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${m.tone} ${
-                        m.available ? "" : "opacity-50"
-                      }`}
-                    >
-                      <Icon size={18} />
-                    </span>
-                    <span className={`min-w-0 flex-1 ${m.available ? "" : "opacity-60"}`}>
-                      <span className="block text-sm font-bold text-ink">{m.label}</span>
-                      <span className="block text-xs text-subtle">{m.hint}</span>
-                    </span>
-                    {m.available ? (
-                      <span
-                        aria-hidden="true"
-                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                          selected ? "border-brand bg-brand text-white" : "border-line-strong bg-white"
+            {/* Saved addresses */}
+            {addresses.length === 0 ? (
+              <p className="mt-4 rounded-2xl bg-mist p-4 text-sm text-muted">
+                No saved addresses yet. Add one to continue.
+              </p>
+            ) : (
+              <fieldset className="mt-4">
+                <legend className="sr-only">Delivery address</legend>
+                <div className="flex flex-col gap-3">
+                  {addresses.map((a) => {
+                    const selected = a._id === selectedAddress?._id;
+                    return (
+                      <label
+                        key={a._id}
+                        htmlFor={`addr-${a._id}`}
+                        className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                          selected
+                            ? "border-brand bg-brand-50/60"
+                            : "border-line hover:border-line-hover"
                         }`}
                       >
-                        {selected && <Check size={11} strokeWidth={3.5} />}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-sun-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sun-dark">
-                        Coming soon
-                      </span>
-                    )}
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
+                        <input
+                          id={`addr-${a._id}`}
+                          type="radio"
+                          name="address"
+                          value={a._id}
+                          checked={a?.isDefault}
+                          onChange={() => setDefaultAddress(a._id)}
+                          className="sr-only"
+                        />
+                        <span
+                          aria-hidden="true"
+                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                            selected
+                              ? "border-brand bg-brand text-white"
+                              : "border-line-strong bg-white"
+                          }`}
+                        >
+                          {selected && <Check size={11} strokeWidth={3.5} />}
+                        </span>
+                        <span className="min-w-0 flex-1 text-sm">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-ink">
+                              {a.name || [user?.firstName, user?.lastName].filter(Boolean).join(" ")}
+                            </span>
+                            <span className="rounded-full bg-mist px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
+                              {a.tag}
+                            </span>
+                            {a.isDefault && (
+                              <span className="rounded-full bg-mint-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-mint">
+                                Default
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-1 block text-muted">
+                            {[a.line1, a.line2, a.city, a.state, a.pinCode]
+                              .filter(Boolean)
+                              .join(", ")}
+                          </span>
 
-          {payMethod === "cod" && (
-            <div className="mt-4 flex items-start gap-3 rounded-2xl bg-mist p-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sun-50 text-sun-dark">
-                <Banknote size={18} />
-              </span>
-              <div className="text-sm text-ink-soft">
-                <p className="font-bold text-ink">Pay {money(total)} when your order arrives</p>
-                <p className="mt-1 text-xs text-muted">
-                  Cash or UPI accepted at the door. Please keep the exact amount handy — each seller&apos;s
-                  parcel is collected separately.
-                </p>
-              </div>
-            </div>
-          )}
-        </Section>
-
-        {/* 5. Place order */}
-        <div>
-          <PrimaryButton type="button" onClick={placeOrder} disabled={!canPlace} className="w-full">
-            {placing ? (
-              <>
-                <Loader2 size={17} className="animate-spin" /> Placing order...
-              </>
-            ) : (
-              <>
-                <Lock size={15} /> Place order — {money(total)}
-              </>
+                          {/* Set as default */}
+                          {!a.isDefault && (
+                            <button
+                              type="button"
+                              disabled={savingDefault}
+                              onClick={(e) => {
+                                // button is inside a <label>: don't trigger the radio
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDefaultAddress(a._id);
+                              }}
+                              className="mt-2 inline-flex items-center gap-1 rounded-full border border-line-strong px-3 py-1 text-[11px] font-semibold text-ink-soft transition-colors hover:border-line-hover hover:bg-mist disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {savingDefault ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Check size={12} />
+                              )}
+                              Set as Current Delivery address
+                            </button>
+                          )}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
             )}
-          </PrimaryButton>
-          {!selectedAddress && (
-            <p className="mt-2 text-center text-xs font-medium text-pop-dark">
-              Select a delivery address to place your order.
+          </Section>
+
+          {/* 3. Delivery method */}
+          <Section icon={Truck} title="Delivery method" subtitle="Each seller ships separately" tone="bg-sky-50 text-sky">
+            <fieldset>
+              <legend className="sr-only">Delivery method</legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {shipOptions.map((opt) => {
+                  const selected = shipMethod === opt.id;
+                  const Icon = opt.icon;
+                  return (
+                    <label
+                      key={opt.id}
+                      htmlFor={`ship-${opt.id}`}
+                      className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                        selected
+                          ? "border-brand bg-brand-50/60"
+                          : "border-line hover:-translate-y-0.5 hover:border-line-hover"
+                      }`}
+                    >
+                      <input
+                        id={`ship-${opt.id}`}
+                        type="radio"
+                        name="ship"
+                        value={opt.id}
+                        checked={selected}
+                        onChange={() => setShipMethod(opt.id)}
+                        className="sr-only"
+                      />
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${opt.tone}`}>
+                        <Icon size={18} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 text-sm font-bold text-ink">
+                          {opt.label}
+                          {opt.badge && (
+                            <span className="rounded-full bg-pop px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                              {opt.badge}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-subtle">{opt.eta}</span>
+                      </span>
+                      <span className="text-sm font-bold text-ink">{opt.price}</span>
+                      <span
+                        aria-hidden="true"
+                        className={`absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white ring-2 ring-white transition-transform ${
+                          selected ? "scale-100" : "scale-0"
+                        }`}
+                      >
+                        <Check size={13} strokeWidth={3} />
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </Section>
+
+          {/* 4. Payment method */}
+          <Section icon={CreditCard} title="Payment" subtitle="Choose how you'd like to pay">
+            <fieldset>
+              <legend className="sr-only">Payment method</legend>
+              <div className="flex flex-col gap-3">
+                {PAYMENT_METHODS.map((m) => {
+                  const selected = payMethod === m.id;
+                  const Icon = m.icon;
+                  return (
+                    <label
+                      key={m.id}
+                      htmlFor={`pay-${m.id}`}
+                      className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                        !m.available
+                          ? "cursor-not-allowed border-line bg-mist/60"
+                          : selected
+                            ? "cursor-pointer border-brand bg-brand-50/60"
+                            : "cursor-pointer border-line hover:border-line-hover"
+                      }`}
+                    >
+                      <input
+                        id={`pay-${m.id}`}
+                        type="radio"
+                        name="payMethod"
+                        value={m.id}
+                        checked={selected}
+                        disabled={!m.available}
+                        onChange={() => m.available && setPayMethod(m.id)}
+                        className="sr-only"
+                      />
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${m.tone} ${
+                          m.available ? "" : "opacity-50"
+                        }`}
+                      >
+                        <Icon size={18} />
+                      </span>
+                      <span className={`min-w-0 flex-1 ${m.available ? "" : "opacity-60"}`}>
+                        <span className="block text-sm font-bold text-ink">{m.label}</span>
+                        <span className="block text-xs text-subtle">{m.hint}</span>
+                      </span>
+                      {m.available ? (
+                        <span
+                          aria-hidden="true"
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                            selected ? "border-brand bg-brand text-white" : "border-line-strong bg-white"
+                          }`}
+                        >
+                          {selected && <Check size={11} strokeWidth={3.5} />}
+                        </span>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-sun-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sun-dark">
+                          Coming soon
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {payMethod === "cod" && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl bg-mist p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sun-50 text-sun-dark">
+                  <Banknote size={18} />
+                </span>
+                <div className="text-sm text-ink-soft">
+                  <p className="font-bold text-ink">Pay {money(total)} when your order arrives</p>
+                  <p className="mt-1 text-xs text-muted">
+                    Cash or UPI accepted at the door. Please keep the exact amount handy — each seller&apos;s
+                    parcel is collected separately.
+                  </p>
+                </div>
+              </div>
+            )}
+          </Section>
+
+          {/* 5. Place order */}
+          <button>
+            <PrimaryButton type="button" onClick={placeOrder} disabled={!canPlace} className="w-full">
+              {placing ? (
+                <>
+                  <Loader2 size={17} className="animate-spin" /> Placing order...
+                </>
+              ) : (
+                <>
+                  <Lock size={15} /> Place order — {money(total)}
+                </>
+              )}
+            </PrimaryButton>
+            {!selectedAddress && (
+              <p className="mt-2 text-center text-xs font-medium text-pop-dark">
+                Select a delivery address to place your order.
+              </p>
+            )}
+            <p className="mt-3 text-center text-[11px] text-subtle">
+              By placing your order you agree to Fashion Bazar&apos;s terms and returns policy.
             </p>
-          )}
-          <p className="mt-3 text-center text-[11px] text-subtle">
-            By placing your order you agree to Fashion Bazar&apos;s terms and returns policy.
-          </p>
-        </div>
+          </button>
         </div>
       </div>
     </div>
