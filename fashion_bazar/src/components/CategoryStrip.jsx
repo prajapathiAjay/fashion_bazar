@@ -3,15 +3,6 @@ import { ArrowUpRight } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { useGetCategoryQuery } from "../lib/api/categoryApi";
-const CATEGORIES = [
-  { to: "/categories/women", label: "Women", count: "480 items", photo: PHOTOS.womanPlaid, bg: "#EEEDFE" },
-  { to: "/categories/men", label: "Men", count: "365 items", photo: PHOTOS.menswearFlatlay, bg: "#E6F1FB" },
-  { to: "/categories/kids", label: "Kids", count: "210 items", photo: PHOTOS.kidRaincoat, bg: "#FBEAF0" },
-  { to: "/categories/footwear", label: "Footwear", count: "195 items", photo: PHOTOS.sneakers, bg: "#FAECE7" },
-  { to: "/categories/jewelry", label: "Jewelry", count: "128 items", photo: PHOTOS.goldBangle, bg: "#FAEEDA" },
-  { to: "/categories/sale", label: "Sale", count: "Up to 50% off", photo: PHOTOS.shopper, bg: "#FBEAF0", accent: true },
-];
-
 function CategoryStrip() {
 
 const { data: categories, isLoading, isError } = useGetCategoryQuery();

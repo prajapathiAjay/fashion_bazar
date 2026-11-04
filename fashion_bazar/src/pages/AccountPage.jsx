@@ -184,31 +184,6 @@ const STATUS_STYLES = {
 
 const ORDER_FILTERS = ["All", "In transit", "Delivered", "Cancelled"];
 
-const INITIAL_ADDRESSES = [
-  {
-    id: "a1",
-    tag: "Home",
-    name: "Ananya Rao",
-    lines: [
-      "Flat 4B, Lotus Residency",
-      "14th Cross, Indiranagar",
-      "Bengaluru, KA 560038",
-    ],
-    phone: "+91 90000 00000",
-  },
-  {
-    id: "a2",
-    tag: "Work",
-    name: "Ananya Rao",
-    lines: [
-      "Level 6, Prestige Tech Park",
-      "Outer Ring Road, Marathahalli",
-      "Bengaluru, KA 560103",
-    ],
-    phone: "+91 90000 00001",
-  },
-];
-
 const INITIAL_CARDS = [
   {
     id: "c1",
@@ -227,45 +202,6 @@ const INITIAL_CARDS = [
     expiry: "02/28",
     style: "bg-ink",
     blob: "bg-mint/40",
-  },
-];
-
-const WISHLIST = [
-  {
-    id: "p1",
-    name: "Draped midi dress",
-    seller: "Amara Studio",
-    price: 2499,
-    originalPrice: 3299,
-    photo: PHOTOS.floralDress,
-    bg: "var(--color-brand-100)",
-  },
-  {
-    id: "p2",
-    name: "Satin bomber jacket",
-    seller: "Halden & Co.",
-    price: 3199,
-    originalPrice: null,
-    photo: PHOTOS.bomberJacket,
-    bg: "var(--color-coral-50)",
-  },
-  {
-    id: "p3",
-    name: "Woven tote bag",
-    seller: "Bazar Leather",
-    price: 1799,
-    originalPrice: 2299,
-    photo: PHOTOS.wovenTote,
-    bg: "var(--color-sun-50)",
-  },
-  {
-    id: "p6",
-    name: "Gold hoop earrings",
-    seller: "Luna Jewels",
-    price: 1199,
-    originalPrice: null,
-    photo: PHOTOS.goldHoops,
-    bg: "var(--color-pop-50)",
   },
 ];
 
@@ -1095,7 +1031,7 @@ const EMPTY_FORM = {
   phone: "",
 };
 
-function AddressesPanel({ addresses, setAddresses }) {
+function AddressesPanel({ addresses }) {
   const [defaultId, setDefaultId] = useState("a1");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -1540,7 +1476,7 @@ function PaymentPanel() {
    Wishlist
    ------------------------------------------------------------------ */
 
-function WishlistPanel({watchListItems, setItems }) {
+function WishlistPanel({ watchListItems }) {
   const [bagged, setBagged] = useState([]);
   console.log("wishlist items", watchListItems);
   const [deleteFromWishList] = useDeleteFromWishListMutation();
@@ -1742,8 +1678,6 @@ function AccountPage() {
   const user = data?.user;
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
-  const [wishlist, setWishlist] = useState(WISHLIST);
-  const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
  const {data:watchListItems}=useGetWishlistQuery()
   const setActive = (id) => {
     setSearchParams(id === "orders" ? {} : { tab: id }, { replace: true });
@@ -1769,8 +1703,8 @@ function AccountPage() {
       <ProfileHero user={user} onEdit={() => setActive("profile")} />
       <StatTiles
         onSelect={setActive}
-        wishlistCount={wishlist.length}
-        addressCount={addresses.length}
+        wishlistCount={counts.wishlist}
+        addressCount={counts.addresses ?? 0}
       />
 
       <div className="mt-6 flex flex-col gap-6 lg:mt-8 lg:flex-row lg:items-start lg:gap-8">
@@ -1857,12 +1791,11 @@ function AccountPage() {
           {active === "addresses" && (
             <AddressesPanel
               addresses={user?.addresses}
-              setAddresses={setAddresses}
             />
           )}
           {active === "payment" && <PaymentPanel />}
           {active === "wishlist" && (
-            <WishlistPanel watchListItems={watchListItems} setItems={setWishlist} />
+            <WishlistPanel watchListItems={watchListItems} />
           )}
           {active === "notifications" && <NotificationsPanel />}
         </div>

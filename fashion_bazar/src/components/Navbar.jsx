@@ -30,15 +30,6 @@ const NAV_LINKS = [
   { to: "/deals", label: "Deals", hot: true },
 ];
 
-const MEGA_CATEGORIES = [
-  { to: "/categories/women", label: "Women", note: "Dresses, tops, knits", photo: PHOTOS.womanPlaid, tone: "bg-pop-50" },
-  { to: "/categories/men", label: "Men", note: "Shirts, suits, outerwear", photo: PHOTOS.menswearFlatlay, tone: "bg-sky-50" },
-  { to: "/categories/kids", label: "Kids", note: "Play-ready & comfy", photo: PHOTOS.kidRaincoat, tone: "bg-sun-50" },
-  { to: "/categories/footwear", label: "Footwear", note: "Sneakers, heels, loafers", photo: PHOTOS.sneakers, tone: "bg-coral-50" },
-  { to: "/categories/jewelry", label: "Jewelry", note: "Hoops, bangles, pearls", photo: PHOTOS.goldBangle, tone: "bg-mint-50" },
-  { to: "/categories/accessories", label: "Accessories", note: "Bags, scarves & more", photo: PHOTOS.wovenTote, tone: "bg-brand-50" },
-];
-
 const ANNOUNCEMENTS = [
   "Free shipping on orders over ₹999 — this week only",
   "Bazar days: up to 50% off across 180+ stalls",

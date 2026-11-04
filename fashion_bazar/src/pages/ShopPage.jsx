@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { fetchProducts } from "../features/products/productThunks";
-import { useDispatch, useSelector } from "react-redux";
 import {
   SlidersHorizontal,
   X,
@@ -28,7 +26,6 @@ import {useGetProductsQuery} from "../lib/api/productApi";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
 
 
-const CATEGORIES = ["Women", "Men", "Kids", "Footwear", "Jewelry", "Accessories"];
 const SIZES = ["XS", "S", "M", "L", "XL"];
 const COLORS = [
   { name: "Violet", hex: "#6D4C74" },
@@ -126,21 +123,6 @@ const BANDS = {
   },
 };
 
-const PRODUCTS = [
-  { id: "p1", name: "Draped midi dress", seller: "Amara Studio", price: 2499, originalPrice: 3299, rating: 4.8, bg: "#D9D2F0" },
-  { id: "p2", name: "Linen shirt jacket", seller: "Halden & Co.", price: 3199, originalPrice: null, rating: 4.6, bg: "#F0997B" },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, originalPrice: 2299, rating: 4.9, bg: "#EAD7E6" },
-  { id: "p4", name: "Suede loafers", seller: "Marchetti", price: 3899, originalPrice: null, rating: 4.7, bg: "#F7DFA8" },
-  { id: "p5", name: "Ribbed knit vest", seller: "Amara Studio", price: 1999, originalPrice: 2699, rating: 4.5, bg: "#C9DDF0" },
-  { id: "p6", name: "Gold hoop earrings", seller: "Luna Jewels", price: 1199, originalPrice: null, rating: 4.9, bg: "#F0C4C4" },
-  { id: "p7", name: "Wide-leg trousers", seller: "Halden & Co.", price: 2899, originalPrice: null, rating: 4.6, bg: "#CFE3D6" },
-  { id: "p8", name: "Structured tote", seller: "Bazar Leather", price: 3499, originalPrice: 4399, rating: 4.8, bg: "#E6D5C3" },
-  { id: "p9", name: "Silk scarf", seller: "Luna Jewels", price: 1499, originalPrice: null, rating: 4.4, bg: "#EAD7E6" },
-  { id: "p10", name: "Denim overshirt", seller: "Marchetti", price: 2999, originalPrice: 3699, rating: 4.7, bg: "#C9DDF0" },
-  { id: "p11", name: "Pleated skirt", seller: "Amara Studio", price: 2299, originalPrice: null, rating: 4.5, bg: "#F0997B" },
-  { id: "p12", name: "Leather sandals", seller: "Marchetti", price: 2699, originalPrice: null, rating: 4.6, bg: "#F7DFA8" },
-];
-
 /* ------------------------------------------------------------------ */
 /* Filters                                                              */
 /* ------------------------------------------------------------------ */
@@ -173,30 +155,6 @@ function FilterSection({ title, hint, children, defaultOpen = true }) {
 function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceMax, setPriceMax, idPrefix }) {
   return (
     <div>
-      {/* <FilterSection title="Category" hint={selected.categories.length || null}>
-        <div className="flex flex-col gap-1">
-          {CATEGORIES.map((cat) => {
-            const checked = selected.categories.includes(cat);
-            return (
-              <label
-                key={cat}
-                className={`flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm transition-colors ${
-                  checked ? "bg-brand-50 font-semibold text-brand" : "text-ink-soft hover:bg-mist"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleCategory(cat)}
-                  className="h-4 w-4 rounded border-line-hover accent-brand"
-                />
-                {cat}
-              </label>
-            );
-          })}
-        </div>
-      </FilterSection> */}
-
       <FilterSection title="Price">
         <div>
           <label htmlFor={`${idPrefix}-price`} className="sr-only">
@@ -414,17 +372,9 @@ function ShopPage() {
   const [dense, setDense] = useState(false);
   const [page, setPage] = useState(1);
 
-// const dispatch = useDispatch();
-// const {products,loading,error}=useSelector((state)=>state.products)
   const { categorySlug } = useParams();
 const {data:products, isFetching:loading, error}=useGetProductsQuery(categorySlug)
 const {data:categories}=useGetCategoryQuery()
-console.log("products",products,loading,error)
-//   useEffect(()=>{
-//     console.log("dispatching fetchProducts")
-//   dispatch(fetchProducts())
-
-// },[])
   const toggleCategory = (cat) =>
     setSelected((s) => ({
       ...s,
