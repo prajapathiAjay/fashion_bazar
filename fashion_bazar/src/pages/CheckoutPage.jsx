@@ -183,7 +183,7 @@ function SuccessScreen({ total, shipMethod, email, itemCount }) {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-16 pt-10 sm:px-6 lg:pt-14">
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-50 via-white to-sun-50 px-5 py-12 text-center sm:px-10 sm:py-16">
+      <div className="relative overflow-hidden rounded-4xl bg-linear-to-br from-brand-50 via-white to-sun-50 px-5 py-12 text-center sm:px-10 sm:py-16">
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 animate-blob rounded-full bg-brand/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -right-20 h-72 w-72 animate-blob rounded-full bg-pop/20 blur-3xl [animation-delay:-5s]" />
         {confetti.map((c) => (
@@ -471,7 +471,7 @@ function CheckoutPage() {
                       <label
                         key={a._id}
                         htmlFor={`addr-${a._id}`}
-                        className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                        className={`relative flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition-all has-focus-visible:ring-4 has-focus-visible:ring-brand/20 ${
                           selected
                             ? "border-brand bg-brand-50/60"
                             : "border-line hover:border-line-hover"
@@ -558,7 +558,7 @@ function CheckoutPage() {
                     <label
                       key={opt.id}
                       htmlFor={`ship-${opt.id}`}
-                      className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                      className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border-2 p-4 transition-all has-focus-visible:ring-4 has-focus-visible:ring-brand/20 ${
                         selected
                           ? "border-brand bg-brand-50/60"
                           : "border-line hover:-translate-y-0.5 hover:border-line-hover"
@@ -615,7 +615,7 @@ function CheckoutPage() {
                     <label
                       key={m.id}
                       htmlFor={`pay-${m.id}`}
-                      className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 transition-all has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-brand/20 ${
+                      className={`relative flex items-center gap-3 rounded-2xl border-2 p-4 transition-all has-focus-visible:ring-4 has-focus-visible:ring-brand/20 ${
                         !m.available
                           ? "cursor-not-allowed border-line bg-mist/60"
                           : selected
