@@ -28,11 +28,8 @@ import {
 import { formatPrice } from "../utils/formatPrice";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
-
+import {usePlaceOrderMutation} from "../lib/api/checkoutApi";
 /* ------------------------------------------------------------------ */
-
-// TODO: replace with the order number returned by your order API
-const ORDER_NUMBER = "#BZ-10521";
 
 const PAYMENT_METHODS = [
   { id: "cod", label: "Cash on delivery", hint: "Pay when it arrives", icon: Banknote, tone: "bg-sun-50 text-sun-dark", available: true },
@@ -163,7 +160,7 @@ function SecurityNote() {
   );
 }
 
-function SuccessScreen({ total, shipMethod, email, itemCount }) {
+function SuccessScreen({ orderNumber, total, shipMethod, email, itemCount }) {
   const timeline = [
     { label: "Ordered", icon: Check, done: true },
     { label: "Packed", icon: Package, done: false },
@@ -195,7 +192,7 @@ function SuccessScreen({ total, shipMethod, email, itemCount }) {
             <Check size={38} strokeWidth={3} />
           </span>
           <p className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1.5 text-xs font-bold text-ink shadow-sm">
-            Order <span className="text-brand">{ORDER_NUMBER}</span>
+            Order <span className="text-brand">#{orderNumber}</span>
           </p>
           <h1 className="mt-4 text-3xl font-extrabold text-ink sm:text-[42px] sm:leading-tight">
             Yay, it&apos;s <span className="text-gradient">on its way!</span>
@@ -264,18 +261,20 @@ function CheckoutPage() {
   const [shipMethod, setShipMethod] = useState("standard");
   const [payMethod, setPayMethod] = useState("cod");
   const [placing, setPlacing] = useState(false);
-  const [placed, setPlaced] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null); // order returned by the server
+  const [orderError, setOrderError] = useState("");
   const [summaryOpen, setSummaryOpen] = useState(false);
-
+ 
   /* ---- data from API ---- */
   const { data: cartItems } = useGetCartItemsQuery();
   const { data: userData } = useGetUserByIdQuery();
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
+  const [placeOrder] = usePlaceOrderMutation();
 
   const user = userData?.user;
   const addresses = user?.addresses ?? [];
   const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
-
+  console.log("shipping method", shipMethod,"payment method", payMethod,"default adddress", defaultAddress  );
   // null until the user picks one -> the default address is used automatically.
   // Picking here only affects this order, it does not change the saved default.
   const [selectedAddressId, setSelectedAddressId] = useState(null);
@@ -304,25 +303,31 @@ function CheckoutPage() {
   const canPlace =
     Boolean(selectedAddress) && lineCount > 0 && payMethod === "cod" && !placing;
 
-  const placeOrder = () => {
+  const handleplaceOrder = async () => {
     if (!canPlace) return;
     setPlacing(true);
-    // TODO: replace with your real order API call, e.g.
-    // await createOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
-    setTimeout(() => {
-      setPlacing(false);
-      setPlaced(true);
+    setOrderError("");
+    try {
+      const response = await placeOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
+      setPlacedOrder(response.data);
       window.scrollTo({ top: 0 });
-    }, 1200);
+    } catch (error) {
+      console.error("Error placing order:", error);
+      setOrderError(error?.data?.message || "Could not place your order. Please try again.");
+    } finally {
+      setPlacing(false);
+    }
   };
 
-  if (placed) {
+  // Use the server's order for the success screen: the cart is empty by now
+  if (placedOrder) {
     return (
       <SuccessScreen
-        total={total}
-        shipMethod={shipMethod}
+        orderNumber={placedOrder.orderNumber}
+        total={placedOrder.totalAmount}
+        shipMethod={placedOrder.shippingMethod}
         email={user?.email}
-        itemCount={unitCount}
+        itemCount={placedOrder.items.reduce((sum, i) => sum + i.quantity, 0)}
       />
     );
   }
@@ -681,8 +686,8 @@ function CheckoutPage() {
           </Section>
 
           {/* 5. Place order */}
-          <button>
-            <PrimaryButton type="button" onClick={placeOrder} disabled={!canPlace} className="w-full">
+          <div>
+            <PrimaryButton type="button" onClick={handleplaceOrder} disabled={!canPlace} className="w-full">
               {placing ? (
                 <>
                   <Loader2 size={17} className="animate-spin" /> Placing order...
@@ -693,6 +698,11 @@ function CheckoutPage() {
                 </>
               )}
             </PrimaryButton>
+            {orderError && (
+              <p role="alert" className="mt-2 text-center text-xs font-medium text-pop-dark">
+                {orderError}
+              </p>
+            )}
             {!selectedAddress && (
               <p className="mt-2 text-center text-xs font-medium text-pop-dark">
                 Select a delivery address to place your order.
@@ -701,7 +711,7 @@ function CheckoutPage() {
             <p className="mt-3 text-center text-[11px] text-subtle">
               By placing your order you agree to Fashion Bazar&apos;s terms and returns policy.
             </p>
-          </button>
+          </div>
         </div>
       </div>
     </div>

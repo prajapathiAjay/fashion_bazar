@@ -50,6 +50,7 @@ import {
 import { formatPrice } from "../utils/formatPrice";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
+import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
@@ -97,84 +98,27 @@ const NAV_ITEMS = [
 
 const ORDER_STEPS = ["Ordered", "Packed", "Shipped", "Delivered"];
 
-const ORDERS = [
-  {
-    id: "BZ-10527",
-    date: "Oct 02, 2026",
-    status: "In transit",
-    step: 2,
-    eta: "Arriving Fri, Oct 10",
-    total: 6098,
-    products: [
-      {
-        photo: PHOTOS.bomberJacket,
-        bg: "var(--color-coral-50)",
-        name: "Satin bomber jacket",
-      },
-      {
-        photo: PHOTOS.wideLegTrousers,
-        bg: "var(--color-mint-50)",
-        name: "Wide-leg trousers",
-      },
-    ],
-  },
-  {
-    id: "BZ-10482",
-    date: "Sep 18, 2026",
-    status: "Delivered",
-    deliveredOn: "Delivered Sep 22, 2026",
-    total: 5497,
-    products: [
-      {
-        photo: PHOTOS.floralDress,
-        bg: "var(--color-brand-100)",
-        name: "Draped midi dress",
-      },
-      {
-        photo: PHOTOS.goldHoops,
-        bg: "var(--color-pop-50)",
-        name: "Gold hoop earrings",
-      },
-      {
-        photo: PHOTOS.wovenTote,
-        bg: "var(--color-sun-50)",
-        name: "Woven tote bag",
-      },
-    ],
-  },
-  {
-    id: "BZ-10327",
-    date: "Aug 30, 2026",
-    status: "Cancelled",
-    total: 1999,
-    products: [
-      {
-        photo: PHOTOS.knitTop,
-        bg: "var(--color-sky-50)",
-        name: "Ribbed knit vest",
-      },
-    ],
-  },
-  {
-    id: "BZ-10188",
-    date: "Aug 09, 2026",
-    status: "Delivered",
-    deliveredOn: "Delivered Aug 13, 2026",
-    total: 4598,
-    products: [
-      {
-        photo: PHOTOS.leatherShoes,
-        bg: "var(--color-sun-50)",
-        name: "Suede loafers",
-      },
-      {
-        photo: PHOTOS.goldBangle,
-        bg: "var(--color-shimmer)",
-        name: "Gold bangle",
-      },
-    ],
-  },
-];
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+// Turns an order from the server into the shape the order card shows
+const toCardOrder = (order) => {
+  const status =
+    order.status === "Delivered" || order.status === "Cancelled" ? order.status : "In transit";
+  const eta = new Date(order.createdAt);
+  eta.setDate(eta.getDate() + (order.shippingMethod === "express" ? 2 : 6));
+  return {
+    id: order.orderNumber,
+    date: formatDate(order.createdAt),
+    status,
+    step: Math.max(0, ORDER_STEPS.indexOf(order.status)),
+    eta: `Arriving by ${eta.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}`,
+    deliveredOn: `Delivered ${formatDate(order.updatedAt)}`,
+    total: order.totalAmount,
+    products: order.items.map((item) => ({ photo: item.image, name: item.name })),
+    raw: order, // full server order, used by the details view
+  };
+};
 
 const STATUS_STYLES = {
   Delivered: { pill: "bg-success-50 text-success", icon: PackageCheck },
@@ -433,11 +377,11 @@ function ProfileHero({ user, onEdit }) {
   );
 }
 
-function StatTiles({ onSelect, wishlistCount, addressCount }) {
+function StatTiles({ onSelect, orderCount, wishlistCount, addressCount }) {
   const stats = [
     {
       label: "Orders",
-      value: ORDERS.length,
+      value: orderCount,
       icon: Package,
       tone: "bg-brand-50 text-brand",
       tab: "orders",
@@ -584,12 +528,12 @@ function OrderCard({ order, highlighted }) {
         <div className="flex shrink-0 -space-x-5">
           {thumbs.map((p, i) => (
             <div
-              key={p.name}
+              key={i}
               className="h-16 w-14 overflow-hidden rounded-2xl ring-2 ring-white sm:h-20 sm:w-16"
               style={{ zIndex: thumbs.length - i }}
             >
               <SmartImage
-                src={unsplash(p.photo, 128, 160)}
+                src={p.photo}
                 alt={p.name}
                 bg={p.bg}
               />
@@ -695,17 +639,182 @@ function OrderCard({ order, highlighted }) {
   );
 }
 
+function OrderDetails({ order }) {
+  const { pill, icon: StatusIcon } = STATUS_STYLES[order.status];
+  const raw = order.raw;
+  const address = raw.shippingAddress;
+  const itemCount = raw.items.reduce((sum, i) => sum + i.quantity, 0);
+
+  return (
+    <div className="animate-fade-up">
+      <Link
+        to="/account"
+        className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-subtle transition-colors hover:text-brand"
+      >
+        <ChevronRight size={16} className="rotate-180" />
+        All orders
+      </Link>
+
+      {/* Header + status */}
+      <div className={`${CARD_CLASS} p-4 sm:p-5`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-bold text-ink sm:text-2xl">#{order.id}</h2>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${pill}`}>
+                <StatusIcon size={12} />
+                {order.status}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-subtle">
+              Placed {order.date} · {itemCount} {itemCount === 1 ? "item" : "items"}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] uppercase tracking-wide text-subtle">Total</p>
+            <p className="font-display text-lg font-bold text-ink">{money(raw.totalAmount)}</p>
+          </div>
+        </div>
+
+        {order.status === "In transit" && (
+          <>
+            <p className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-info">
+              <Truck size={15} />
+              {order.eta}
+            </p>
+            <OrderTracker step={order.step} />
+          </>
+        )}
+        {order.status === "Delivered" && (
+          <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-success-50 px-3.5 py-2.5 text-xs font-semibold text-success">
+            <PackageCheck size={15} />
+            {order.deliveredOn} · Return window open for 30 days
+          </p>
+        )}
+        {order.status === "Cancelled" && (
+          <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
+            <PackageX size={15} />
+            This order was cancelled
+          </p>
+        )}
+      </div>
+
+      {/* Items */}
+      <div className={`${CARD_CLASS} mt-4 p-4 sm:p-5`}>
+        <h3 className="text-sm font-bold text-ink">Items in this order</h3>
+        <ul className="mt-3 divide-y divide-line">
+          {raw.items.map((item, i) => (
+            <li key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <Link
+                to={`/products/${item.product}`}
+                className="h-20 w-16 shrink-0 overflow-hidden rounded-2xl"
+              >
+                <SmartImage src={item.image} alt={item.name} />
+              </Link>
+              <div className="min-w-0 flex-1">
+                <Link
+                  to={`/products/${item.product}`}
+                  className="block truncate text-sm font-semibold text-ink hover:text-brand"
+                >
+                  {item.name}
+                </Link>
+                <p className="mt-1 text-xs text-subtle">
+                  {item.size && <>Size {item.size} · </>}Qty {item.quantity} × {money(item.price)}
+                </p>
+              </div>
+              <p className="text-sm font-bold tabular-nums text-ink">
+                {money(item.price * item.quantity)}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        {/* Address */}
+        <div className={`${CARD_CLASS} p-4 sm:p-5`}>
+          <div className="flex items-center gap-2">
+            <IconChip icon={MapPin} tone="bg-brand-50 text-brand" size="sm" />
+            <h3 className="text-sm font-bold text-ink">Delivery address</h3>
+          </div>
+          <div className="mt-3 text-sm text-muted">
+            <p className="font-semibold text-ink">
+              {address.name}
+              {address.tag && (
+                <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[11px] font-semibold text-subtle">
+                  {address.tag}
+                </span>
+              )}
+            </p>
+            <p className="mt-1">{address.line1}</p>
+            {address.line2 && <p>{address.line2}</p>}
+            <p>
+              {[address.city, address.state].filter(Boolean).join(", ")} {address.pinCode}
+            </p>
+            {address.phone && <p className="mt-1">Phone: {address.phone}</p>}
+          </div>
+        </div>
+
+        {/* Payment + price */}
+        <div className={`${CARD_CLASS} p-4 sm:p-5`}>
+          <div className="flex items-center gap-2">
+            <IconChip icon={CreditCard} tone="bg-sun-50 text-sun-dark" size="sm" />
+            <h3 className="text-sm font-bold text-ink">Payment</h3>
+          </div>
+          <p className="mt-3 text-sm text-muted">
+            {raw.paymentMethod === "cod" ? "Cash on delivery" : raw.paymentMethod} ·{" "}
+            <span className="font-semibold text-ink">{raw.paymentStatus}</span>
+          </p>
+          <dl className="mt-3 space-y-1.5 border-t border-line pt-3 text-sm">
+            <div className="flex justify-between text-muted">
+              <dt>Subtotal</dt>
+              <dd className="tabular-nums">{money(raw.subTotal)}</dd>
+            </div>
+            <div className="flex justify-between text-muted">
+              <dt>Shipping ({raw.shippingMethod})</dt>
+              <dd className="tabular-nums">{raw.shipping === 0 ? "Free" : money(raw.shipping)}</dd>
+            </div>
+            <div className="flex justify-between pt-1 font-bold text-ink">
+              <dt>Total</dt>
+              <dd className="tabular-nums">{money(raw.totalAmount)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function OrdersPanel({ orderId }) {
   const [filter, setFilter] = useState("All");
+  const { data: serverOrders, isLoading } = useGetMyOrdersQuery();
+  const ORDERS = (serverOrders ?? []).map(toCardOrder);
   const visible =
     filter === "All" ? ORDERS : ORDERS.filter((o) => o.status === filter);
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || isLoading) return;
     document
       .getElementById(`order-${orderId}`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [orderId]);
+  }, [orderId, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div>
+        <PanelHeader title="Your orders" desc="Track, return or buy your favourites again." />
+        <div className="flex flex-col gap-4">
+          {[0, 1].map((i) => (
+            <div key={i} className={`${CARD_CLASS} h-36 animate-pulse bg-mist`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // /orders/BZ-10001 -> show that order's full details
+  const selectedOrder = orderId && ORDERS.find((o) => o.id === orderId);
+  if (selectedOrder) return <OrderDetails order={selectedOrder} />;
 
   return (
     <div>
@@ -1679,12 +1788,13 @@ function AccountPage() {
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
  const {data:watchListItems}=useGetWishlistQuery()
+  const { data: myOrders } = useGetMyOrdersQuery(undefined, { skip: !token });
   const setActive = (id) => {
     setSearchParams(id === "orders" ? {} : { tab: id }, { replace: true });
   };
 
   const counts = {
-    orders: ORDERS.length,
+    orders: myOrders?.length || 0,
     wishlist: watchListItems?.length || 0,
     addresses: user?.addresses?.length,
   };
@@ -1703,6 +1813,7 @@ function AccountPage() {
       <ProfileHero user={user} onEdit={() => setActive("profile")} />
       <StatTiles
         onSelect={setActive}
+        orderCount={counts.orders}
         wishlistCount={counts.wishlist}
         addressCount={counts.addresses ?? 0}
       />
