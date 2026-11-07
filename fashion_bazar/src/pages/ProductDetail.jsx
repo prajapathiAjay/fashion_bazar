@@ -1,8 +1,8 @@
 import { useRef, useState, } from "react";
 import { Link,useParams } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
-import { PHOTOS, unsplash, unsplashZoom } from "../assets/images";
-
+import { PHOTOS, unsplash } from "../assets/images";
+import {useAddToCartMutation} from "../lib/api/cartApi";
 import {
   Heart,
   Star,
@@ -28,13 +28,6 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetProductsByIdQuery } from "../lib/api/productApi";
-// Main shot plus close-up crops of the same photo
-const IMAGES = [
-  { src: unsplash(PHOTOS.floralDress, 900, 1125), thumb: unsplash(PHOTOS.floralDress, 160, 160), bg: "#D9D2F0" },
-  { src: unsplashZoom(PHOTOS.floralDress, 0.4, 0.3, 1.8, 900, 1125), thumb: unsplashZoom(PHOTOS.floralDress, 0.4, 0.3, 1.8, 160, 160), bg: "#C9BEE8" },
-  { src: unsplashZoom(PHOTOS.floralDress, 0.5, 0.75, 1.6, 900, 1125), thumb: unsplashZoom(PHOTOS.floralDress, 0.5, 0.75, 1.6, 160, 160), bg: "#B5A6DE" },
-  { src: unsplashZoom(PHOTOS.floralDress, 0.3, 0.5, 2.4, 900, 1125), thumb: unsplashZoom(PHOTOS.floralDress, 0.3, 0.5, 2.4, 160, 160), bg: "#E0D6F2" },
-];
 const SIZES = ["XS", "S", "M", "L", "XL"];
 const LOW_STOCK = ["XL"];
 const COLORS = [
@@ -148,7 +141,7 @@ function Accordion({ title, icon: Icon, tone, children, defaultOpen = false }) {
   );
 }
 
-function Gallery({ discount }) {
+function Gallery({ discount,images }) {
   const [activeImage, setActiveImage] = useState(0);
   const [zoom, setZoom] = useState(null); // {x, y} while hovering on desktop
   const scrollerRef = useRef(null);
@@ -181,7 +174,7 @@ function Gallery({ discount }) {
     <div className="lg:flex lg:gap-4">
       {/* Desktop vertical thumbnails */}
       <div className="hidden shrink-0 flex-col gap-3 lg:flex" role="tablist" aria-label="Product images">
-        {IMAGES.map((image, i) => (
+        {images?.map((image, i) => (
           <button
             type="button"
             key={i}
@@ -194,7 +187,7 @@ function Gallery({ discount }) {
               activeImage === i ? "border-brand shadow-md" : "border-transparent opacity-70 hover:opacity-100"
             }`}
           >
-            <SmartImage src={image.thumb} alt="" bg={image.bg} />
+            <SmartImage src={image} alt="" />
           </button>
         ))}
       </div>
@@ -210,9 +203,8 @@ function Gallery({ discount }) {
       >
         <SmartImage
           key={activeImage}
-          src={IMAGES[activeImage].src}
-          alt={`Draped midi dress — view ${activeImage + 1}`}
-          bg={IMAGES[activeImage].bg}
+          src={images?.[activeImage]}
+          alt={`Product image ${activeImage + 1}`}
           fetchPriority="high"
           imgClassName={`transition-transform duration-300 ease-out ${zoom ? "scale-[1.8]" : "scale-100"}`}
           style={zoom ? { transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
@@ -233,12 +225,11 @@ function Gallery({ discount }) {
           className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] sm:rounded-3xl [&::-webkit-scrollbar]:hidden"
           aria-label="Product images, swipe to browse"
         >
-          {IMAGES.map((image, i) => (
+          {images?.map((image, i) => (
             <div key={i} className="aspect-[4/5] w-full shrink-0 snap-center">
               <SmartImage
-                src={image.src}
-                alt={`Draped midi dress — view ${i + 1}`}
-                bg={image.bg}
+                src={image}
+                alt={`Product image ${i + 1}`}
                 fetchPriority={i === 0 ? "high" : undefined}
               />
             </div>
@@ -246,10 +237,10 @@ function Gallery({ discount }) {
         </div>
         {badges}
         <span className="absolute right-4 top-4 rounded-full bg-ink/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur">
-          {activeImage + 1}/{IMAGES.length}
+          {activeImage + 1}/{images?.length ?? 0}
         </span>
         <div className="absolute inset-x-0 bottom-4 flex justify-center gap-1.5">
-          {IMAGES.map((_, i) => (
+          {images?.map((_, i) => (
             <button
               type="button"
               key={i}
@@ -338,13 +329,17 @@ function ProductDetail() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const { productId } = useParams();
  const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
+ const [addToCart] = useAddToCartMutation();
   const price = 2499;
   const originalPrice = 3299;
   const discount = Math.round(100 - (price / originalPrice) * 100);
 
-  const handleAddToBag = () => {
-    setAddedToBag(true);
-    setTimeout(() => setAddedToBag(false), 2000);
+  const handleAddToBag =async () => {
+    // setAddedToBag(true);
+    // setTimeout(() => setAddedToBag(false), 2000);
+  await addToCart({ productID: product._id, quantity: qty,size: selectedSize || product.sizes[0]||"" }).unwrap();
+
+
   };
 
   const addLabel = addedToBag ? (
@@ -378,7 +373,7 @@ function ProductDetail() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_1fr] lg:gap-12 xl:gap-16">
           {/* ---------------- Gallery (sticky on desktop) ---------------- */}
           <div className="lg:sticky lg:top-32 lg:self-start">
-            <Gallery discount={discount} />
+            <Gallery discount={discount} images={product?.images} />
           </div>
 
           {/* ---------------- Info ---------------- */}
@@ -391,7 +386,7 @@ function ProductDetail() {
                 </span>
                 <div className="min-w-0">
                   <p className="flex items-center gap-1 truncate text-sm font-bold text-ink">
-                    Amara Studio <BadgeCheck size={15} className="shrink-0 text-brand" aria-label="Verified seller" />
+                   {product?.brand} <BadgeCheck size={15} className="shrink-0 text-brand" aria-label="Verified seller" />
                   </p>
                   <p className="text-xs text-subtle">4.9 seller rating · 2.1k sales</p>
                 </div>
@@ -428,22 +423,20 @@ function ProductDetail() {
 
             {/* Price block */}
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-gradient-to-r from-pop-50 via-white to-sun-50 p-4">
-              <span className="font-display text-3xl font-extrabold text-ink">{formatPrice(price)}</span>
-              <span className="text-lg text-faint line-through">{formatPrice(originalPrice)}</span>
+              <span className="font-display text-3xl font-extrabold text-ink">{product?.sellingPrice}</span>
+              <span className="text-lg text-faint line-through">{product?.price}</span>
               <span className="rounded-full bg-pop px-2.5 py-1 text-xs font-bold text-white">
-                Save {formatPrice(originalPrice - price)} · {discount}% off
+                Save {product?.discount}% off
               </span>
               <span className="w-full text-xs text-muted">Inclusive of all taxes · or 4 payments of {formatPrice(price / 4)}</span>
             </div>
 
             <p className="mt-5 text-sm leading-relaxed text-muted sm:text-[15px]">
-              A flowing midi dress with soft draping at the waist, cut from a
-              breathable cotton-linen blend. Made by an independent studio on
-              the bazar, small-batch and limited in run.
+             {product?.description}
             </p>
 
             {/* Colour */}
-            <fieldset className="mt-7">
+            {/* <fieldset className="mt-7">
               <legend className="text-sm font-bold text-ink">
                 Colour <span className="font-normal text-subtle">— {selectedColor}</span>
               </legend>
@@ -464,7 +457,7 @@ function ProductDetail() {
                   </button>
                 ))}
               </div>
-            </fieldset>
+            </fieldset> */}
 
             {/* Size */}
             <fieldset className="mt-6">
@@ -482,7 +475,7 @@ function ProductDetail() {
                 </button>
               </div>
               <div className="mt-3 grid grid-cols-5 gap-2 sm:flex sm:flex-wrap">
-                {SIZES.map((size) => {
+                {product?.sizes?.map((size) => {
                   const active = selectedSize === size;
                   return (
                     <button
@@ -497,11 +490,11 @@ function ProductDetail() {
                       }`}
                     >
                       {size}
-                      {LOW_STOCK.includes(size) && (
+                      {/* {LOW_STOCK.includes(size) && (
                         <span className="absolute -right-1 -top-1.5 rounded-full bg-sun px-1.5 py-0.5 text-[9px] font-bold text-ink">
                           Low
                         </span>
-                      )}
+                      )} */}
                     </button>
                   );
                 })}

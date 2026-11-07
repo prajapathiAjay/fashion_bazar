@@ -4,6 +4,13 @@ import { useState } from "react";
 // and quietly falls back to the color if the image fails.
 function SmartImage({ src, alt, bg = "#F0EDF6", className = "", imgClassName = "", ...props }) {
   const [status, setStatus] = useState("loading"); // loading | loaded | error
+  const [prevSrc, setPrevSrc] = useState(src);
+
+  // New src → start over, otherwise an earlier "error" would hide the new image forever
+  if (src !== prevSrc) {
+    setPrevSrc(src);
+    setStatus("loading");
+  }
 
   return (
     <div className={`relative h-full w-full overflow-hidden ${className}`} style={{ backgroundColor: bg }}>
