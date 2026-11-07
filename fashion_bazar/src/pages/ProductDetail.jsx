@@ -3,6 +3,7 @@ import { Link,useParams } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import {useAddToCartMutation} from "../lib/api/cartApi";
+import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
 import {
   Heart,
   Star,
@@ -321,7 +322,7 @@ function DeliveryCard() {
 /* ------------------------------------------------------------------ */
 
 function ProductDetail() {
-  const [selectedSize, setSelectedSize] = useState("M");
+  const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("Violet");
   const [qty, setQty] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
@@ -330,6 +331,7 @@ function ProductDetail() {
   const { productId } = useParams();
  const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
  const [addToCart] = useAddToCartMutation();
+ const [addToWishlist] = useAddToWishlistMutation();
   const price = 2499;
   const originalPrice = 3299;
   const discount = Math.round(100 - (price / originalPrice) * 100);
@@ -565,7 +567,7 @@ function ProductDetail() {
 
               <button
                 type="button"
-                onClick={() => setWishlisted((v) => !v)}
+                onClick={()=>addToWishlist(product._id)}
                 aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
                 aria-pressed={wishlisted}
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90 ${
