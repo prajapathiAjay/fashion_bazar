@@ -51,12 +51,14 @@ import { formatPrice } from "../utils/formatPrice";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
+import { useAddToCartMutation, useDeleteCartItemMutation } from "../lib/api/cartApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
    ------------------------------------------------------------------ */
 import { useForm } from "react-hook-form";
+import {useCart} from "../hooks/isCart"
 const NAV_ITEMS = [
   {
     id: "orders",
@@ -1586,9 +1588,25 @@ function PaymentPanel() {
    ------------------------------------------------------------------ */
 
 function WishlistPanel({ watchListItems }) {
-  const [bagged, setBagged] = useState([]);
-  console.log("wishlist items", watchListItems);
   const [deleteFromWishList] = useDeleteFromWishListMutation();
+  const [addToCart] = useAddToCartMutation();
+  const [removeFromCart] = useDeleteCartItemMutation();
+  const { isInCart, getCartItemId } = useCart();
+
+  const handleCart = (productId) => async () => {
+    try {
+      if (isInCart(productId)) {
+        // Already in the cart → remove it (DELETE needs the cart item's id)
+        await removeFromCart(getCartItemId(productId)).unwrap();
+      } else {
+        // Not in the cart → add it (cart backend expects productID, capital ID)
+        await addToCart({ productID: productId, quantity: 1 }).unwrap();
+      }
+    } catch (err) {
+      console.error("Cart update failed", err);
+    }
+  };
+
   if (!watchListItems?.length) {
     return (
       <div>
@@ -1620,60 +1638,60 @@ function WishlistPanel({ watchListItems }) {
       />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {watchListItems.map((p) => {
-          const inBag = bagged.includes(p.id);
+          // p = wishlist item; the product itself is populated inside p.productId
+          const product = p.productId;
+          const inBag = isInCart(product?._id);
           return (
-            <article key={p.id} className="group flex flex-col">
+            <article key={p._id} className="group flex flex-col">
               <div className="relative">
                 <Link
-                  to={`/products/${p.id}`}
+                  to={`/products/${product?._id}`}
                   className="block aspect-[4/5] overflow-hidden rounded-3xl"
-                  aria-label={p.name}
+                  aria-label={product?.name}
                 >
                   <SmartImage
-                    src={p?.productId?.images?.[0]}
-                    alt={p?.productId?.name}
-                    bg={p.bg}
+                    src={product?.images?.[0]}
+                    alt={product?.name}
+                    bg={product?.bg}
                     imgClassName="transition-transform duration-500 group-hover:scale-105"
                   />
                 </Link>
-                {p.originalPrice && (
+                {product?.originalPrice > product?.price && (
                   <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-pop px-2.5 py-1 text-[11px] font-bold text-white">
-                    -{Math.round((1 - p.price / p.originalPrice) * 100)}%
+                    -{Math.round((1 - product.price / product.originalPrice) * 100)}%
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() =>deleteFromWishList(p._id).unwrap()
                   }
-                  aria-label={`Remove ${p.name} from wishlist`}
+                  aria-label={`Remove ${product?.name} from wishlist`}
                   className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-pop shadow-sm backdrop-blur transition-transform hover:scale-110"
                 >
                   <Heart size={16} className="fill-pop" />
                 </button>
               </div>
               <div className="mt-3 flex flex-1 flex-col px-1">
-                <p className="text-[11px] text-subtle">{p.seller}</p>
+                <p className="text-[11px] text-subtle">{product?.seller?.name ?? product?.seller}</p>
                 <Link
-                  to={`/products/${p.id}`}
+                  to={`/products/${product?._id}`}
                   className="truncate text-sm font-semibold text-ink hover:text-brand"
                 >
-                  {p.productId?.name}
+                  {product?.name}
                 </Link>
                 <p className="mt-1 flex items-baseline gap-2">
                   <span className="text-sm font-bold text-ink">
-                    {money(p.productId?.price)}
+                    {money(product?.price)}
                   </span>
-                  {p.originalPrice && (
+                  {product?.originalPrice > product?.price && (
                     <span className="text-xs text-faint line-through">
-                      {money(p?.productId?.originalPrice)}
+                      {money(product.originalPrice)}
                     </span>
                   )}
                 </p>
                 <button
                   type="button"
-                  onClick={() =>
-                    setBagged((cur) => (inBag ? cur : [...cur, p.id]))
-                  }
+                  onClick={handleCart(product?._id)}
                   className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-all ${
                     inBag
                       ? "bg-success-50 text-success"
@@ -1685,7 +1703,7 @@ function WishlistPanel({ watchListItems }) {
                   ) : (
                     <ShoppingBag size={14} />
                   )}
-                  {inBag ? "Added to bag" : "Move to bag"}
+                  {inBag ? "In bag · Remove" : "Move to bag"}
                 </button>
               </div>
             </article>

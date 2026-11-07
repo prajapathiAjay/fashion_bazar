@@ -1,18 +1,29 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
-import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
+import {useAddToWishlistMutation,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 import {useAddToCartMutation} from "../lib/api/cartApi";
+import { useIsWishlist } from "../hooks/isWishList";
 
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
 function ProductCard({ product }) {
+  const [deleteFromWishList] = useDeleteFromWishListMutation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [addToCart] = useAddToCartMutation();
-  const [wishlisted, setWishlisted] = useState(false);
   const productId = product?._id ;
+  // Hook called once, at the top level of the component
+  const { isWishlisted, wishlistItemId } = useIsWishlist(productId);
+
+  // Plain function — no hooks inside event handlers
+  const handleWishlist = () => {
+    if (isWishlisted) {
+      deleteFromWishList(wishlistItemId);
+    } else {
+      addToWishlist(productId);
+    }
+  };
   const href = `/products/${productId}`;
   const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
   const discount = product.originalPrice > product.price
@@ -62,34 +73,30 @@ function ProductCard({ product }) {
           </div>
         </Link>
 
-        {!tag && (
+        {tag && (
           <span className="pointer-events-none absolute left-2.5 top-2.5 border border-white/70 px-1.5 py-1 text-[9px] font-medium uppercase tracking-[0.2em] text-white sm:left-3 sm:top-3 sm:px-2">
-            {tag}sdfg
-            
+            {tag}
           </span>
         )}
 
         <button
           type="button"
-          onClick={() => addToWishlist( productId)}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={wishlisted}
+          onClick={handleWishlist}
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isWishlisted}
           className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-all hover:bg-white active:scale-90 sm:right-3 sm:top-3 sm:h-10 sm:w-10"
         >
           <Heart
             size={16}
             strokeWidth={1.6}
-            className={`transition-transform duration-300 ${wishlisted ? "scale-110 fill-pop text-pop" : "text-ink"}`}
+            className={`transition-transform duration-300 ${isWishlisted ? "scale-110 fill-pop text-pop" : "text-ink"}`}
           />
         </button>
       </div>
 
       <button
         type="button"
-       onClick={() => {
-    console.log("productId", productId);
-    addToCart({ productID: productId });
-  }}
+        onClick={() => addToCart({ productID: productId })}
         aria-label={`Add ${product.name} to bag`}
         className="mt-2.5 w-full border border-ink bg-white py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs"
       >
