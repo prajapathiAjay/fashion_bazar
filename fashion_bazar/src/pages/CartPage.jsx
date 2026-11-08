@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
-
 import {
   Minus,
   Plus,
@@ -21,12 +20,14 @@ import {
   Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import {useIsWishlist} from "../hooks/isWishList"
 import {
   useGetCartItemsQuery,
   useDeleteCartItemMutation,
   useUpdateCartItemMutation,
 } from "../lib/api/cartApi";
-import { useAddToWishlistMutation } from "../lib/api/wishlistApi";
+import { useSelector } from "react-redux";
+import { useAddToWishlistMutation ,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 
 const FREE_SHIPPING_AT = 999;
 
@@ -158,8 +159,18 @@ function QtyStepper({ item }) {
 function CartItem({ item }) {
   const [addToWishlist] = useAddToWishlistMutation();
   const [deleteCartItem] = useDeleteCartItemMutation();
+  const [deleteFromWishlist] = useDeleteFromWishListMutation();
+  const { isWishlisted, wishlistItemId } = useIsWishlist(item.productID?._id);
+ 
+  const product = item?.productID;
 
-  const product = item.productID;
+  const handleWishlist = () => {
+    if(isWishlisted){
+      deleteFromWishlist(wishlistItemId);
+    }else{
+      addToWishlist(product?._id);
+    }
+  };
 
   return (
     <li className="group relative flex gap-4 rounded-3xl border border-line bg-white p-3.5 transition-all hover:border-line-hover hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] sm:gap-5 sm:p-4">
@@ -231,11 +242,14 @@ function CartItem({ item }) {
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-2.5 text-xs font-semibold">
           <button
             type="button"
-            onClick={() => addToWishlist(product?._id)}
-            className="inline-flex items-center gap-1.5 rounded-full py-1 text-muted transition-colors hover:text-pop"
+            onClick={handleWishlist}
+            aria-pressed={isWishlisted}
+            className={`inline-flex items-center gap-1.5 rounded-full py-1 transition-colors ${
+              isWishlisted ? "text-red-500 hover:text-red-600" : "text-muted hover:text-pop"
+            }`}
           >
-            <Heart size={13} />
-            Move to wishlist
+            <Heart size={13} className={isWishlisted ? "fill-red-500" : ""} />
+            {isWishlisted ? "Remove from wishlist" : "Move to wishlist"}
           </button>
         </div>
       </div>

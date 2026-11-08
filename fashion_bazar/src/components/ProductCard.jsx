@@ -3,8 +3,9 @@ import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
 import {useAddToWishlistMutation,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
-import {useAddToCartMutation} from "../lib/api/cartApi";
+import {useAddToCartMutation,useDeleteCartItemMutation} from "../lib/api/cartApi";
 import { useIsWishlist } from "../hooks/isWishList";
+import { useCart } from "../hooks/isCart";
 
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
@@ -12,9 +13,12 @@ function ProductCard({ product }) {
   const [deleteFromWishList] = useDeleteFromWishListMutation();
   const [addToWishlist] = useAddToWishlistMutation();
   const [addToCart] = useAddToCartMutation();
+  const [deleteCartItem] = useDeleteCartItemMutation();
+
   const productId = product?._id ;
   // Hook called once, at the top level of the component
   const { isWishlisted, wishlistItemId } = useIsWishlist(productId);
+  const { isInCart, getCartId } = useCart(productId);
 
   // Plain function — no hooks inside event handlers
   const handleWishlist = () => {
@@ -24,6 +28,23 @@ function ProductCard({ product }) {
       addToWishlist(productId);
     }
   };
+
+  const handleCart=async ()=>{
+
+  try {
+    if(isInCart){
+      await deleteCartItem(getCartId)
+    }else{
+      await addToCart({productID:productId})
+    }
+    
+  } catch (error) {
+    
+  }
+
+
+    
+  }
   const href = `/products/${productId}`;
   const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
   const discount = product.originalPrice > product.price
@@ -96,11 +117,11 @@ function ProductCard({ product }) {
 
       <button
         type="button"
-        onClick={() => addToCart({ productID: productId })}
+        onClick={handleCart}
         aria-label={`Add ${product.name} to bag`}
-        className="mt-2.5 w-full border border-ink bg-white py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs"
+        className={`mt-2.5 w-full border border-ink ${isInCart ? "bg-ink text-white" : "bg-white text-ink"} py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs`}
       >
-        Add to bag
+       {isInCart ? "Remove from bag" : "Add to bag"}
       </button>
     </article>
   );

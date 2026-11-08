@@ -3,9 +3,9 @@ import {useMemo} from "react"
 import {useGetCartItemsQuery} from "../lib/api/cartApi"
 
 
-// No productId argument — returns lookup functions, so it works on pages
-// that show many products (wishlist panel) as well as a single product.
-export const useCart=()=>{
+// Pass one productId; returns whether that product is in the cart and its cart item id.
+// For lists (wishlist), call it inside a per-item card component, not in a loop.
+export const useCart=(productId)=>{
  const token=useSelector((state)=>state.auth.token)
  const  {data:cart,isLoading,isError}=useGetCartItemsQuery(undefined,{
     skip:!token,
@@ -15,8 +15,8 @@ export const useCart=()=>{
  const cartMap=useMemo(()=>new Map(cart?.map((item)=>[item?.productID?._id,item?._id])),[cart])
 
 return{
-isInCart:(productId)=>cartMap.has(productId),
-getCartItemId:(productId)=>cartMap.get(productId),
+isInCart:cartMap.has(productId),
+getCartId:cartMap.get(productId),
 isLoading,
 isError,
 

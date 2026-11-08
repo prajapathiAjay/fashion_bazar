@@ -1587,26 +1587,99 @@ function PaymentPanel() {
    Wishlist
    ------------------------------------------------------------------ */
 
-function WishlistPanel({ watchListItems }) {
+// One card per wishlist item, so each card can call useCart for its own product.
+// All cards share the same cached cart query, so there is still only one request.
+function WishlistCard({ item }) {
+  // item = wishlist item; the product itself is populated inside item.productId
+  const product = item.productId;
   const [deleteFromWishList] = useDeleteFromWishListMutation();
   const [addToCart] = useAddToCartMutation();
   const [removeFromCart] = useDeleteCartItemMutation();
-  const { isInCart, getCartItemId } = useCart();
+  const { isInCart, getCartId } = useCart(product?._id);
 
-  const handleCart = (productId) => async () => {
+  const handleCart = async () => {
     try {
-      if (isInCart(productId)) {
+      if (isInCart) {
         // Already in the cart → remove it (DELETE needs the cart item's id)
-        await removeFromCart(getCartItemId(productId)).unwrap();
+        await removeFromCart(getCartId).unwrap();
       } else {
         // Not in the cart → add it (cart backend expects productID, capital ID)
-        await addToCart({ productID: productId, quantity: 1 }).unwrap();
+        await addToCart({ productID: product._id, quantity: 1 }).unwrap();
       }
     } catch (err) {
       console.error("Cart update failed", err);
     }
   };
 
+  return (
+    <article className="group flex flex-col">
+      <div className="relative">
+        <Link
+          to={`/products/${product?._id}`}
+          className="block aspect-[4/5] overflow-hidden rounded-3xl"
+          aria-label={product?.name}
+        >
+          <SmartImage
+            src={product?.images?.[0]}
+            alt={product?.name}
+            bg={product?.bg}
+            imgClassName="transition-transform duration-500 group-hover:scale-105"
+          />
+        </Link>
+        {product?.originalPrice > product?.price && (
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-pop px-2.5 py-1 text-[11px] font-bold text-white">
+            -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => deleteFromWishList(item._id).unwrap()}
+          aria-label={`Remove ${product?.name} from wishlist`}
+          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-pop shadow-sm backdrop-blur transition-transform hover:scale-110"
+        >
+          <Heart size={16} className="fill-pop" />
+        </button>
+      </div>
+      <div className="mt-3 flex flex-1 flex-col px-1">
+        <p className="text-[11px] text-subtle">{product?.seller?.name ?? product?.seller}</p>
+        <Link
+          to={`/products/${product?._id}`}
+          className="truncate text-sm font-semibold text-ink hover:text-brand"
+        >
+          {product?.name}
+        </Link>
+        <p className="mt-1 flex items-baseline gap-2">
+          <span className="text-sm font-bold text-ink">
+            {money(product?.price)}
+          </span>
+          {product?.originalPrice > product?.price && (
+            <span className="text-xs text-faint line-through">
+              {money(product.originalPrice)}
+            </span>
+          )}
+        </p>
+        <button
+          type="button"
+          onClick={handleCart}
+          className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-all ${
+            isInCart
+              ? "bg-success-50 text-success"
+              : "bg-ink text-white hover:-translate-y-0.5 hover:bg-ink-hover"
+          }`}
+        >
+          {isInCart ? (
+            <Check size={14} strokeWidth={3} />
+          ) : (
+            <ShoppingBag size={14} />
+          )}
+          {isInCart ? "In bag · Remove" : "Move to bag"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function WishlistPanel({ watchListItems }) {
   if (!watchListItems?.length) {
     return (
       <div>
@@ -1637,78 +1710,9 @@ function WishlistPanel({ watchListItems }) {
         desc={`${watchListItems.length} ${watchListItems.length === 1 ? "piece" : "pieces"} saved for later`}
       />
       <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        {watchListItems.map((p) => {
-          // p = wishlist item; the product itself is populated inside p.productId
-          const product = p.productId;
-          const inBag = isInCart(product?._id);
-          return (
-            <article key={p._id} className="group flex flex-col">
-              <div className="relative">
-                <Link
-                  to={`/products/${product?._id}`}
-                  className="block aspect-[4/5] overflow-hidden rounded-3xl"
-                  aria-label={product?.name}
-                >
-                  <SmartImage
-                    src={product?.images?.[0]}
-                    alt={product?.name}
-                    bg={product?.bg}
-                    imgClassName="transition-transform duration-500 group-hover:scale-105"
-                  />
-                </Link>
-                {product?.originalPrice > product?.price && (
-                  <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-pop px-2.5 py-1 text-[11px] font-bold text-white">
-                    -{Math.round((1 - product.price / product.originalPrice) * 100)}%
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() =>deleteFromWishList(p._id).unwrap()
-                  }
-                  aria-label={`Remove ${product?.name} from wishlist`}
-                  className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-pop shadow-sm backdrop-blur transition-transform hover:scale-110"
-                >
-                  <Heart size={16} className="fill-pop" />
-                </button>
-              </div>
-              <div className="mt-3 flex flex-1 flex-col px-1">
-                <p className="text-[11px] text-subtle">{product?.seller?.name ?? product?.seller}</p>
-                <Link
-                  to={`/products/${product?._id}`}
-                  className="truncate text-sm font-semibold text-ink hover:text-brand"
-                >
-                  {product?.name}
-                </Link>
-                <p className="mt-1 flex items-baseline gap-2">
-                  <span className="text-sm font-bold text-ink">
-                    {money(product?.price)}
-                  </span>
-                  {product?.originalPrice > product?.price && (
-                    <span className="text-xs text-faint line-through">
-                      {money(product.originalPrice)}
-                    </span>
-                  )}
-                </p>
-                <button
-                  type="button"
-                  onClick={handleCart(product?._id)}
-                  className={`mt-3 inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2.5 text-xs font-semibold transition-all ${
-                    inBag
-                      ? "bg-success-50 text-success"
-                      : "bg-ink text-white hover:-translate-y-0.5 hover:bg-ink-hover"
-                  }`}
-                >
-                  {inBag ? (
-                    <Check size={14} strokeWidth={3} />
-                  ) : (
-                    <ShoppingBag size={14} />
-                  )}
-                  {inBag ? "In bag · Remove" : "Move to bag"}
-                </button>
-              </div>
-            </article>
-          );
-        })}
+        {watchListItems.map((item) => (
+          <WishlistCard key={item._id} item={item} />
+        ))}
       </div>
     </div>
   );

@@ -17,7 +17,7 @@ export const cartItemsApi = baseApi.injectEndpoints({
             invalidatesTags: ["CartItem"]
 
         }),
-   updateCartItem: builder.mutation({
+        updateCartItem: builder.mutation({
             query: ({ id, ...data }) => ({
                 url: `/cartItems/${id}`,
                 method: 'PATCH',
