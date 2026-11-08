@@ -274,7 +274,6 @@ function CheckoutPage() {
   const user = userData?.user;
   const addresses = user?.addresses ?? [];
   const defaultAddress = addresses.find((a) => a.isDefault) || addresses[0];
-  console.log("shipping method", shipMethod,"payment method", payMethod,"default adddress", defaultAddress  );
   // null until the user picks one -> the default address is used automatically.
   // Picking here only affects this order, it does not change the saved default.
   const [selectedAddressId, setSelectedAddressId] = useState(null);

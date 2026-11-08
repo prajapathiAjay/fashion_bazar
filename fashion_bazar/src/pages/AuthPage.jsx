@@ -123,7 +123,6 @@ function AuthPage() {
         navigate("/");
       }
     } catch (err) {
-      console.log("auth error", err);
       setError(err?.data?.message || "Something went wrong");
     } finally {
       setSubmitting(false);

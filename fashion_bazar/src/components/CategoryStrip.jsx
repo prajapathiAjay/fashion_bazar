@@ -32,7 +32,7 @@ const { data: categories, isLoading, isError } = useGetCategoryQuery();
         {categories?.map(({ slug, categoryName, description, image, tone }) => (
           <Link
             key={slug}
-            to={`categories/${slug}`}
+            to={`/categories/${slug}`}
             className="group relative block aspect-[3/4] shrink-0 basis-[150px] snap-start overflow-hidden rounded-2xl transition-shadow hover:shadow-[0_14px_36px_rgba(27,21,35,0.16)] sm:basis-[180px] lg:basis-auto"
           >
             <SmartImage

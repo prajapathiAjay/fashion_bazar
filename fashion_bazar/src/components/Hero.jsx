@@ -66,14 +66,14 @@ function Hero() {
 
             <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
-                to="/products"
+                to="/categories/all"
                 className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-brand"
               >
                 Shop the collection
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
-                to="/new-arrivals"
+                to="/categories/all"
                 className="group inline-flex items-center gap-2 border-b border-ink pb-1 text-sm font-medium uppercase tracking-[0.15em] text-ink transition-colors hover:border-brand hover:text-brand"
               >
                 New arrivals
@@ -151,7 +151,7 @@ function Hero() {
 
             {/* Featured product card */}
             <Link
-              to="/products/p1"
+              to="/categories/women"
               className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex md:hidden lg:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
             >
               <span className="h-16 w-12 overflow-hidden">

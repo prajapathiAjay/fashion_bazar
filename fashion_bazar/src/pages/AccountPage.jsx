@@ -929,28 +929,20 @@ function PasswordInput({ id, placeholder }) {
 }
 
 function ProfilePanel({ user }) {
-  // const [firstName = "", ...rest] = (user?.firatName || "").split(" ");
-  const lastName = "kkkk";
-  console.log("user data", user);
   const [saved, setSaved] = useState(false);
-  const [shopFor, setShopFor] = useState(["Women"]);
-  const [size, setSize] = useState("M");
-  const { register, error, handleSubmit } = useForm({
-    defauktValues: {
+  const { register, handleSubmit, reset } = useForm({
+    defaultValues: {
       firstName: user?.firstName ?? "",
       lastName: user?.lastName ?? "",
       email: user?.email ?? "",
+      phone: user?.phone ?? "",
+      // <input type="date"> needs YYYY-MM-DD
+      dob: user?.dob ? String(user.dob).slice(0, 10) : "",
     },
   });
   const [updateUser, { isLoading }] = useUpdateUserMutation();
 
-  const toggleShopFor = (v) =>
-    setShopFor((cur) =>
-      cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v],
-    );
-
   const onSubmit = async (value) => {
-    console.log("Formvalues", value);
     try {
       await updateUser(value).unwrap();
       setSaved(true);
@@ -980,7 +972,6 @@ function ProfilePanel({ user }) {
           <Field id="first-name" label="First name">
             <input
               id="first-name"
-              defaultValue={user?.firstName}
               autoComplete="given-name"
               className={INPUT_CLASS}
               {...register("firstName")}
@@ -989,7 +980,6 @@ function ProfilePanel({ user }) {
           <Field id="last-name" label="Last name">
             <input
               id="last-name"
-              defaultValue={user?.lastName}
               autoComplete="family-name"
               className={INPUT_CLASS}
               {...register("lastName")}
@@ -999,7 +989,6 @@ function ProfilePanel({ user }) {
             <input
               id="email"
               type="email"
-              defaultValue={user?.email}
               autoComplete="email"
               className={INPUT_CLASS}
               {...register("email")}
@@ -1009,7 +998,6 @@ function ProfilePanel({ user }) {
             <input
               id="phone"
               type="tel"
-              defaultValue={user?.phone}
               autoComplete="tel"
               className={INPUT_CLASS}
               {...register("phone")}
@@ -1023,7 +1011,6 @@ function ProfilePanel({ user }) {
             <input
               id="dob"
               type="date"
-              defaultValue={user?.dob}
               className={INPUT_CLASS}
               {...register("dob")}
             />
@@ -1053,49 +1040,6 @@ function ProfilePanel({ user }) {
             <PasswordInput id="confirm-password" placeholder="Repeat new password" />
           </Field>
         </div>
-      </FormSection>
-
-      <FormSection icon={Sparkles} tone="bg-mint-50 text-mint" title="Shopping preferences" desc="We'll tailor recommendations to you.">
-        <fieldset>
-          <legend className="mb-2 text-xs font-semibold text-ink-soft">I usually shop for</legend>
-          <div className="flex flex-wrap gap-2">
-            {["Women", "Men", "Kids", "Accessories"].map((v) => {
-              const on = shopFor.includes(v);
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleShopFor(v)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                    on ? "border-brand bg-brand-50 text-brand" : "border-line-strong text-ink-soft hover:border-line-hover"
-                  }`}
-                >
-                  {on && <Check size={14} strokeWidth={3} />}
-                  {v}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-        <fieldset className="mt-5">
-          <legend className="mb-2 text-xs font-semibold text-ink-soft">Usual clothing size</legend>
-          <div className="flex flex-wrap gap-2">
-            {["XS", "S", "M", "L", "XL"].map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={size === s}
-                onClick={() => setSize(s)}
-                className={`h-10 w-12 rounded-xl border text-sm font-semibold transition-colors ${
-                  size === s ? "border-ink bg-ink text-white" : "border-line-strong text-ink-soft hover:border-line-hover"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </fieldset>
       </FormSection> */}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
@@ -1109,17 +1053,21 @@ function ProfilePanel({ user }) {
           </p>
         )}
         <button
-          type="reset"
-          onClick={() => setSaved(false)}
+          type="button"
+          onClick={() => {
+            reset();
+            setSaved(false);
+          }}
           className="rounded-full border border-line-strong px-6 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-mist"
         >
           Discard
         </button>
         <button
           type="submit"
-          className="rounded-full bg-brand-gradient px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(124,58,237,0.28)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+          disabled={isLoading}
+          className="rounded-full bg-brand-gradient px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(124,58,237,0.28)] transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60"
         >
-          Save changes
+          {isLoading ? "Saving…" : "Save changes"}
         </button>
       </div>
     </form>

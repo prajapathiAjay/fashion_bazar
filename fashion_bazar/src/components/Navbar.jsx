@@ -233,7 +233,7 @@ function Navbar() {
         </nav>
 
         {/* Desktop search */}
-        <form
+        {/* <form
           onSubmit={handleSearch}
           role="search"
           className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist px-4 py-2.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
@@ -247,10 +247,11 @@ function Navbar() {
             aria-label="Search products"
             className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
-        </form>
+        </form> */}
 
         {/* Action icons */}
         <div className="flex items-center gap-0.5 sm:gap-1.5">
+          {/* Search hidden until search is implemented
           <button
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
@@ -259,7 +260,7 @@ function Navbar() {
             aria-expanded={mobileSearchOpen}
           >
             {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
-          </button>
+          </button> */}
 
           <Link
             to="/account?tab=wishlist"
@@ -339,7 +340,7 @@ function Navbar() {
               {categories?.map((cat) => (
                 <Link
                   key={cat.slug}
-                  to={`categories/${cat.slug}`}
+                  to={`/categories/${cat.slug}`}
                   onClick={closeAll}
                   className={`group flex items-center gap-3 rounded-2xl p-2.5 pr-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${cat.tone}`}
                 >
@@ -361,6 +362,7 @@ function Navbar() {
                 </Link>
               ))}
             </div>
+            {/* Trending searches hidden until search is implemented
             <div className="mt-5 flex items-center gap-2 text-sm">
               <span className="text-subtle">Trending:</span>
               {POPULAR_SEARCHES.map((term) => (
@@ -373,7 +375,7 @@ function Navbar() {
                   {term}
                 </button>
               ))}
-            </div>
+            </div> */}
           </div>
 
           <Link
