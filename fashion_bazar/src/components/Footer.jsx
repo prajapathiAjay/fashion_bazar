@@ -9,6 +9,9 @@ import {
   Store,
   ArrowRight,
 } from "lucide-react";
+import { CONTACT_INFO } from "../utils/contactInfo";
+
+const CONTACT_ICONS = { address: MapPin, phone: Phone, email: Mail, hours: Clock };
 
 const FOOTER_LINKS = [
   {
@@ -26,15 +29,13 @@ const FOOTER_LINKS = [
     links: [
       { label: "About us", to: "/about" },
       { label: "Become a seller", to: "/sell" },
-      { label: "Careers", to: "/careers" },
-      { label: "Press", to: "/press" },
     ],
   },
   {
     heading: "Help",
     links: [
       { label: "Track your order", to: "/account" },
-      { label: "Shipping & returns", to: "/help/shipping" },
+      { label: "Shipping & returns", to: "/help/faq#shipping" },
       { label: "FAQs", to: "/help/faq" },
       { label: "Contact us", to: "/contact" },
     ],
@@ -64,14 +65,7 @@ const SOCIALS = [
   },
 ];
 
-const PAYMENT_METHODS = ["Visa", "Mastercard", "UPI", "PayPal", "Amex"];
-
-const CONTACT_INFO = [
-  { icon: MapPin, text: "123 Fashion Street, New York, NY 10001" },
-  { icon: Phone, text: "+1 (555) 123-4567" },
-  { icon: Mail, text: "support@fashionbazar.com" },
-  { icon: Clock, text: "Mon-Fri: 9AM - 6PM EST" },
-];
+const PAYMENT_METHODS = ["UPI", "RuPay", "Visa", "Mastercard", "Net banking", "COD"];
 
 function Footer() {
   return (
@@ -119,14 +113,15 @@ function Footer() {
 
             {/* Contact Info */}
             <div className="mt-6 space-y-3">
-              {CONTACT_INFO.map((item, index) => {
-                const Icon = item.icon;
+              {CONTACT_INFO.map((item) => {
+                const Icon = CONTACT_ICONS[item.type];
+                const Tag = item.href ? "a" : "span";
                 return (
-                  <div key={index} className="flex items-center gap-3 text-sm text-white/40">
+                  <div key={item.type} className="flex items-center gap-3 text-sm text-white/40">
                     <Icon size={16} className="text-sun shrink-0" />
-                    <span className="hover:text-white/70 transition-colors">
+                    <Tag href={item.href} className="hover:text-white/70 transition-colors">
                       {item.text}
-                    </span>
+                    </Tag>
                   </div>
                 );
               })}

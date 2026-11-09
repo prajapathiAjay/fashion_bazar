@@ -9,6 +9,10 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
+import AboutPage from "./pages/AboutPage";
+import SellPage from "./pages/SellPage";
+import ContactPage from "./pages/ContactPage";
+import FaqPage from "./pages/FaqPage";
 
 const AppRoutes = () => {
   return (
@@ -25,6 +29,10 @@ const AppRoutes = () => {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/orders/:orderId" element={<AccountPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/sell" element={<SellPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/help/faq" element={<FaqPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
