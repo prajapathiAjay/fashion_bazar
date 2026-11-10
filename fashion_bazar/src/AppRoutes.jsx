@@ -13,6 +13,9 @@ import AboutPage from "./pages/AboutPage";
 import SellPage from "./pages/SellPage";
 import ContactPage from "./pages/ContactPage";
 import FaqPage from "./pages/FaqPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
+import CookiesPage from "./pages/CookiesPage";
 
 const AppRoutes = () => {
   return (
@@ -23,8 +26,8 @@ const AppRoutes = () => {
         <Route path="/products/:productId" element={<ProductDetail />} />
         <Route path="/categories" element={<ShopPage />} />
         <Route path="/categories/:categorySlug" element={<ShopPage />} />
-        {/* <Route path="/new-arrivals" element={<ShopPage />} /> */}
-        {/* <Route path="/deals" element={<ShopPage />} /> */}
+        <Route path="/new-arrivals" element={<ShopPage />} />
+        <Route path="/deals" element={<ShopPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/account" element={<AccountPage />} />
@@ -33,6 +36,9 @@ const AppRoutes = () => {
         <Route path="/sell" element={<SellPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/help/faq" element={<FaqPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
