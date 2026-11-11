@@ -1,9 +1,8 @@
 import { useRef, useState, } from "react";
 import { Link,useParams } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
+import ReviewModal from "../components/ReviewModal";
 import { PHOTOS, unsplash } from "../assets/images";
-import {useAddToCartMutation} from "../lib/api/cartApi";
-import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
 import {
   Heart,
   Star,
@@ -29,6 +28,10 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetProductsByIdQuery } from "../lib/api/productApi";
+import {useAddToCartMutation} from "../lib/api/cartApi";
+import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
+import { useAddReviewMutation,useGetReviewQuery } from "../lib/api/reviewApi";
+
 const SIZES = ["XS", "S", "M", "L", "XL"];
 const LOW_STOCK = ["XL"];
 const COLORS = [
@@ -328,20 +331,34 @@ function ProductDetail() {
   const [wishlisted, setWishlisted] = useState(false);
   const [addedToBag, setAddedToBag] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const { productId } = useParams();
  const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
  const [addToCart] = useAddToCartMutation();
  const [addToWishlist] = useAddToWishlistMutation();
+ const [addReview]=useAddReviewMutation()
   const price = 2499;
   const originalPrice = 3299;
   const discount = Math.round(100 - (price / originalPrice) * 100);
-
+const {data:reviews}=useGetReviewQuery(productId)
   const handleAddToBag =async () => {
     // setAddedToBag(true);
     // setTimeout(() => setAddedToBag(false), 2000);
   await addToCart({ productID: product._id, quantity: qty,size: selectedSize || product.sizes[0]||"" }).unwrap();
 
 
+  };
+
+  // TODO: replace with your review mutation, e.g.
+  // const [addReview] = useAddReviewMutation();
+  // await addReview(review).unwrap();
+  const handleSubmitReview = async (review) => {
+    // console.log("review to send:", review);
+try {
+      await addReview(review).unwrap()
+} catch (error) {
+  console.log(error)
+}
   };
 
   const addLabel = addedToBag ? (
@@ -644,6 +661,7 @@ function ProductDetail() {
             </div>
             <button
               type="button"
+              onClick={() => setReviewOpen(true)}
               className="inline-flex h-10 items-center rounded-full border border-line-strong px-4 text-sm font-semibold text-ink transition-colors hover:bg-mist"
             >
               Write a review
@@ -690,19 +708,32 @@ function ProductDetail() {
             </div>
 
             {/* Cards */}
+            {reviews?.length === 0 && (
+              <p className="rounded-3xl border border-dashed border-line-strong p-8 text-center text-sm text-muted">
+                No reviews yet. Be the first to write one!
+              </p>
+            )}
             <ul className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-              {REVIEWS.map((r) => (
-                <li key={r.name} className="flex flex-col rounded-3xl border border-line bg-white p-5 transition-shadow hover:shadow-[0_14px_36px_rgba(27,21,35,0.08)]">
+              {reviews?.map((r) => {
+                const name =
+                  `${r.user?.firstName ?? ""} ${r.user?.lastName ?? ""}`.trim() || "Shopper";
+                const date = new Date(r.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                });
+                return (
+                <li key={r._id} className="flex flex-col rounded-3xl border border-line bg-white p-5 transition-shadow hover:shadow-[0_14px_36px_rgba(27,21,35,0.08)]">
                   <div className="flex items-center gap-3">
-                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
-                      <SmartImage src={unsplash(r.photo, 80, 80, "&crop=faces")} alt="" bg="var(--color-shimmer)" />
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand">
+                      {name[0].toUpperCase()}
                     </span>
                     <div className="min-w-0">
                       <p className="flex items-center gap-1 text-sm font-bold text-ink">
-                        {r.name}
+                        {name}
                         <BadgeCheck size={14} className="text-mint" aria-label="Verified buyer" />
                       </p>
-                      <p className="text-[11px] text-subtle">{r.date} · Size {r.size}</p>
+                      <p className="text-[11px] text-subtle">{date}</p>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
@@ -710,15 +741,16 @@ function ProductDetail() {
                     <span className="sr-only">{r.rating} out of 5 stars</span>
                   </div>
                   <p className="mt-2 text-sm font-bold text-ink">{r.title}</p>
-                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{r.body}</p>
+                  <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{r.comment}</p>
                   <button
                     type="button"
                     className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-50 hover:text-brand"
                   >
-                    <ThumbsUp size={13} /> Helpful ({r.helpful})
+                    <ThumbsUp size={13} /> Helpful ({r.helpful ?? 0})
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </div>
         </section>
@@ -799,6 +831,13 @@ function ProductDetail() {
           </button>
         </div>
       </div>
+
+      <ReviewModal
+        open={reviewOpen}
+        onClose={() => setReviewOpen(false)}
+        product={product}
+        onSubmit={handleSubmitReview}
+      />
     </div>
   );
 }
