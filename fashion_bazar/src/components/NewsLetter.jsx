@@ -2,15 +2,24 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
+import { useSubscribeMutation } from "../lib/api/contactApi";
 
 function Newsletter() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | submitted
+  const [error, setError] = useState("");
+  const [subscribe, { isLoading: subscribing }] = useSubscribeMutation();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !email.includes("@")) return;
-    setStatus("submitted");
+    setError("");
+    try {
+      await subscribe(email.trim()).unwrap();
+      setStatus("submitted");
+    } catch (err) {
+      setError(err?.data?.message || "Could not subscribe. Please try again.");
+    }
   };
 
   return (
@@ -55,9 +64,10 @@ function Newsletter() {
               />
               <button
                 type="submit"
-                className="group flex shrink-0 items-center gap-2 py-2 text-xs font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:text-brand"
+                disabled={subscribing}
+                className="group flex shrink-0 items-center gap-2 py-2 text-xs font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:text-brand disabled:opacity-60"
               >
-                Subscribe
+                {subscribing ? "Joining…" : "Subscribe"}
                 <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
               </button>
             </form>
@@ -68,6 +78,11 @@ function Newsletter() {
             </p>
           )}
 
+          {error && (
+            <p role="alert" className="mt-3 text-sm font-medium text-danger">
+              {error}
+            </p>
+          )}
           <p className="mt-4 text-xs text-subtle">No spam. Unsubscribe any time.</p>
         </div>
       </div>

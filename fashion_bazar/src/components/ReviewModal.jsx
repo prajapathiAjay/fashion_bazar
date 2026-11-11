@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Star, X, CheckCircle2 } from "lucide-react";
 import SmartImage from "./SmartImage";
-// import { useAddReviewsMutation } from "../lib/api/reviewApi";
 
 const LABELS = ["", "Poor", "Fair", "Good", "Very good", "Loved it"];
 const MAX_COMMENT = 500;
@@ -13,7 +12,7 @@ const MAX_COMMENT = 500;
  * Props
  *  - open, onClose
  *  - product   : used for the header (name, image, sizes)
- *  - onSubmit  : async ({ productId, rating, title, comment, size }) => void
+ *  - onSubmit  : async ({ productId, rating, title, comment }) => void
  *                throw an Error to show its message in the form.
  */
 export default function ReviewModal({ open, ...props }) {
@@ -31,8 +30,7 @@ function ReviewModalContent({ onClose, product, onSubmit }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const dialogRef = useRef(null);
-  // const [addReview]=useAddReviewsMutation()
-  
+
   // Keep the latest onClose without re-running the effect below on every render
   const onCloseRef = useRef(onClose);
   useEffect(() => {
@@ -66,9 +64,8 @@ function ReviewModalContent({ onClose, product, onSubmit }) {
         rating,
         title: title.trim(),
         comment: comment.trim(),
-        // size,
       });
-      // setDone(true);
+      setDone(true);
     } catch (err) {
       setError(err?.data?.message || err?.message || "Could not post your review. Please try again.");
     } finally {

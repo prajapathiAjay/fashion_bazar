@@ -66,14 +66,14 @@ function Hero() {
 
             <div className="mt-9 flex flex-wrap items-center gap-x-8 gap-y-4">
               <Link
-                to="/categories/all"
+                to="/products"
                 className="group inline-flex items-center gap-3 rounded-full bg-ink px-8 py-4 text-sm font-medium uppercase tracking-[0.15em] text-white transition-colors hover:bg-brand"
               >
                 Shop the collection
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
-                to="/categories/all"
+                to="/new-arrivals"
                 className="group inline-flex items-center gap-2 border-b border-ink pb-1 text-sm font-medium uppercase tracking-[0.15em] text-ink transition-colors hover:border-brand hover:text-brand"
               >
                 New arrivals

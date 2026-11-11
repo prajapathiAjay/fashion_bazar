@@ -22,22 +22,39 @@ import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { ProductGridSkeleton, ProductsEmpty } from "../components/ProductGridStatus";
 import { formatPrice } from "../utils/formatPrice";
-import {useGetProductsQuery} from "../lib/api/productApi";
+import { swatchFor } from "../utils/colorSwatch";
+import { useGetProductsQuery, useGetProductFiltersQuery } from "../lib/api/productApi";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
 
 
-const SIZES = ["XS", "S", "M", "L", "XL"];
-const COLORS = [
-  { name: "Violet", hex: "#6D4C74" },
-  { name: "Coral", hex: "#D99A80" },
-  { name: "Gold", hex: "#CDAF72" },
-  { name: "Pink", hex: "#C98B96" },
-  { name: "Black", hex: "#1C1714" },
-  { name: "Sage", hex: "#9CAE98" },
+// Sort options: "key" goes in the URL and to the API, "label" is what the shopper reads
+const SORT_OPTIONS = [
+  { key: "popular", label: "Most popular" },
+  { key: "newest", label: "Newest" },
+  { key: "price_asc", label: "Price: low to high" },
+  { key: "price_desc", label: "Price: high to low" },
+  { key: "rating", label: "Top rated" },
 ];
-const SORT_OPTIONS = ["Most popular", "Newest", "Price: low to high", "Price: high to low", "Top rated"];
-const PRICE_CEILING = 5000;
-const PAGES = [1, 2, 3];
+const SORT_KEYS = SORT_OPTIONS.map((o) => o.key);
+const PAGE_SIZE = 12;
+const PRICE_STEP = 100;
+const PRICE_CEILING = 5000; // used until the real highest price arrives from the API
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
+// "M,L" -> ["M", "L"]   |   null -> []
+const toList = (value) => (value ? value.split(",").filter(Boolean) : []);
+
+// Page numbers to show: 1 … 4 5 6 … 12
+const pageList = (page, pages) => {
+  if (pages <= 7) return Array.from({ length: pages }, (_, i) => i + 1);
+  const list = [1];
+  const from = Math.max(2, page - 1);
+  const to = Math.min(pages - 1, page + 1);
+  if (from > 2) list.push("…");
+  for (let p = from; p <= to; p += 1) list.push(p);
+  if (to < pages - 1) list.push("…");
+  list.push(pages);
+  return list;
+};
 
 // Header band styling + copy per route
 const BANDS = {
@@ -152,89 +169,126 @@ function FilterSection({ title, hint, children, defaultOpen = true }) {
   );
 }
 
-function FilterPanel({ selected, toggleCategory, toggleSize, toggleColor, priceMax, setPriceMax, idPrefix }) {
+// The slider keeps its own "draft" value while it is dragged and only tells the page
+// (which updates the URL and refetches) when the shopper lets go.
+function PriceFilter({ priceMax, priceCeiling, onCommit, idPrefix }) {
+  const [draft, setDraft] = useState(priceMax);
+  const commit = () => {
+    if (draft !== priceMax) onCommit(draft);
+  };
+  return (
+    <div>
+      <label htmlFor={`${idPrefix}-price`} className="sr-only">
+        Maximum price
+      </label>
+      <input
+        id={`${idPrefix}-price`}
+        type="range"
+        min="0"
+        max={priceCeiling}
+        step={PRICE_STEP}
+        value={draft}
+        onChange={(e) => setDraft(Number(e.target.value))}
+        onPointerUp={commit}
+        onKeyUp={commit}
+        onBlur={commit}
+        className="w-full accent-brand"
+      />
+      <div className="mt-3 flex items-center gap-2">
+        <span className="flex-1 rounded-xl border border-line bg-snow px-3 py-2 text-xs text-subtle">
+          Min <span className="block text-sm font-semibold text-ink">₹0</span>
+        </span>
+        <span className="text-faint">—</span>
+        <span className="flex-1 rounded-xl border border-brand/30 bg-brand-50 px-3 py-2 text-xs text-brand">
+          Max{" "}
+          <span className="block text-sm font-semibold text-ink">
+            {formatPrice(draft)}
+            {draft === priceCeiling ? "+" : ""}
+          </span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function FilterPanel({
+  sizes,
+  colors,
+  sizeOptions,
+  colorOptions,
+  toggleSize,
+  toggleColor,
+  priceMax,
+  priceCeiling,
+  setPriceMax,
+  idPrefix,
+}) {
   return (
     <div>
       <FilterSection title="Price">
-        <div>
-          <label htmlFor={`${idPrefix}-price`} className="sr-only">
-            Maximum price
-          </label>
-          <input
-            id={`${idPrefix}-price`}
-            type="range"
-            min="0"
-            max={PRICE_CEILING}
-            step="100"
-            value={priceMax}
-            onChange={(e) => setPriceMax(Number(e.target.value))}
-            className="w-full accent-brand"
-          />
-          <div className="mt-3 flex items-center gap-2">
-            <span className="flex-1 rounded-xl border border-line bg-snow px-3 py-2 text-xs text-subtle">
-              Min <span className="block text-sm font-semibold text-ink">₹0</span>
-            </span>
-            <span className="text-faint">—</span>
-            <span className="flex-1 rounded-xl border border-brand/30 bg-brand-50 px-3 py-2 text-xs text-brand">
-              Max{" "}
-              <span className="block text-sm font-semibold text-ink">
-                {formatPrice(priceMax)}
-                {priceMax === PRICE_CEILING ? "+" : ""}
-              </span>
-            </span>
-          </div>
-        </div>
+        {/* key: start again from the URL value whenever it changes (chip removed, Clear all, Back) */}
+        <PriceFilter
+          key={`${priceMax}-${priceCeiling}`}
+          priceMax={priceMax}
+          priceCeiling={priceCeiling}
+          onCommit={setPriceMax}
+          idPrefix={idPrefix}
+        />
       </FilterSection>
 
-      {/* <FilterSection title="Size" hint={selected.sizes.length || null}>
-        <div className="grid grid-cols-5 gap-2">
-          {SIZES.map((size) => {
-            const active = selected.sizes.includes(size);
-            return (
-              <button
-                type="button"
-                key={size}
-                onClick={() => toggleSize(size)}
-                aria-pressed={active}
-                className={`h-10 rounded-xl border text-xs font-semibold transition-all ${
-                  active
-                    ? "border-ink bg-ink text-white shadow-md"
-                    : "border-line-strong bg-white text-ink-soft hover:border-line-hover hover:bg-mist"
-                }`}
-              >
-                {size}
-              </button>
-            );
-          })}
-        </div>
-      </FilterSection>
-
-      <FilterSection title="Colour" hint={selected.colors.length || null}>
-        <div className="grid grid-cols-3 gap-2">
-          {COLORS.map((color) => {
-            const active = selected.colors.includes(color.name);
-            return (
-              <button
-                type="button"
-                key={color.name}
-                onClick={() => toggleColor(color.name)}
-                aria-pressed={active}
-                className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[11px] font-medium transition-colors ${
-                  active ? "border-ink bg-mist text-ink" : "border-transparent text-muted hover:bg-mist"
-                }`}
-              >
-                <span
-                  className="relative flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-line ring-offset-2"
-                  style={{ backgroundColor: color.hex }}
+      {sizeOptions.length > 0 && (
+        <FilterSection title="Size" hint={sizes.length || null}>
+          <div className="grid grid-cols-5 gap-2">
+            {sizeOptions.map((size) => {
+              const active = sizes.includes(size);
+              return (
+                <button
+                  type="button"
+                  key={size}
+                  onClick={() => toggleSize(size)}
+                  aria-pressed={active}
+                  className={`h-10 rounded-xl border text-xs font-semibold transition-all ${
+                    active
+                      ? "border-ink bg-ink text-white shadow-md"
+                      : "border-line-strong bg-white text-ink-soft hover:border-line-hover hover:bg-mist"
+                  }`}
                 >
-                  {active && <Check size={14} className="text-white drop-shadow" strokeWidth={3} />}
-                </span>
-                {color.name}
-              </button>
-            );
-          })}
-        </div>
-      </FilterSection> */}
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {colorOptions.length > 0 && (
+        <FilterSection title="Colour" hint={colors.length || null}>
+          <div className="grid grid-cols-3 gap-2">
+            {colorOptions.map((color) => {
+              const active = colors.includes(color);
+              return (
+                <button
+                  type="button"
+                  key={color}
+                  onClick={() => toggleColor(color)}
+                  aria-pressed={active}
+                  className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[11px] font-medium capitalize transition-colors ${
+                    active ? "border-ink bg-mist text-ink" : "border-transparent text-muted hover:bg-mist"
+                  }`}
+                >
+                  <span
+                    className="relative flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-line ring-offset-2"
+                    style={{ backgroundColor: swatchFor(color) }}
+                  >
+                    {active && <Check size={14} className="text-white mix-blend-difference" strokeWidth={3} />}
+                  </span>
+                  <span className="max-w-full truncate">{color}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
     </div>
   );
 }
@@ -273,7 +327,9 @@ function SortMenu({ sort, setSort }) {
         className="flex h-10 items-center gap-2 rounded-full border border-line-strong bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-line-hover hover:bg-mist"
       >
         <span className="hidden text-subtle sm:inline">Sort:</span>
-        <span className="max-w-[9rem] truncate sm:max-w-none">{sort}</span>
+        <span className="max-w-[9rem] truncate sm:max-w-none">
+          {SORT_OPTIONS.find((o) => o.key === sort)?.label}
+        </span>
         <ChevronDown size={14} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
@@ -286,18 +342,18 @@ function SortMenu({ sort, setSort }) {
             <button
               type="button"
               role="option"
-              aria-selected={opt === sort}
-              key={opt}
+              aria-selected={opt.key === sort}
+              key={opt.key}
               onClick={() => {
-                setSort(opt);
+                setSort(opt.key);
                 setOpen(false);
               }}
               className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                opt === sort ? "bg-brand-50 font-semibold text-brand" : "text-ink-soft hover:bg-mist"
+                opt.key === sort ? "bg-brand-50 font-semibold text-brand" : "text-ink-soft hover:bg-mist"
               }`}
             >
-              {opt}
-              {opt === sort && <Check size={15} />}
+              {opt.label}
+              {opt.key === sort && <Check size={15} />}
             </button>
           ))}
         </div>
@@ -360,46 +416,118 @@ function PromoTile() {
   );
 }
 
+// Shown when a search or the filters leave no products
+function NoMatches({ hasFilters, onClear }) {
+  return (
+    <div className="col-span-full flex flex-col items-center rounded-2xl border border-dashed border-line-strong bg-snow px-6 py-16 text-center">
+      <p className="text-base font-semibold text-ink">Nothing matches</p>
+      <p className="mt-1 max-w-xs text-sm text-subtle">
+        {hasFilters ? "Try removing a filter or two." : "Try a different word, or browse the whole bazar."}
+      </p>
+      {hasFilters ? (
+        <button
+          type="button"
+          onClick={onClear}
+          className="mt-5 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
+        >
+          Clear filters
+        </button>
+      ) : (
+        <Link
+          to="/products"
+          className="mt-5 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
+        >
+          Browse all products
+        </Link>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Page                                                                 */
 /* ------------------------------------------------------------------ */
 
 function ShopPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [sort, setSort] = useState(SORT_OPTIONS[0]);
-  const [priceMax, setPriceMax] = useState(PRICE_CEILING);
-  const [selected, setSelected] = useState({ categories: [], sizes: [], colors: [] });
   const [dense, setDense] = useState(false);
-  const [page, setPage] = useState(1);
 
+  // Which list: /categories/:categorySlug, /new-arrivals, /deals or /products
   const { categorySlug } = useParams();
-const {data:products, isFetching:loading, error}=useGetProductsQuery(categorySlug)
-const {data:categories}=useGetCategoryQuery()
-  const toggleCategory = (cat) =>
-    setSelected((s) => ({
-      ...s,
-      categories: s.categories.includes(cat)
-        ? s.categories.filter((c) => c !== cat)
-        : [...s.categories, cat],
-    }));
-  const toggleSize = (size) =>
-    setSelected((s) => ({
-      ...s,
-      sizes: s.sizes.includes(size) ? s.sizes.filter((v) => v !== size) : [...s.sizes, size],
-    }));
-  const toggleColor = (color) =>
-    setSelected((s) => ({
-      ...s,
-      colors: s.colors.includes(color) ? s.colors.filter((v) => v !== color) : [...s.colors, color],
-    }));
-  const clearAll = () => {
-    setSelected({ categories: [], sizes: [], colors: [] });
-    setPriceMax(PRICE_CEILING);
+  const { pathname } = useLocation();
+  const isNewArrivals = pathname === "/new-arrivals";
+  const isDeals = pathname === "/deals";
+
+  // Every filter lives in the URL: ?q=shirt&size=M,L&color=black&maxPrice=3000&sort=price_asc&page=2
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Change one key and keep the others. An empty value removes the key.
+  const updateParam = (key, value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value !== "" && value != null) next.set(key, String(value));
+    else next.delete(key);
+    if (key !== "page") next.delete("page"); // a new filter starts again from page 1
+    setSearchParams(next);
   };
 
-  const priceActive = priceMax < PRICE_CEILING;
-  const activeFilterCount =
-    selected.categories.length + selected.sizes.length + selected.colors.length + (priceActive ? 1 : 0);
+  // READ the filters from the URL
+  const searchQuery = searchParams.get("q") || "";
+  const sizes = toList(searchParams.get("size"));
+  const colors = toList(searchParams.get("color"));
+  const defaultSort = isNewArrivals ? "newest" : "popular";
+  const sortParam = searchParams.get("sort");
+  const sort = SORT_KEYS.includes(sortParam) ? sortParam : defaultSort;
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  // Filter choices that really exist in the catalogue
+  const { data: filterOptions } = useGetProductFiltersQuery();
+  const sizeOptions = [...(filterOptions?.sizes ?? [])].sort((a, b) => {
+    const ia = SIZE_ORDER.indexOf(a);
+    const ib = SIZE_ORDER.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+  const colorOptions = filterOptions?.colors ?? [];
+  // slider maximum: the highest price rounded up to the next 500
+  const priceCeiling = Math.ceil((filterOptions?.maxPrice || PRICE_CEILING) / 500) * 500;
+  const maxPriceParam = Number(searchParams.get("maxPrice"));
+  const priceMax = maxPriceParam > 0 && maxPriceParam < priceCeiling ? maxPriceParam : priceCeiling;
+  const priceActive = priceMax < priceCeiling;
+
+  // WRITE the filters to the URL
+  const setSort = (key) => updateParam("sort", key === defaultSort ? "" : key);
+  const toggleInList = (key, list, value) =>
+    updateParam(key, (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]).join(","));
+  const toggleSize = (size) => toggleInList("size", sizes, size);
+  const toggleColor = (color) => toggleInList("color", colors, color);
+  const setPriceMax = (value) => updateParam("maxPrice", value >= priceCeiling ? "" : value);
+  const goToPage = (n) => {
+    updateParam("page", n > 1 ? n : "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  // removes the filters but keeps the search word and the sort
+  const clearAll = () => {
+    const next = new URLSearchParams(searchParams);
+    ["size", "color", "maxPrice", "page"].forEach((key) => next.delete(key));
+    setSearchParams(next);
+  };
+
+  const activeFilterCount = sizes.length + colors.length + (priceActive ? 1 : 0);
+
+  // SEND the same filters to the API. A new combination = a new request (and its own cache entry).
+  const { data, isLoading: loading, isFetching, error } = useGetProductsQuery({
+    q: searchQuery,
+    category: categorySlug,
+    size: sizes.join(","),
+    color: colors.join(","),
+    maxPrice: priceActive ? priceMax : "",
+    onSale: isDeals,
+    sort,
+    page,
+    limit: PAGE_SIZE,
+  });
+  const products = data?.items ?? [];
+  const pages = data?.pages ?? 1;
+  const { data: categories } = useGetCategoryQuery();
 
   // Lock page scroll + close on Escape while the mobile drawer is open
   useEffect(() => {
@@ -415,14 +543,11 @@ const {data:categories}=useGetCategoryQuery()
   }, [filtersOpen]);
 
   // Heading follows the route: /categories/women, /new-arrivals, /deals, ?q=search
-  const { pathname } = useLocation();
-  const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.get("q");
   const pageTitle = searchQuery
     ? `Results for “${searchQuery}”`
-    : pathname === "/new-arrivals"
+    : isNewArrivals
     ? "New arrivals"
-    : pathname === "/deals"
+    : isDeals
     ? "Bazar deals"
     : categorySlug
     ? categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1).replace(/-/g, " ")
@@ -430,17 +555,28 @@ const {data:categories}=useGetCategoryQuery()
 
   const bandKey = searchQuery
     ? "search"
-    : pathname === "/new-arrivals"
+    : isNewArrivals
     ? "new"
-    : pathname === "/deals" || categorySlug === "sale"
+    : isDeals || categorySlug === "sale"
     ? "sale"
     : categorySlug && BANDS[categorySlug]
     ? categorySlug
     : "default";
   const band = BANDS[bandKey];
 
-  const itemCount = products?.length ?? 0;
-  const filterProps = { selected, toggleCategory, toggleSize, toggleColor, priceMax, setPriceMax };
+  // total = every matching product, not just the ones on this page
+  const itemCount = data?.total ?? 0;
+  const filterProps = {
+    sizes,
+    colors,
+    sizeOptions,
+    colorOptions,
+    toggleSize,
+    toggleColor,
+    priceMax,
+    priceCeiling,
+    setPriceMax,
+  };
 
   const gridCols = dense
     ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
@@ -509,7 +645,20 @@ const {data:categories}=useGetCategoryQuery()
           {/* Category chips */}
           <nav aria-label="Shop categories" className="mt-6">
             <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-wrap lg:px-0 [&::-webkit-scrollbar]:hidden">
-              {categories?.map((chip) => {
+              <li className="shrink-0">
+                <Link
+                  to="/products"
+                  aria-current={!categorySlug && !isNewArrivals && !isDeals && !searchQuery ? "page" : undefined}
+                  className={`inline-flex h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-all ${
+                    !categorySlug && !isNewArrivals && !isDeals && !searchQuery
+                      ? "border-transparent bg-ink text-white shadow-md"
+                      : "border-line bg-white/90 text-ink-soft hover:-translate-y-0.5 hover:border-line-hover hover:text-ink"
+                  }`}
+                >
+                  All
+                </Link>
+              </li>
+              {categories?.filter((chip) => chip?.slug !== "all").map((chip) => {
                 const active = chip?.slug === categorySlug && !searchQuery;
                 return (
                   <li key={chip?.slug} className="shrink-0">
@@ -588,28 +737,18 @@ const {data:categories}=useGetCategoryQuery()
           {/* Active filter chips */}
           {activeFilterCount > 0 && (
             <div className="flex w-full items-center gap-2 overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap">
-              {selected.categories.map((c) => (
-                <FilterChip key={`c-${c}`} label={c} onRemove={() => toggleCategory(c)}>
-                  {c}
-                </FilterChip>
-              ))}
-              {selected.sizes.map((s) => (
+              {sizes.map((s) => (
                 <FilterChip key={`s-${s}`} label={`size ${s}`} onRemove={() => toggleSize(s)}>
                   Size {s}
                 </FilterChip>
               ))}
-              {selected.colors.map((c) => (
-                <FilterChip
-                  key={`col-${c}`}
-                  label={c}
-                  swatch={COLORS.find((x) => x.name === c)?.hex}
-                  onRemove={() => toggleColor(c)}
-                >
-                  {c}
+              {colors.map((c) => (
+                <FilterChip key={`col-${c}`} label={c} swatch={swatchFor(c)} onRemove={() => toggleColor(c)}>
+                  <span className="capitalize">{c}</span>
                 </FilterChip>
               ))}
               {priceActive && (
-                <FilterChip label="price limit" onRemove={() => setPriceMax(PRICE_CEILING)}>
+                <FilterChip label="price limit" onRemove={() => setPriceMax(priceCeiling)}>
                   Under {formatPrice(priceMax)}
                 </FilterChip>
               )}
@@ -658,14 +797,22 @@ const {data:categories}=useGetCategoryQuery()
 
           {/* ---------------- Grid ---------------- */}
           <div className="min-w-0 flex-1">
-            <div className={`grid gap-x-4 gap-y-10 sm:gap-x-5 ${gridCols}`}>
+            {/* old results stay on screen, dimmed, while the next filter/page loads */}
+            <div
+              aria-busy={isFetching}
+              className={`grid gap-x-4 gap-y-10 transition-opacity sm:gap-x-5 ${gridCols} ${
+                isFetching && !loading ? "opacity-50" : ""
+              }`}
+            >
               {loading ? (
                 <ProductGridSkeleton count={8} />
-              ) : products?.length ? (
+              ) : products.length ? (
                 products.flatMap((product, i) => {
-                  const card = <ProductCard key={product?.id} product={product} />;
-                  return i === 2 ? [card, <PromoTile key="promo-tile" />] : [card];
+                  const card = <ProductCard key={product._id} product={product} />;
+                  return i === 2 && page === 1 && !isDeals ? [card, <PromoTile key="promo-tile" />] : [card];
                 })
+              ) : !error && (activeFilterCount > 0 || searchQuery) ? (
+                <NoMatches hasFilters={activeFilterCount > 0} onClear={clearAll} />
               ) : (
                 <ProductsEmpty error={error} />
               )}
@@ -693,35 +840,41 @@ const {data:categories}=useGetCategoryQuery()
             )}
 
             {/* Pagination */}
-            {!loading && itemCount > 0 && (
+            {!loading && pages > 1 && (
               <nav aria-label="Pagination" className="mt-10 flex items-center justify-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page <= 1}
                   className="flex h-10 items-center gap-1 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink transition-colors hover:bg-mist disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
                 >
                   <ChevronLeft size={16} />
                   <span className="hidden sm:inline">Prev</span>
                 </button>
-                {PAGES.map((p) => (
-                  <button
-                    type="button"
-                    key={p}
-                    onClick={() => setPage(p)}
-                    aria-current={p === page ? "page" : undefined}
-                    aria-label={`Page ${p}`}
-                    className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all ${
-                      p === page ? "bg-ink text-white shadow-md" : "text-ink-soft hover:bg-mist"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
+                {pageList(page, pages).map((p, i) =>
+                  p === "…" ? (
+                    <span key={`gap-${i}`} className="px-1 text-sm text-subtle" aria-hidden="true">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      aria-current={p === page ? "page" : undefined}
+                      aria-label={`Page ${p}`}
+                      className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all ${
+                        p === page ? "bg-ink text-white shadow-md" : "text-ink-soft hover:bg-mist"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
                 <button
                   type="button"
-                  onClick={() => setPage((p) => Math.min(PAGES.length, p + 1))}
-                  disabled={page === PAGES.length}
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= pages}
                   className="flex h-10 items-center gap-1 rounded-full border border-line-strong px-3 text-sm font-semibold text-ink transition-colors hover:bg-mist disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
                 >
                   <span className="hidden sm:inline">Next</span>

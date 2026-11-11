@@ -1,16 +1,26 @@
 import { baseApi } from './baseApi';
 
+// Removes empty values, so the request is /products?size=M and not /products?q=&size=M&color=
+const cleanParams = (filters = {}) =>
+    Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value !== "" && value != null && value !== false)
+    );
+
 export const productapi = baseApi.injectEndpoints({
     endpoints: (build) => ({
+        // Pass any of: { q, category, categoryId, size, color, minPrice, maxPrice, onSale, exclude, sort, page, limit }
+        // Returns { items, total, page, pages, limit }
         getProducts: build.query({
-            // Pass a category slug to get only that category's products
-            query: (categorySlug) =>
-                categorySlug
-                    ? { url: "/products", params: { category: categorySlug } }
-                    : "/products",
+            query: (filters) => ({ url: "/products", params: cleanParams(filters) }),
             transformResponse: (response) => response.data,
             providesTags: ["Product"]
 
+        }),
+        // The sizes, colours and highest price that exist: { sizes, colors, maxPrice }
+        getProductFilters: build.query({
+            query: () => "/products/filter-options",
+            transformResponse: (response) => response.data,
+            providesTags: ["Product"]
         }),
         getProductsById: build.query({
             query: (id) => `/products/${id}`,
@@ -22,4 +32,4 @@ export const productapi = baseApi.injectEndpoints({
 
 
 })
-export const { useGetProductsQuery, useGetProductsByIdQuery } = productapi;
+export const { useGetProductsQuery, useGetProductFiltersQuery, useGetProductsByIdQuery } = productapi;

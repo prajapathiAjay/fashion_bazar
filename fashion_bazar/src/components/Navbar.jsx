@@ -19,6 +19,8 @@ import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
 import { useGetUserByIdQuery } from "../lib/api/userApi";
+import { useGetCartItemsQuery } from "../lib/api/cartApi";
+import { useGetWishlistQuery } from "../lib/api/wishlistApi";
 import { baseApi } from "../lib/api/baseApi";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../lib/slices/authSlice";
@@ -98,9 +100,11 @@ function Navbar() {
     };
   }, []);
 
-  // placeholder counts until the cart / wishlist store is wired up
-  const cartCount = 2;
-  const wishlistCount = 3;
+  // real counts for the badges; skipped until logged in (the same cached queries the pages use)
+  const { data: cartItems } = useGetCartItemsQuery(undefined, { skip: !token });
+  const { data: wishlist } = useGetWishlistQuery(undefined, { skip: !token });
+  const cartCount = token ? cartItems?.length ?? 0 : 0;
+  const wishlistCount = token ? wishlist?.length ?? 0 : 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -233,7 +237,7 @@ function Navbar() {
         </nav>
 
         {/* Desktop search */}
-        {/* <form
+        <form
           onSubmit={handleSearch}
           role="search"
           className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist px-4 py-2.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
@@ -247,11 +251,11 @@ function Navbar() {
             aria-label="Search products"
             className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
-        </form> */}
+        </form>
 
         {/* Action icons */}
         <div className="flex items-center gap-0.5 sm:gap-1.5">
-          {/* Search hidden until search is implemented
+          {/* Search (mobile / tablet) */}
           <button
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
@@ -260,7 +264,7 @@ function Navbar() {
             aria-expanded={mobileSearchOpen}
           >
             {mobileSearchOpen ? <X size={20} /> : <Search size={20} />}
-          </button> */}
+          </button>
 
           <Link
             to="/account?tab=wishlist"
@@ -362,7 +366,7 @@ function Navbar() {
                 </Link>
               ))}
             </div>
-            {/* Trending searches hidden until search is implemented
+            {/* Trending searches */}
             <div className="mt-5 flex items-center gap-2 text-sm">
               <span className="text-subtle">Trending:</span>
               {POPULAR_SEARCHES.map((term) => (
@@ -375,7 +379,7 @@ function Navbar() {
                   {term}
                 </button>
               ))}
-            </div> */}
+            </div>
           </div>
 
           <Link

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
 import {useAddToWishlistMutation,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 import {useAddToCartMutation,useDeleteCartItemMutation} from "../lib/api/cartApi";
 import { useIsWishlist } from "../hooks/isWishList";
@@ -33,23 +34,23 @@ function ProductCard({ product }) {
 
   try {
     if(isInCart){
-      await deleteCartItem(getCartId)
+      await deleteCartItem(getCartId).unwrap()
     }else{
-      await addToCart({productID:productId})
+      await addToCart({productID:productId}).unwrap()
     }
-    
+
   } catch (error) {
-    
+    console.error("Could not update the bag:", error?.data?.message ?? error)
   }
 
 
     
   }
   const href = `/products/${productId}`;
-  const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
-  const discount = product.originalPrice > product.price
-    ? Math.round(100 - (product.price / product.originalPrice) * 100)
-    : 0;
+  const sellerName =
+    (typeof product.seller === "object" ? product.seller?.name : product.seller) ?? product.brand;
+  // sale = what the shopper pays, original = the crossed-out price
+  const { sale, original, discount } = getPrices(product);
   // Corner tag: the product's own badge if it has one, otherwise the discount
   const tag = product.badge ?? product.tag ?? (discount > 0 ? `${discount}% off` : null);
 
@@ -86,9 +87,9 @@ function ProductCard({ product }) {
             )}
             <h3 className="line-clamp-2 font-display text-[15px] leading-snug sm:text-[19px]">{product.name}</h3>
             <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-[15px] font-medium sm:text-base">{formatPrice(product.price)}</span>
+              <span className="text-[15px] font-medium sm:text-base">{formatPrice(sale)}</span>
               {discount > 0 && (
-                <span className="text-xs text-white/60 line-through">{formatPrice(product.originalPrice)}</span>
+                <span className="text-xs text-white/60 line-through">{formatPrice(original)}</span>
               )}
             </div>
           </div>

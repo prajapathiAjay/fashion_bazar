@@ -1,5 +1,6 @@
-import { useRef, useState, } from "react";
-import { Link,useParams } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import SmartImage from "../components/SmartImage";
 import ReviewModal from "../components/ReviewModal";
 import { PHOTOS, unsplash } from "../assets/images";
@@ -27,18 +28,14 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import { useGetProductsByIdQuery } from "../lib/api/productApi";
-import {useAddToCartMutation} from "../lib/api/cartApi";
-import {useAddToWishlistMutation} from "../lib/api/wishlistApi";
+import { getPrices } from "../utils/productPrice";
+import { swatchFor } from "../utils/colorSwatch";
+import { useGetProductsByIdQuery, useGetProductsQuery } from "../lib/api/productApi";
+import { useGetCategoryQuery } from "../lib/api/categoryApi";
+import { useAddToCartMutation } from "../lib/api/cartApi";
+import { useAddToWishlistMutation, useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
+import { useIsWishlist } from "../hooks/isWishList";
 import { useAddReviewMutation,useGetReviewQuery } from "../lib/api/reviewApi";
-
-const SIZES = ["XS", "S", "M", "L", "XL"];
-const LOW_STOCK = ["XL"];
-const COLORS = [
-  { name: "Violet", hex: "#6D4C74" },
-  { name: "Black", hex: "#1C1714" },
-  { name: "Sage", hex: "#9CAE98" },
-];
 
 const SIZE_GUIDE = [
   { size: "XS", bust: "80", waist: "62", hip: "88" },
@@ -46,55 +43,6 @@ const SIZE_GUIDE = [
   { size: "M", bust: "88", waist: "70", hip: "96" },
   { size: "L", bust: "94", waist: "76", hip: "102" },
   { size: "XL", bust: "100", waist: "82", hip: "108" },
-];
-
-const RELATED = [
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, bg: "#F0997B", photo: PHOTOS.bomberJacket },
-  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 1999, bg: "#C9DDF0", photo: PHOTOS.knitTop },
-  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 2899, bg: "#CFE3D6", photo: PHOTOS.wideLegTrousers },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, bg: "#EAD7E6", photo: PHOTOS.wovenTote },
-];
-
-const RATING = 4.8;
-const REVIEW_COUNT = 126;
-const BREAKDOWN = [
-  { stars: 5, count: 98 },
-  { stars: 4, count: 18 },
-  { stars: 3, count: 6 },
-  { stars: 2, count: 2 },
-  { stars: 1, count: 2 },
-];
-const REVIEWS = [
-  {
-    name: "Priya M.",
-    photo: PHOTOS.womanPlaid,
-    rating: 5,
-    date: "2 weeks ago",
-    size: "M",
-    title: "Floaty, flattering and so soft",
-    body: "The drape at the waist is gorgeous and the linen blend doesn't crease as much as I feared. Wore it to a wedding and got so many compliments.",
-    helpful: 24,
-  },
-  {
-    name: "Sofia R.",
-    photo: PHOTOS.womanCoat,
-    rating: 5,
-    date: "1 month ago",
-    size: "S",
-    title: "Runs true to size",
-    body: "Ordered my usual S and it fits perfectly. The violet is richer in person. Shipping was quick and the packaging was plastic-free.",
-    helpful: 17,
-  },
-  {
-    name: "Hannah K.",
-    photo: PHOTOS.shopper,
-    rating: 4,
-    date: "1 month ago",
-    size: "L",
-    title: "Lovely, slightly long",
-    body: "Beautiful quality for the price. It hits a little below mid-calf on me (I'm 5'3\") so I had it taken up an inch — worth it.",
-    helpful: 9,
-  },
 ];
 
 const TRUST = [
@@ -326,40 +274,133 @@ function DeliveryCard() {
 
 function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("Violet");
+  const [selectedColor, setSelectedColor] = useState("");
   const [qty, setQty] = useState(1);
-  const [wishlisted, setWishlisted] = useState(false);
   const [addedToBag, setAddedToBag] = useState(false);
+  const [cartError, setCartError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+
   const { productId } = useParams();
- const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
- const [addToCart] = useAddToCartMutation();
- const [addToWishlist] = useAddToWishlistMutation();
- const [addReview]=useAddReviewMutation()
-  const price = 2499;
-  const originalPrice = 3299;
-  const discount = Math.round(100 - (price / originalPrice) * 100);
-const {data:reviews}=useGetReviewQuery(productId)
-  const handleAddToBag =async () => {
-    // setAddedToBag(true);
-    // setTimeout(() => setAddedToBag(false), 2000);
-  await addToCart({ productID: product._id, quantity: qty,size: selectedSize || product.sizes[0]||"" }).unwrap();
+  const navigate = useNavigate();
+  const token = useSelector((state) => state.auth.token);
 
+  const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
+  const { data: reviews } = useGetReviewQuery(productId);
+  const { data: categories } = useGetCategoryQuery();
+  // "You might also like": other products from the same categories
+  const { data: relatedData } = useGetProductsQuery(
+    { categoryId: product?.categories?.join(","), exclude: productId, limit: 4 },
+    { skip: !product }
+  );
+  const related = relatedData?.items ?? [];
 
+  const [addToCart, { isLoading: adding }] = useAddToCartMutation();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [deleteFromWishList] = useDeleteFromWishListMutation();
+  const [addReview] = useAddReviewMutation();
+  // true when this product is in the shopper's saved wishlist
+  const { isWishlisted: wishlisted, wishlistItemId } = useIsWishlist(productId);
+
+  // Prices, stock and the chosen options all come from the product itself
+  const { sale: price, original: originalPrice, discount } = getPrices(product);
+  const stock = product?.stock ?? 0;
+  const size = selectedSize || product?.sizes?.[0] || "";
+  const color = selectedColor || product?.colors?.[0] || "";
+  const category = categories?.find((c) => c.slug !== "all" && product?.categories?.includes(c._id));
+
+  // Review summary
+  const list = reviews ?? [];
+  const reviewCount = list.length;
+  const avgRating = reviewCount
+    ? list.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+    : 0;
+  const breakdown = [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    count: list.filter((r) => r.rating === stars).length,
+  }));
+  const recommendPct = reviewCount
+    ? Math.round((list.filter((r) => r.rating >= 4).length / reviewCount) * 100)
+    : 0;
+
+  // The bag, wishlist and reviews belong to an account
+  const requireLogin = () => {
+    if (token) return true;
+    navigate("/login");
+    return false;
   };
 
-  // TODO: replace with your review mutation, e.g.
-  // const [addReview] = useAddReviewMutation();
-  // await addReview(review).unwrap();
+  // Returns true when the product was added
+  const addCurrentToBag = async () => {
+    setCartError("");
+    try {
+      await addToCart({ productID: product._id, quantity: qty, size: size || undefined }).unwrap();
+      return true;
+    } catch (err) {
+      const message = err?.data?.message ?? (typeof err?.data === "string" ? err.data : "");
+      setCartError(message || "Could not add this to your bag. Please try again.");
+      return false;
+    }
+  };
+
+  const handleAddToBag = async () => {
+    if (!requireLogin()) return;
+    if (await addCurrentToBag()) {
+      setAddedToBag(true);
+      setTimeout(() => setAddedToBag(false), 2000);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!requireLogin()) return;
+    if (await addCurrentToBag()) navigate("/checkout");
+  };
+
+  const handleWishlist = () => {
+    if (!requireLogin()) return;
+    if (wishlisted) deleteFromWishList(wishlistItemId);
+    else addToWishlist(product._id);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // the share sheet was closed, nothing to do
+    }
+  };
+
+  // Errors are thrown on purpose: the review form catches them and shows the message
   const handleSubmitReview = async (review) => {
-    // console.log("review to send:", review);
-try {
-      await addReview(review).unwrap()
-} catch (error) {
-  console.log(error)
-}
+    if (!token) throw new Error("Please log in to write a review.");
+    await addReview(review).unwrap();
   };
+
+  if (isLoading) {
+    return <p className="mx-auto max-w-7xl px-4 py-24 text-center text-sm text-muted">Loading product…</p>;
+  }
+  if (error || !product) {
+    return (
+      <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center">
+        <p className="text-xl font-bold text-ink">We couldn't find this product</p>
+        <p className="mt-2 text-sm text-muted">It may have sold out or been removed.</p>
+        <Link
+          to="/products"
+          className="mt-6 inline-flex h-11 items-center rounded-full bg-ink px-6 text-sm font-semibold text-white hover:bg-ink-hover"
+        >
+          Back to the shop
+        </Link>
+      </div>
+    );
+  }
 
   const addLabel = addedToBag ? (
     <>
@@ -383,9 +424,13 @@ try {
             <li aria-hidden="true"><ChevronRight size={12} /></li>
             <li><Link to="/products" className="hover:text-brand">Shop</Link></li>
             <li aria-hidden="true"><ChevronRight size={12} /></li>
-            <li><Link to="/categories/women" className="hover:text-brand">Women</Link></li>
-            <li aria-hidden="true"><ChevronRight size={12} /></li>
-            <li aria-current="page" className="font-medium text-ink-soft">Draped midi dress</li>
+            {category && (
+              <>
+                <li><Link to={`/categories/${category.slug}`} className="hover:text-brand">{category.categoryName}</Link></li>
+                <li aria-hidden="true"><ChevronRight size={12} /></li>
+              </>
+            )}
+            <li aria-current="page" className="max-w-[60vw] truncate font-medium text-ink-soft">{product.name}</li>
           </ol>
         </nav>
 
@@ -407,7 +452,7 @@ try {
                   <p className="flex items-center gap-1 truncate text-sm font-bold text-ink">
                    {product?.brand} <BadgeCheck size={15} className="shrink-0 text-brand" aria-label="Verified seller" />
                   </p>
-                  <p className="text-xs text-subtle">4.9 seller rating · 2.1k sales</p>
+                  <p className="text-xs text-subtle">Verified seller on Fashion Bazar</p>
                 </div>
               </div>
               <Link
@@ -422,31 +467,42 @@ try {
               <h1 className="text-3xl font-extrabold leading-tight text-ink sm:text-4xl">{product?.name}</h1>
               <button
                 type="button"
-                aria-label="Share product"
+                onClick={handleShare}
+                aria-label={copied ? "Link copied" : "Share product"}
                 className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mist text-ink transition-colors hover:bg-brand-50 hover:text-brand"
               >
-                <Share2 size={17} />
+                {copied ? <Check size={17} className="text-success" /> : <Share2 size={17} />}
               </button>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
               <a href="#reviews" className="flex items-center gap-1.5 rounded-full text-sm text-ink hover:text-brand">
-                <Stars value={RATING} />
-                <span className="font-bold">{RATING}</span>
-                <span className="text-subtle underline-offset-4 hover:underline">({REVIEW_COUNT} reviews)</span>
+                <Stars value={avgRating} />
+                <span className="font-bold">{avgRating.toFixed(1)}</span>
+                <span className="text-subtle underline-offset-4 hover:underline">({reviewCount} {reviewCount === 1 ? "review" : "reviews"})</span>
               </a>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-success-50 px-2.5 py-1 text-xs font-semibold text-success">
-                <span className="h-1.5 w-1.5 rounded-full bg-success" /> In stock
-              </span>
+              {stock > 0 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success-50 px-2.5 py-1 text-xs font-semibold text-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success" /> {stock <= 5 ? `Only ${stock} left` : "In stock"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-danger-50 px-2.5 py-1 text-xs font-semibold text-danger">
+                  <span className="h-1.5 w-1.5 rounded-full bg-danger" /> Out of stock
+                </span>
+              )}
             </div>
 
             {/* Price block */}
             <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-gradient-to-r from-pop-50 via-white to-sun-50 p-4">
-              <span className="font-display text-3xl font-extrabold text-ink">{product?.sellingPrice}</span>
-              <span className="text-lg text-faint line-through">{product?.price}</span>
-              <span className="rounded-full bg-pop px-2.5 py-1 text-xs font-bold text-white">
-                Save {product?.discount}% off
-              </span>
+              <span className="font-display text-3xl font-extrabold text-ink">{formatPrice(price)}</span>
+              {discount > 0 && (
+                <>
+                  <span className="text-lg text-faint line-through">{formatPrice(originalPrice)}</span>
+                  <span className="rounded-full bg-pop px-2.5 py-1 text-xs font-bold text-white">
+                    Save {discount}%
+                  </span>
+                </>
+              )}
               <span className="w-full text-xs text-muted">Inclusive of all taxes · or 4 payments of {formatPrice(price / 4)}</span>
             </div>
 
@@ -455,34 +511,36 @@ try {
             </p>
 
             {/* Colour */}
-            {/* <fieldset className="mt-7">
-              <legend className="text-sm font-bold text-ink">
-                Colour <span className="font-normal text-subtle">— {selectedColor}</span>
-              </legend>
-              <div className="mt-3 flex gap-3">
-                {COLORS.map((color) => (
-                  <button
-                    type="button"
-                    key={color.name}
-                    onClick={() => setSelectedColor(color.name)}
-                    aria-label={color.name}
-                    aria-pressed={selectedColor === color.name}
-                    className={`relative flex h-11 w-11 items-center justify-center rounded-full ring-offset-2 transition-all ${
-                      selectedColor === color.name ? "ring-2 ring-ink" : "ring-1 ring-line hover:ring-line-hover"
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                  >
-                    {selectedColor === color.name && <Check size={16} strokeWidth={3} className="text-white drop-shadow" />}
-                  </button>
-                ))}
-              </div>
-            </fieldset> */}
+            {product.colors?.length > 0 && (
+              <fieldset className="mt-7">
+                <legend className="text-sm font-bold text-ink">
+                  Colour <span className="font-normal capitalize text-subtle">— {color}</span>
+                </legend>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  {product.colors.map((name) => (
+                    <button
+                      type="button"
+                      key={name}
+                      onClick={() => setSelectedColor(name)}
+                      aria-label={name}
+                      aria-pressed={color === name}
+                      className={`relative flex h-11 w-11 items-center justify-center rounded-full ring-offset-2 transition-all ${
+                        color === name ? "ring-2 ring-ink" : "ring-1 ring-line hover:ring-line-hover"
+                      }`}
+                      style={{ backgroundColor: swatchFor(name) }}
+                    >
+                      {color === name && <Check size={16} strokeWidth={3} className="text-white mix-blend-difference" />}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
 
             {/* Size */}
-            <fieldset className="mt-6">
+            <fieldset className={`mt-6 ${product.sizes?.length ? "" : "hidden"}`}>
               <div className="flex items-center justify-between">
                 <legend className="text-sm font-bold text-ink">
-                  Size <span className="font-normal text-subtle">— {selectedSize}</span>
+                  Size <span className="font-normal text-subtle">— {size}</span>
                 </legend>
                 <button
                   type="button"
@@ -494,13 +552,13 @@ try {
                 </button>
               </div>
               <div className="mt-3 grid grid-cols-5 gap-2 sm:flex sm:flex-wrap">
-                {product?.sizes?.map((size) => {
-                  const active = selectedSize === size;
+                {product.sizes?.map((option) => {
+                  const active = size === option;
                   return (
                     <button
                       type="button"
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
+                      key={option}
+                      onClick={() => setSelectedSize(option)}
                       aria-pressed={active}
                       className={`relative h-12 rounded-2xl border text-sm font-semibold transition-all sm:min-w-14 sm:px-4 ${
                         active
@@ -508,17 +566,12 @@ try {
                           : "border-line-strong text-ink-soft hover:border-line-hover hover:bg-mist"
                       }`}
                     >
-                      {size}
-                      {/* {LOW_STOCK.includes(size) && (
-                        <span className="absolute -right-1 -top-1.5 rounded-full bg-sun px-1.5 py-0.5 text-[9px] font-bold text-ink">
-                          Low
-                        </span>
-                      )} */}
+                      {option}
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-muted">Fits true to size · Model is 5'8" wearing S</p>
+              <p className="mt-2 text-xs text-muted">Not sure? Open the size guide to compare measurements.</p>
 
               {sizeGuideOpen && (
                 <div className="mt-3 overflow-x-auto rounded-2xl border border-line">
@@ -535,7 +588,7 @@ try {
                       {SIZE_GUIDE.map((row) => (
                         <tr
                           key={row.size}
-                          className={`border-t border-line ${row.size === selectedSize ? "bg-brand-50 font-semibold text-brand" : "text-ink-soft"}`}
+                          className={`border-t border-line ${row.size === size ? "bg-brand-50 font-semibold text-brand" : "text-ink-soft"}`}
                         >
                           <th scope="row" className="px-3 py-2">{row.size}</th>
                           <td className="px-3 py-2">{row.bust}</td>
@@ -575,6 +628,7 @@ try {
               <button
                 type="button"
                 onClick={handleAddToBag}
+                disabled={adding}
                 className={`flex h-12 min-w-[10rem] flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
                   addedToBag ? "bg-success" : "bg-brand-gradient"
                 }`}
@@ -584,7 +638,7 @@ try {
 
               <button
                 type="button"
-                onClick={()=>addToWishlist(product._id)}
+                onClick={handleWishlist}
                 aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
                 aria-pressed={wishlisted}
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-all active:scale-90 ${
@@ -595,12 +649,20 @@ try {
               </button>
             </div>
 
-            <Link
-              to="/checkout"
-              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-ink text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-white"
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={adding}
+              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-ink text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-white disabled:opacity-60"
             >
               Buy now <ArrowRight size={16} />
-            </Link>
+            </button>
+
+            {cartError && (
+              <p role="alert" className="mt-3 rounded-2xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger">
+                {cartError}
+              </p>
+            )}
 
             {/* Trust row */}
             <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -625,25 +687,25 @@ try {
             <div className="mt-6 rounded-3xl border border-line px-4 sm:px-5">
               <Accordion title="Product details" icon={Package} tone="bg-brand-50 text-brand" defaultOpen>
                 <ul className="list-disc space-y-1 pl-4">
-                  <li>Relaxed fit with soft draping at the waist</li>
-                  <li>V-neckline, short flutter sleeves</li>
-                  <li>Concealed side zip, midi length (approx. 118cm in M)</li>
-                  <li>Style no. AMS-2291</li>
+                  {product.summary && <li>{product.summary}</li>}
+                  {product.brand && <li>Brand: {product.brand}</li>}
+                  {product.sizes?.length > 0 && <li>Sizes: {product.sizes.join(", ")}</li>}
+                  {product.colors?.length > 0 && <li className="capitalize">Colours: {product.colors.join(", ")}</li>}
                 </ul>
               </Accordion>
-              <Accordion title="Materials & care" icon={Leaf} tone="bg-mint-50 text-success">
-                70% cotton, 30% linen. Machine wash cold, hang dry. Iron on low
-                heat if needed.
+              <Accordion title="Care" icon={Leaf} tone="bg-mint-50 text-success">
+                Follow the care label on the garment. Most pieces last longest when washed cold and
+                hung to dry.
               </Accordion>
               <Accordion title="Shipping & returns" icon={Truck} tone="bg-sky-50 text-info">
-                Ships in 1-2 business days from Amara Studio. Free standard
-                shipping on orders over ₹999. Returns accepted within 30 days,
-                unworn with tags attached.
+                Ships in 1-2 business days. Free standard shipping on orders over ₹999. Returns
+                accepted within 30 days, unworn with tags attached.
               </Accordion>
-              <Accordion title="Seller — Amara Studio" icon={Store} tone="bg-pop-50 text-pop-dark">
-                Independent studio on the bazar since 2021, focused on
-                small-batch, seasonless staples.
-              </Accordion>
+              {product.brand && (
+                <Accordion title={`Seller — ${product.brand}`} icon={Store} tone="bg-pop-50 text-pop-dark">
+                  Sold by {product.brand}, a verified seller on Fashion Bazar.
+                </Accordion>
+              )}
             </div>
           </div>
         </div>
@@ -672,15 +734,15 @@ try {
             {/* Summary */}
             <div className="rounded-3xl bg-gradient-to-br from-brand-50 via-white to-sun-50 p-6 lg:self-start">
               <div className="flex items-end gap-3">
-                <span className="font-display text-5xl font-extrabold text-ink">{RATING}</span>
+                <span className="font-display text-5xl font-extrabold text-ink">{avgRating.toFixed(1)}</span>
                 <div className="pb-1.5">
-                  <Stars value={RATING} size={16} />
-                  <p className="mt-1 text-xs text-muted">{REVIEW_COUNT} reviews</p>
+                  <Stars value={avgRating} size={16} />
+                  <p className="mt-1 text-xs text-muted">{reviewCount} {reviewCount === 1 ? "review" : "reviews"}</p>
                 </div>
               </div>
               <ul className="mt-5 space-y-2">
-                {BREAKDOWN.map(({ stars, count }) => {
-                  const pct = Math.round((count / REVIEW_COUNT) * 100);
+                {breakdown.map(({ stars, count }) => {
+                  const pct = Math.round((reviewCount ? count / reviewCount : 0) * 100);
                   return (
                     <li key={stars} className="flex items-center gap-3 text-xs">
                       <span className="flex w-7 items-center gap-0.5 font-semibold text-ink">
@@ -702,9 +764,11 @@ try {
                   );
                 })}
               </ul>
-              <p className="mt-5 flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-xs font-semibold text-ink">
-                <ThumbsUp size={14} className="text-mint" /> 94% would recommend
-              </p>
+              {reviewCount > 0 && (
+                <p className="mt-5 flex items-center gap-2 rounded-2xl bg-white/80 px-3 py-2 text-xs font-semibold text-ink">
+                  <ThumbsUp size={14} className="text-mint" /> {recommendPct}% would recommend
+                </p>
+              )}
             </div>
 
             {/* Cards */}
@@ -756,47 +820,51 @@ try {
         </section>
 
         {/* ---------------- Related ---------------- */}
-        <section aria-labelledby="related-heading" className="mt-16 lg:mt-24">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <span className="inline-flex rounded-full bg-pop-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-pop-dark">
-                Complete the look
-              </span>
-              <h2 id="related-heading" className="mt-3 text-2xl font-extrabold text-ink sm:text-3xl">
-                You might also like
-              </h2>
-            </div>
-            <Link to="/products" className="hidden items-center gap-1 text-sm font-semibold text-brand hover:text-brand-dark sm:inline-flex">
-              Shop all <ArrowRight size={15} />
-            </Link>
-          </div>
-          <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 md:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-            {RELATED.map((item) => (
+        {related.length > 0 && (
+          <section aria-labelledby="related-heading" className="mt-16 lg:mt-24">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <span className="inline-flex rounded-full bg-pop-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-pop-dark">
+                  Complete the look
+                </span>
+                <h2 id="related-heading" className="mt-3 text-2xl font-extrabold text-ink sm:text-3xl">
+                  You might also like
+                </h2>
+              </div>
               <Link
-                key={item.id}
-                to={`/products/${item.id}`}
-                className="group w-[62%] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(27,21,35,0.09)] sm:w-auto"
+                to={category ? `/categories/${category.slug}` : "/products"}
+                className="hidden items-center gap-1 text-sm font-semibold text-brand hover:text-brand-dark sm:inline-flex"
               >
-                <div className="relative aspect-[4/5] overflow-hidden">
-                  <SmartImage
-                    src={unsplash(item.photo, 480, 600)}
-                    alt={item.name}
-                    bg={item.bg}
-                    imgClassName="transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-ink opacity-100 shadow-sm backdrop-blur transition-all lg:translate-y-2 lg:opacity-0 lg:group-hover:translate-y-0 lg:group-hover:opacity-100">
-                    <Plus size={16} />
-                  </span>
-                </div>
-                <div className="px-3.5 py-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">{item.seller}</p>
-                  <p className="truncate text-sm font-medium text-ink">{item.name}</p>
-                  <p className="mt-1 text-sm font-bold text-ink">{formatPrice(item.price)}</p>
-                </div>
+                Shop all <ArrowRight size={15} />
               </Link>
-            ))}
-          </div>
-        </section>
+            </div>
+            <div className="-mx-4 mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 md:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+              {related.map((item) => (
+                <Link
+                  key={item._id}
+                  to={`/products/${item._id}`}
+                  className="group w-[62%] shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(27,21,35,0.09)] sm:w-auto"
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden">
+                    <SmartImage
+                      src={item.images?.[0]}
+                      alt={item.name}
+                      bg="var(--color-shimmer)"
+                      imgClassName="transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="px-3.5 py-3">
+                    {item.brand && (
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">{item.brand}</p>
+                    )}
+                    <p className="truncate text-sm font-medium text-ink">{item.name}</p>
+                    <p className="mt-1 text-sm font-bold text-ink">{formatPrice(getPrices(item).sale)}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {/* ---------------- Mobile sticky add-to-bag ---------------- */}
@@ -805,15 +873,17 @@ try {
           <div className="min-w-0">
             <p className="flex items-baseline gap-1.5">
               <span className="text-lg font-extrabold text-ink">{formatPrice(price)}</span>
-              <span className="text-xs text-faint line-through">{formatPrice(originalPrice)}</span>
+              {discount > 0 && (
+                <span className="text-xs text-faint line-through">{formatPrice(originalPrice)}</span>
+              )}
             </p>
             <p className="truncate text-[11px] text-subtle">
-              {selectedColor} · Size {selectedSize}
+              {[color, size && `Size ${size}`].filter(Boolean).join(" · ") || product.name}
             </p>
           </div>
           <button
             type="button"
-            onClick={() => setWishlisted((v) => !v)}
+            onClick={handleWishlist}
             aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
             aria-pressed={wishlisted}
             className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-strong"
@@ -823,6 +893,7 @@ try {
           <button
             type="button"
             onClick={handleAddToBag}
+            disabled={adding}
             className={`flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm font-bold text-white active:scale-[0.98] ${
               addedToBag ? "bg-success" : "bg-brand-gradient"
             }`}

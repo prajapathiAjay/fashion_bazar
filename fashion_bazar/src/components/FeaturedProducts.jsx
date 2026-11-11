@@ -6,7 +6,9 @@ import { useGetProductsQuery } from "../lib/api/productApi";
 
 function FeaturedProducts() {
 
-const {data:products,loading,error}=useGetProductsQuery()
+// newest 8 products; the list comes back as { items, total, ... }
+const {data,isLoading:loading,error}=useGetProductsQuery({ sort: "newest", limit: 8 })
+const products=data?.items
 
 
 
@@ -34,7 +36,7 @@ const {data:products,loading,error}=useGetProductsQuery()
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : products?.length ? (
-          products.slice(0, 8).map((product) => <ProductCard key={product?._id ?? product?._id} product={product} />)
+          products.map((product) => <ProductCard key={product._id} product={product} />)
         ) : (
           <ProductsEmpty error={error} />
         )}

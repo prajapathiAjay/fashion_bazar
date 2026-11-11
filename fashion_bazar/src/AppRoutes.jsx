@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { AuthLayout } from "./layouts/AuthLayout";
 import Home from "./pages/Home";
@@ -22,9 +22,10 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        {/* <Route path="/products" element={<ShopPage />} /> */}
+        <Route path="/products" element={<ShopPage />} />
         <Route path="/products/:productId" element={<ProductDetail />} />
-        <Route path="/categories" element={<ShopPage />} />
+        {/* /categories on its own would repeat /products, so send it there */}
+        <Route path="/categories" element={<Navigate to="/products" replace />} />
         <Route path="/categories/:categorySlug" element={<ShopPage />} />
         <Route path="/new-arrivals" element={<ShopPage />} />
         <Route path="/deals" element={<ShopPage />} />

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { CONTACT_INFO } from "../utils/contactInfo";
+import { useSendContactMessageMutation } from "../lib/api/contactApi";
 
 const TOPICS = ["Order or delivery", "Returns & refunds", "Selling on Fashion Bazar", "Something else"];
 
@@ -13,11 +14,20 @@ const inputClass =
 
 function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+  const [sendMessage, { isLoading: sending }] = useSendContactMessageMutation();
 
-  // TODO: send the form to the backend once a contact endpoint exists
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
+    setError("");
+    // FormData reads every field of the form by its "name"
+    const form = Object.fromEntries(new FormData(e.currentTarget));
+    try {
+      await sendMessage(form).unwrap();
+      setSent(true);
+    } catch (err) {
+      setError(err?.data?.message || "Could not send your message. Please try again.");
+    }
   };
 
   return (
@@ -101,11 +111,17 @@ function ContactPage() {
                 placeholder="How can we help?"
                 className={`${inputClass} resize-none`}
               />
+              {error && (
+                <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger">
+                  {error}
+                </p>
+              )}
               <button
                 type="submit"
-                className="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover sm:w-auto"
+                disabled={sending}
+                className="w-full rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover disabled:opacity-60 sm:w-auto"
               >
-                Send message
+                {sending ? "Sending…" : "Send message"}
               </button>
             </form>
           )}
