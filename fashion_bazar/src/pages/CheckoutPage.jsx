@@ -261,7 +261,7 @@ function SuccessScreen({ orderNumber, total, eta, email, itemCount }) {
 /* ---------------------------------------------------------------- */
 
 function CheckoutPage() {
-  const [shipMethod, setShipMethod] = useState("standard");
+  const [shipMethod, setShipMethod] = useState(null); // code of the picked delivery option; null = default (first)
   const [payMethod, setPayMethod] = useState("cod");
   const [placing, setPlacing] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null); // order returned by the server
@@ -274,9 +274,9 @@ function CheckoutPage() {
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
   const [placeOrder] = usePlaceOrderMutation();
   const [verifyPayment] = useVerifyPaymentMutation();
-  // delivery rates set by the admin (defaults only while loading)
+  // delivery options set by the admin, in display order (defaults only while loading)
   const { data: shippingData } = useGetShippingQuery();
-  const shippingSettings = shippingData ?? DEFAULT_SHIPPING;
+  const shippingMethods = shippingData?.length ? shippingData : DEFAULT_SHIPPING;
 
   const user = userData?.user;
   const addresses = user?.addresses ?? [];
@@ -301,11 +301,10 @@ function CheckoutPage() {
   /* ---- totals ---- */
   const subtotal =
     cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
-  // if the admin turned the chosen method off, fall back to one that is on
-  const activeShipMethod = shippingSettings[shipMethod]?.enabled
-    ? shipMethod
-    : ["standard", "express"].find((m) => shippingSettings[m]?.enabled) ?? shipMethod;
-  const shipping = calcShipping(shippingSettings, activeShipMethod, subtotal);
+  // the picked option, or the first one (also used if the admin removed the picked option)
+  const activeMethod = shippingMethods.find((m) => m.code === shipMethod) ?? shippingMethods[0];
+  const activeShipMethod = activeMethod?.code;
+  const shipping = calcShipping(activeMethod, subtotal);
   const total = subtotal + shipping;
   const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
   const lineCount = cartItems?.length || 0;
@@ -413,38 +412,38 @@ function CheckoutPage() {
       <SuccessScreen
         orderNumber={placedOrder.orderNumber}
         total={placedOrder.totalAmount}
-        eta={etaLabel(shippingSettings[placedOrder.shippingMethod])}
+        eta={
+          placedOrder.deliveryDays
+            ? etaLabel({ minDays: placedOrder.deliveryDays.min, maxDays: placedOrder.deliveryDays.max })
+            : etaLabel(activeMethod)
+        }
         email={user?.email}
         itemCount={placedOrder.items.reduce((sum, i) => sum + i.quantity, 0)}
       />
     );
   }
 
-  // price label for a method on this cart ("Free" or "₹99")
-  const priceLabel = (method) => {
-    const cost = calcShipping(shippingSettings, method, subtotal);
-    return cost === 0 ? "Free" : money(cost);
-  };
+  // the quickest option gets a "Fastest" badge (only if there is a choice and it is really quicker)
+  const fastest = shippingMethods.length > 1
+    ? shippingMethods.reduce((a, b) => (b.maxDays < a.maxDays ? b : a))
+    : null;
+  const fastestIsUnique = fastest && shippingMethods.filter((m) => m.maxDays === fastest.maxDays).length === 1;
+  const TONES = ["bg-sky-50 text-sky", "bg-sun-50 text-sun-dark", "bg-mint-50 text-mint", "bg-brand-50 text-brand"];
 
-  const shipOptions = [
-    {
-      id: "standard",
-      label: "Standard",
-      eta: etaLabel(shippingSettings.standard),
-      price: priceLabel("standard"),
-      icon: Truck,
-      tone: "bg-sky-50 text-sky",
-    },
-    {
-      id: "express",
-      label: "Express",
-      eta: etaLabel(shippingSettings.express),
-      price: priceLabel("express"),
-      icon: Zap,
-      tone: "bg-sun-50 text-sun-dark",
-      badge: "Fastest",
-    },
-  ].filter((opt) => shippingSettings[opt.id]?.enabled); // hide methods the admin turned off
+  // one card per delivery option the admin has switched on
+  const shipOptions = shippingMethods.map((m, i) => {
+    const cost = calcShipping(m, subtotal);
+    const isFastest = fastestIsUnique && m.code === fastest.code;
+    return {
+      id: m.code,
+      label: m.name,
+      eta: m.description ? `${etaLabel(m)} · ${m.description}` : etaLabel(m),
+      price: cost === 0 ? "Free" : money(cost),
+      icon: isFastest ? Zap : Truck,
+      tone: TONES[i % TONES.length],
+      badge: isFastest ? "Fastest" : null,
+    };
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-5 pb-16 pt-6 sm:px-6 lg:px-8 lg:pt-10">

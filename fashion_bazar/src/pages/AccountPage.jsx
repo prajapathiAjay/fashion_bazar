@@ -106,7 +106,9 @@ const toCardOrder = (order) => {
   const status =
     order.status === "Delivered" || order.status === "Cancelled" ? order.status : "In transit";
   const eta = new Date(order.createdAt);
-  eta.setDate(eta.getDate() + (order.shippingMethod === "express" ? 2 : 6));
+  // new orders save the delivery days of the option picked; older ones only have the code
+  const maxDays = order.deliveryDays?.max ?? (order.shippingMethod === "express" ? 2 : 6);
+  eta.setDate(eta.getDate() + maxDays);
   return {
     id: order.orderNumber,
     date: formatDate(order.createdAt),
@@ -756,7 +758,7 @@ function OrderDetails({ order }) {
               <dd className="tabular-nums">{money(raw.subTotal)}</dd>
             </div>
             <div className="flex justify-between text-muted">
-              <dt>Shipping ({raw.shippingMethod})</dt>
+              <dt>Shipping ({raw.shippingMethodName || raw.shippingMethod})</dt>
               <dd className="tabular-nums">{raw.shipping === 0 ? "Free" : money(raw.shipping)}</dd>
             </div>
             <div className="flex justify-between pt-1 font-bold text-ink">

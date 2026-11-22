@@ -401,9 +401,9 @@ function CartPage() {
   const [appliedPromo, setAppliedPromo] = useState(null);
 
   const { data: cartItems = [], isLoading, isError } = useGetCartItemsQuery();
-  // delivery rates set by the admin (defaults only while loading); the bag shows standard delivery
+  // delivery options set by the admin (defaults only while loading); the bag shows the default (first) one
   const { data: shippingData } = useGetShippingQuery();
-  const standardShipping = (shippingData ?? DEFAULT_SHIPPING).standard;
+  const defaultShipping = (shippingData?.length ? shippingData : DEFAULT_SHIPPING)[0];
 
   const removePromo = () => setAppliedPromo(null);
 
@@ -417,15 +417,13 @@ function CartPage() {
     0
   );
   const unitCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const shipping = subtotal === 0 ? 0 : calcShipping({ standard: standardShipping }, "standard", subtotal);
+  const shipping = subtotal === 0 ? 0 : calcShipping(defaultShipping, subtotal);
   const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
   const total = subtotal + shipping - discount;
-  const savings = discount + (shipping === 0 ? standardShipping.price : 0);
-  // only show the "away from free shipping" bar if standard delivery can be free
+  const savings = discount + (shipping === 0 ? defaultShipping.price : 0);
+  // only show the "away from free shipping" bar if the default delivery can become free
   const freeShippingAt =
-    standardShipping.enabled && standardShipping.freeAbove != null && standardShipping.price > 0
-      ? standardShipping.freeAbove
-      : null;
+    defaultShipping.freeAbove != null && defaultShipping.price > 0 ? defaultShipping.freeAbove : null;
 
   return (
     <div className="mx-auto max-w-7xl px-5 pb-36 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-10">
