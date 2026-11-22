@@ -795,7 +795,10 @@ function ProductDetail() {
                     <div className="min-w-0">
                       <p className="flex items-center gap-1 text-sm font-bold text-ink">
                         {name}
-                        <BadgeCheck size={14} className="text-mint" aria-label="Verified buyer" />
+                        {/* only when the reviewer really ordered this product (worked out by the backend) */}
+                        {r.verifiedPurchase && (
+                          <BadgeCheck size={14} className="text-mint" aria-label="Verified buyer" />
+                        )}
                       </p>
                       <p className="text-[11px] text-subtle">{date}</p>
                     </div>
@@ -806,6 +809,13 @@ function ProductDetail() {
                   </div>
                   <p className="mt-2 text-sm font-bold text-ink">{r.title}</p>
                   <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{r.comment}</p>
+                  {/* answer from the store (written in the admin panel) */}
+                  {r.reply?.text && (
+                    <div className="mt-3 rounded-2xl bg-brand-50 px-3.5 py-2.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-brand">Reply from Fashion Bazar</p>
+                      <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{r.reply.text}</p>
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-50 hover:text-brand"
