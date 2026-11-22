@@ -1512,7 +1512,7 @@ function WishlistCard({ item }) {
       <div className="relative">
         <Link
           to={`/products/${product?._id}`}
-          className="block aspect-[4/5] overflow-hidden rounded-3xl"
+          className="block aspect-4/5 overflow-hidden rounded-3xl"
           aria-label={product?.name}
         >
           <SmartImage

@@ -45,7 +45,7 @@ function CountBadge({ count, className }) {
   if (!count) return null;
   return (
     <span
-      className={`absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold ring-2 ring-white ${className}`}
+      className={`absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-bold ring-2 ring-white ${className}`}
     >
       {count}
     </span>
@@ -183,7 +183,7 @@ function Navbar() {
         </div>
       </div>
 
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-[76px] lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-19 lg:px-8">
         {/* Mobile menu trigger */}
         <button
           type="button"
@@ -241,7 +241,7 @@ function Navbar() {
         <form
           onSubmit={handleSearch}
           role="search"
-          className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist px-4 py-2.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
+          className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist py-1.5 pl-4 pr-1.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
         >
           <Search size={17} className="shrink-0 text-subtle" />
           <input
@@ -252,6 +252,13 @@ function Navbar() {
             aria-label="Search products"
             className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
+          <button
+            type="submit"
+            aria-label="Search"
+            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark active:scale-95"
+          >
+            <ArrowRight size={15} />
+          </button>
         </form>
 
         {/* Action icons */}
@@ -357,7 +364,7 @@ function Navbar() {
               className="absolute inset-0"
               imgClassName="transition-transform duration-700 group-hover:scale-105"
             />
-            <span className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
+            <span className="absolute inset-0 bg-linear-to-t from-ink/85 via-ink/30 to-transparent" />
             <span className="absolute right-4 top-4 rotate-12 rounded-full bg-pop px-3 py-1.5 text-xs font-extrabold text-white shadow-lg">
               -50%
             </span>
@@ -380,9 +387,9 @@ function Navbar() {
           <form
             onSubmit={handleSearch}
             role="search"
-            className="flex items-center rounded-full border border-line bg-mist px-4 py-2.5 focus-within:border-brand/40 focus-within:bg-white"
+            className="flex items-center rounded-full border border-line bg-mist py-1.5 pl-4 pr-1.5 focus-within:border-brand/40 focus-within:bg-white"
           >
-            <Search size={17} className="text-subtle" />
+            <Search size={17} className="shrink-0 text-subtle" />
             <input
               autoFocus
               type="search"
@@ -392,6 +399,13 @@ function Navbar() {
               aria-label="Search products"
               className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
             />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark active:scale-95"
+            >
+              <ArrowRight size={16} />
+            </button>
           </form>
           <div className="mt-3 flex flex-wrap gap-2">
             {POPULAR_SEARCHES.map((term) => (
@@ -410,7 +424,7 @@ function Navbar() {
 
       {/* Mobile drawer */}
       <div
-        className={`fixed inset-0 z-[60] transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-60 transition-opacity duration-300 lg:hidden ${
           mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!mobileOpen}
