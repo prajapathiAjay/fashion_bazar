@@ -15,7 +15,7 @@ import {
   Heart,
   MapPin,
   CreditCard,
-  Bell,
+  // Bell, // used by the commented-out Notifications panel
   LogOut,
   ChevronRight,
   Crown,
@@ -30,10 +30,8 @@ import {
   Plus,
   House,
   Briefcase,
-  Smartphone,
   Headphones,
   MessageCircle,
-  ShieldCheck,
   Sparkles,
   Tag,
   Mail,
@@ -42,8 +40,8 @@ import {
   EyeOff,
   PackageCheck,
   PackageX,
-  Percent,
-  Zap,
+  // Percent, // used by the commented-out Notifications panel
+  // Zap, // used by the commented-out Notifications panel
   CalendarDays,
   X,
 } from "lucide-react";
@@ -73,17 +71,17 @@ const NAV_ITEMS = [
     tone: "bg-pop-50 text-pop",
   },
   {
+    id: "password",
+    label: "Change password",
+    icon: Lock,
+    tone: "bg-sky-50 text-sky",
+  },
+  {
     id: "addresses",
     label: "Addresses",
     icon: MapPin,
     tone: "bg-mint-50 text-mint",
   },
-  // {
-  //   id: "payment",
-  //   label: "Payment methods",
-  //   icon: CreditCard,
-  //   tone: "bg-sky-50 text-sky",
-  // },
   {
     id: "wishlist",
     label: "Wishlist",
@@ -130,57 +128,37 @@ const STATUS_STYLES = {
 
 const ORDER_FILTERS = ["All", "In transit", "Delivered", "Cancelled"];
 
-const INITIAL_CARDS = [
-  {
-    id: "c1",
-    network: "VISA",
-    last4: "4821",
-    holder: "Ananya Rao",
-    expiry: "08/29",
-    style: "bg-brand-gradient",
-    blob: "bg-sun/50",
-  },
-  {
-    id: "c2",
-    network: "MASTERCARD",
-    last4: "1093",
-    holder: "Ananya Rao",
-    expiry: "02/28",
-    style: "bg-ink",
-    blob: "bg-mint/40",
-  },
-];
-
-const NOTIFICATION_SETTINGS = [
-  {
-    id: "orders",
-    title: "Order updates",
-    desc: "Shipping, delivery and return status for every order.",
-    icon: Truck,
-    tone: "bg-brand-50 text-brand",
-  },
-  {
-    id: "drops",
-    title: "New drops",
-    desc: "First look when sellers you follow add new pieces.",
-    icon: Sparkles,
-    tone: "bg-pop-50 text-pop",
-  },
-  {
-    id: "prices",
-    title: "Price drops",
-    desc: "A heads-up when something in your wishlist goes on sale.",
-    icon: Percent,
-    tone: "bg-mint-50 text-mint",
-  },
-  {
-    id: "newsletter",
-    title: "Weekly newsletter",
-    desc: "Editor picks, style notes and bazar-day deals.",
-    icon: Mail,
-    tone: "bg-sun-50 text-sun-dark",
-  },
-];
+// Notifications are hidden until there is a backend to save the choices.
+// const NOTIFICATION_SETTINGS = [
+//   {
+//     id: "orders",
+//     title: "Order updates",
+//     desc: "Shipping, delivery and return status for every order.",
+//     icon: Truck,
+//     tone: "bg-brand-50 text-brand",
+//   },
+//   {
+//     id: "drops",
+//     title: "New drops",
+//     desc: "First look when sellers you follow add new pieces.",
+//     icon: Sparkles,
+//     tone: "bg-pop-50 text-pop",
+//   },
+//   {
+//     id: "prices",
+//     title: "Price drops",
+//     desc: "A heads-up when something in your wishlist goes on sale.",
+//     icon: Percent,
+//     tone: "bg-mint-50 text-mint",
+//   },
+//   {
+//     id: "newsletter",
+//     title: "Weekly newsletter",
+//     desc: "Editor picks, style notes and bazar-day deals.",
+//     icon: Mail,
+//     tone: "bg-sun-50 text-sun-dark",
+//   },
+// ];
 
 const money = formatPrice;
 
@@ -231,26 +209,27 @@ function Field({ id, label, hint, children }) {
   );
 }
 
-function Switch({ checked, onChange, labelId }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby={labelId}
-      onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
-        checked ? "bg-brand-gradient" : "bg-line-strong"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-          checked ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
+// Switch is only used by the Notifications panel below.
+// function Switch({ checked, onChange, labelId }) {
+//   return (
+//     <button
+//       type="button"
+//       role="switch"
+//       aria-checked={checked}
+//       aria-labelledby={labelId}
+//       onClick={() => onChange(!checked)}
+//       className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+//         checked ? "bg-brand-gradient" : "bg-line-strong"
+//       }`}
+//     >
+//       <span
+//         className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+//           checked ? "translate-x-6" : "translate-x-1"
+//         }`}
+//       />
+//     </button>
+//   );
+// }
 
 function ActionButton({ icon: Icon, children, onClick, tone = "default" }) {
   const tones = {
@@ -597,8 +576,12 @@ function OrderCard({ order, highlighted }) {
       {order.status === "Cancelled" && (
         <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
           <PackageX size={15} />
-          Cancelled by you · Refund of {money(order.total)} issued to your
-          original payment method
+          {/* only mention a refund when money was actually taken online */}
+          {order.raw.paymentStatus === "Refunded"
+            ? `Cancelled · Refund of ${money(order.total)} issued to your original payment method`
+            : order.raw.paymentStatus === "Paid"
+              ? `Cancelled · Refund of ${money(order.total)} is being processed`
+              : "This order was cancelled"}
         </p>
       )}
 
@@ -764,7 +747,7 @@ function OrderDetails({ order }) {
             <h3 className="text-sm font-bold text-ink">Payment</h3>
           </div>
           <p className="mt-3 text-sm text-muted">
-            {raw.paymentMethod === "cod" ? "Cash on delivery" : raw.paymentMethod} ·{" "}
+            {raw.paymentMethod === "cod" ? "Cash on delivery" : "Online payment"} ·{" "}
             <span className="font-semibold text-ink">{raw.paymentStatus}</span>
           </p>
           <dl className="mt-3 space-y-1.5 border-t border-line pt-3 text-sm">
@@ -903,11 +886,12 @@ function FormSection({ icon, tone, title, desc, children }) {
   );
 }
 
-function PasswordInput({ id, placeholder }) {
+function PasswordInput({ id, placeholder, ...rest }) {
   const [show, setShow] = useState(false);
   return (
     <div className="relative">
       <input
+        {...rest}
         id={id}
         type={show ? "text" : "password"}
         placeholder={placeholder}
@@ -1026,21 +1010,7 @@ function ProfilePanel({ user }) {
         </div>
       </FormSection>
 
-      {/* <FormSection icon={Lock} tone="bg-sky-50 text-sky" title="Password" desc="Use 8+ characters with a mix of letters and numbers.">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
-            <Field id="current-password" label="Current password">
-              <PasswordInput id="current-password" placeholder="••••••••" />
-            </Field>
-          </div>
-          <Field id="new-password" label="New password">
-            <PasswordInput id="new-password" placeholder="New password" />
-          </Field>
-          <Field id="confirm-password" label="Confirm new password">
-            <PasswordInput id="confirm-password" placeholder="Repeat new password" />
-          </Field>
-        </div>
-      </FormSection> */}
+      {/* Password now lives in its own "Change password" tab (ChangePasswordPanel) */}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         {saved && (
@@ -1068,6 +1038,144 @@ function ProfilePanel({ user }) {
           className="rounded-full bg-brand-gradient px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(124,58,237,0.28)] transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60"
         >
           {isLoading ? "Saving…" : "Save changes"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Change password
+   ------------------------------------------------------------------ */
+
+const PASSWORD_RULES = [
+  { label: "At least 8 characters", test: (v) => v.length >= 8 },
+  { label: "One letter and one number", test: (v) => /[a-zA-Z]/.test(v) && /\d/.test(v) },
+];
+
+const EMPTY_PASSWORDS = { currentPassword: "", newPassword: "", confirmPassword: "" };
+
+function ChangePasswordPanel() {
+  const [values, setValues] = useState(EMPTY_PASSWORDS);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const onField = (e) => {
+    setValues((cur) => ({ ...cur, [e.target.name]: e.target.value }));
+    setSaved(false);
+    setError("");
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    const { currentPassword, newPassword, confirmPassword } = values;
+    if (!currentPassword) return setError("Enter your current password.");
+    if (!PASSWORD_RULES.every((r) => r.test(newPassword)))
+      return setError("Your new password doesn't meet the rules below.");
+    if (newPassword !== confirmPassword) return setError("New passwords don't match.");
+    if (newPassword === currentPassword)
+      return setError("New password must be different from the current one.");
+
+    setSubmitting(true);
+    try {
+      // TODO(api): call the "change password" mutation here with { currentPassword, newPassword }
+      setValues(EMPTY_PASSWORDS);
+      setSaved(true);
+    } catch (err) {
+      setError(err?.data?.message || "Couldn't update your password.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
+      <PanelHeader
+        title="Change password"
+        desc="Use a password you don't use on any other site."
+      />
+
+      <FormSection
+        icon={Lock}
+        tone="bg-sky-50 text-sky"
+        title="Password"
+        desc="You'll stay logged in on this device after changing it."
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
+            <Field id="current-password" label="Current password">
+              <PasswordInput
+                id="current-password"
+                name="currentPassword"
+                placeholder="••••••••"
+                value={values.currentPassword}
+                onChange={onField}
+              />
+            </Field>
+            <Link
+              to="/forgot-password"
+              className="mt-2 inline-block text-xs font-medium text-brand hover:text-brand-dark"
+            >
+              Forgot your current password?
+            </Link>
+          </div>
+          <Field id="new-password" label="New password">
+            <PasswordInput
+              id="new-password"
+              name="newPassword"
+              placeholder="New password"
+              value={values.newPassword}
+              onChange={onField}
+            />
+          </Field>
+          <Field id="confirm-password" label="Confirm new password">
+            <PasswordInput
+              id="confirm-password"
+              name="confirmPassword"
+              placeholder="Repeat new password"
+              value={values.confirmPassword}
+              onChange={onField}
+            />
+          </Field>
+        </div>
+
+        <ul className="mt-4 flex flex-col gap-1.5">
+          {PASSWORD_RULES.map((r) => {
+            const ok = r.test(values.newPassword);
+            return (
+              <li
+                key={r.label}
+                className={`flex items-center gap-2 text-xs ${ok ? "text-mint" : "text-subtle"}`}
+              >
+                <span
+                  className={`flex h-4 w-4 items-center justify-center rounded-full ${
+                    ok ? "bg-mint text-white" : "border border-line-strong"
+                  }`}
+                >
+                  {ok && <Check size={10} strokeWidth={3.5} />}
+                </span>
+                {r.label}
+              </li>
+            );
+          })}
+        </ul>
+      </FormSection>
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {saved && (
+          <p role="status" className="flex items-center gap-1.5 text-sm font-semibold text-success">
+            <Check size={16} />
+            Password updated
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={submitting}
+          className="rounded-full bg-brand-gradient px-7 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(124,58,237,0.28)] transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-60"
+        >
+          {submitting ? "Updating…" : "Update password"}
         </button>
       </div>
     </form>
@@ -1372,166 +1480,6 @@ function AddressesPanel({ addresses }) {
 }
 
 /* ------------------------------------------------------------------
-   Payment
-   ------------------------------------------------------------------ */
-
-function PaymentPanel() {
-  const [cards, setCards] = useState(INITIAL_CARDS);
-  const [upi, setUpi] = useState("");
-  const [upiIds, setUpiIds] = useState(["ananya@okbank"]);
-
-  const addUpi = (e) => {
-    e.preventDefault();
-    const v = upi.trim();
-    if (!v.includes("@") || upiIds.includes(v)) return;
-    setUpiIds((cur) => [...cur, v]);
-    setUpi("");
-  };
-
-  return (
-    <div className="flex flex-col gap-6">
-      <PanelHeader
-        title="Payment methods"
-        desc="Saved securely — we never store your CVV."
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map((c, i) => (
-          <div key={c.id} className="flex flex-col gap-2">
-            <div
-              className={`relative aspect-[1.586/1] overflow-hidden rounded-3xl p-5 text-white shadow-[0_18px_40px_rgba(26,16,51,0.18)] transition-transform hover:-translate-y-1 ${c.style}`}
-            >
-              <div
-                className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 animate-blob rounded-full blur-2xl ${c.blob}`}
-              />
-              <div className="pointer-events-none absolute -bottom-16 -left-8 h-40 w-40 rounded-full border-[18px] border-white/10" />
-              <div className="relative flex h-full flex-col justify-between">
-                <div className="flex items-start justify-between">
-                  <span
-                    className="h-7 w-10 rounded-md bg-sun/90"
-                    aria-hidden="true"
-                  />
-                  <span className="text-sm font-extrabold italic tracking-wider">
-                    {c.network}
-                  </span>
-                </div>
-                <p
-                  className="font-mono text-base tracking-[0.18em] sm:text-lg"
-                  aria-label={`Card ending in ${c.last4}`}
-                >
-                  •••• •••• •••• {c.last4}
-                </p>
-                <div className="flex items-end justify-between text-xs">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">
-                      Card holder
-                    </p>
-                    <p className="font-semibold">{c.holder}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase tracking-wide text-white/60">
-                      Expires
-                    </p>
-                    <p className="font-semibold">{c.expiry}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-1">
-              {i === 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-mint-50 px-2.5 py-1 text-[11px] font-semibold text-mint">
-                  <Check size={12} strokeWidth={3} />
-                  Default
-                </span>
-              ) : (
-                <span className="text-xs text-subtle">Saved card</span>
-              )}
-              <button
-                type="button"
-                onClick={() =>
-                  setCards((cur) => cur.filter((x) => x.id !== c.id))
-                }
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-danger hover:bg-danger-50"
-              >
-                <Trash2 size={13} />
-                Remove
-              </button>
-            </div>
-          </div>
-        ))}
-
-        <button
-          type="button"
-          className="group flex aspect-[1.586/1] flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-line-strong text-center transition-colors hover:border-brand/40 hover:bg-brand-50/50"
-        >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-gradient text-white transition-transform duration-300 group-hover:rotate-90">
-            <Plus size={22} />
-          </span>
-          <span className="text-sm font-bold text-ink">Add new card</span>
-          <span className="text-xs text-subtle">Credit or debit</span>
-        </button>
-      </div>
-
-      <section className={`${CARD_CLASS} p-5 sm:p-6`}>
-        <div className="mb-4 flex items-center gap-3">
-          <IconChip icon={Smartphone} tone="bg-mint-50 text-mint" size="sm" />
-          <div>
-            <h3 className="text-base font-bold text-ink">UPI</h3>
-            <p className="text-xs text-subtle">
-              Pay instantly from any UPI app.
-            </p>
-          </div>
-        </div>
-        <ul className="flex flex-col gap-2">
-          {upiIds.map((id) => (
-            <li
-              key={id}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-mist px-4 py-3"
-            >
-              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-ink">
-                <ShieldCheck size={16} className="shrink-0 text-mint" />
-                <span className="truncate">{id}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setUpiIds((cur) => cur.filter((x) => x !== id))}
-                aria-label={`Remove ${id}`}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-subtle hover:bg-danger-50 hover:text-danger"
-              >
-                <X size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-        <form
-          onSubmit={addUpi}
-          className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end"
-        >
-          <div className="flex-1">
-            <Field id="upi-id" label="Add a UPI ID">
-              <input
-                id="upi-id"
-                value={upi}
-                onChange={(e) => setUpi(e.target.value)}
-                placeholder="yourname@bank"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          </div>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
-          >
-            <Plus size={15} />
-            Verify & add
-          </button>
-        </form>
-      </section>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------
    Wishlist
    ------------------------------------------------------------------ */
 
@@ -1670,46 +1618,47 @@ function WishlistPanel({ watchListItems }) {
    Notifications
    ------------------------------------------------------------------ */
 
-function NotificationsPanel() {
-  const [prefs, setPrefs] = useState({
-    orders: true,
-    drops: true,
-    prices: false,
-    newsletter: true,
-  });
+// Notifications are hidden until there is a backend to save the choices.
+// function NotificationsPanel() {
+//   const [prefs, setPrefs] = useState({
+//     orders: true,
+//     drops: true,
+//     prices: false,
+//     newsletter: true,
+//   });
 
-  return (
-    <div>
-      <PanelHeader
-        title="Notifications"
-        desc="Choose what lands in your inbox and on your phone."
-      />
-      <ul className={`${CARD_CLASS} divide-y divide-line`}>
-        {NOTIFICATION_SETTINGS.map(({ id, title, desc, icon, tone }) => (
-          <li key={id} className="flex items-center gap-4 p-4 sm:p-5">
-            <IconChip icon={icon} tone={tone} size="sm" />
-            <div className="min-w-0 flex-1">
-              <p id={`notif-${id}`} className="text-sm font-semibold text-ink">
-                {title}
-              </p>
-              <p className="mt-0.5 text-xs text-subtle">{desc}</p>
-            </div>
-            <Switch
-              checked={prefs[id]}
-              labelId={`notif-${id}`}
-              onChange={(v) => setPrefs((cur) => ({ ...cur, [id]: v }))}
-            />
-          </li>
-        ))}
-      </ul>
-      <p className="mt-4 flex items-start gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs text-ink-soft">
-        <Zap size={14} className="mt-0.5 shrink-0 text-sky" />
-        Security alerts about your account are always on, so you never miss
-        something important.
-      </p>
-    </div>
-  );
-}
+//   return (
+//     <div>
+//       <PanelHeader
+//         title="Notifications"
+//         desc="Choose what lands in your inbox and on your phone."
+//       />
+//       <ul className={`${CARD_CLASS} divide-y divide-line`}>
+//         {NOTIFICATION_SETTINGS.map(({ id, title, desc, icon, tone }) => (
+//           <li key={id} className="flex items-center gap-4 p-4 sm:p-5">
+//             <IconChip icon={icon} tone={tone} size="sm" />
+//             <div className="min-w-0 flex-1">
+//               <p id={`notif-${id}`} className="text-sm font-semibold text-ink">
+//                 {title}
+//               </p>
+//               <p className="mt-0.5 text-xs text-subtle">{desc}</p>
+//             </div>
+//             <Switch
+//               checked={prefs[id]}
+//               labelId={`notif-${id}`}
+//               onChange={(v) => setPrefs((cur) => ({ ...cur, [id]: v }))}
+//             />
+//           </li>
+//         ))}
+//       </ul>
+//       <p className="mt-4 flex items-start gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-xs text-ink-soft">
+//         <Zap size={14} className="mt-0.5 shrink-0 text-sky" />
+//         Security alerts about your account are always on, so you never miss
+//         something important.
+//       </p>
+//     </div>
+//   );
+// }
 
 /* ------------------------------------------------------------------
    Support card
@@ -1869,16 +1818,16 @@ function AccountPage() {
           {active === "orders" && <OrdersPanel orderId={orderId} />}
           {/* key remounts the form once the user loads, so defaultValue picks it up */}
           {active === "profile" && <ProfilePanel key={user?._id} user={user} />}
+          {active === "password" && <ChangePasswordPanel />}
           {active === "addresses" && (
             <AddressesPanel
               addresses={user?.addresses}
             />
           )}
-          {active === "payment" && <PaymentPanel />}
           {active === "wishlist" && (
             <WishlistPanel watchListItems={watchListItems} />
           )}
-          {active === "notifications" && <NotificationsPanel />}
+          {/* {active === "notifications" && <NotificationsPanel />} */}
         </div>
 
         <SupportCard className="lg:hidden" />

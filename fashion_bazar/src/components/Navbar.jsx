@@ -16,6 +16,7 @@ import {
   LogOut,
 } from "lucide-react";
 import SmartImage from "./SmartImage";
+import AccountMenu from "./AccountMenu";
 import { PHOTOS, unsplash } from "../assets/images";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
 import { useGetUserByIdQuery } from "../lib/api/userApi";
@@ -288,44 +289,7 @@ function Navbar() {
             </span>
           </Link>
 
-          <Link
-            to={token ? "/account" : "/login"}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-brand-50 max-sm:hidden xl:hidden"
-            aria-label={token ? "Account" : "Sign in"}
-          >
-            <User size={20} />
-          </Link>
-          {token ? (
-            <>
-              <Link
-                to="/account"
-                className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
-                  <User size={14} />
-                </span>
-                Hi, {firstName}
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="hidden h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-brand-50 xl:flex"
-                aria-label="Log out"
-              >
-                <LogOut size={18} />
-              </button>
-            </>
-          ) : (
-            <Link
-              to="/login"
-              className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
-            >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
-                <User size={14} />
-              </span>
-              Sign in
-            </Link>
-          )}
+          <AccountMenu token={token} user={userData?.user} onLogout={handleLogout} />
         </div>
       </div>
 

@@ -28,13 +28,14 @@ import {
 import { formatPrice } from "../utils/formatPrice";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
-import {usePlaceOrderMutation} from "../lib/api/checkoutApi";
+import { usePlaceOrderMutation, useVerifyPaymentMutation } from "../lib/api/checkoutApi";
+import { loadRazorpay } from "../utils/loadRazorpay";
 /* ------------------------------------------------------------------ */
 
+// Razorpay's popup itself offers UPI, cards, netbanking and wallets, so it's one option here
 const PAYMENT_METHODS = [
+  { id: "razorpay", label: "Pay online", hint: "UPI, cards, netbanking & wallets", icon: Smartphone, tone: "bg-mint-50 text-mint", available: true },
   { id: "cod", label: "Cash on delivery", hint: "Pay when it arrives", icon: Banknote, tone: "bg-sun-50 text-sun-dark", available: true },
-  { id: "upi", label: "UPI", hint: "GPay, PhonePe & more", icon: Smartphone, tone: "bg-mint-50 text-mint", available: false },
-  { id: "card", label: "Card", hint: "Credit or debit", icon: CreditCard, tone: "bg-brand-50 text-brand", available: false },
 ];
 
 const money = formatPrice;
@@ -270,6 +271,7 @@ function CheckoutPage() {
   const { data: userData } = useGetUserByIdQuery();
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
   const [placeOrder] = usePlaceOrderMutation();
+  const [verifyPayment] = useVerifyPaymentMutation();
 
   const user = userData?.user;
   const addresses = user?.addresses ?? [];
@@ -300,22 +302,100 @@ function CheckoutPage() {
   const lineCount = cartItems?.length || 0;
 
   const canPlace =
-    Boolean(selectedAddress) && lineCount > 0 && payMethod === "cod" && !placing;
+    Boolean(selectedAddress) &&
+    lineCount > 0 &&
+    PAYMENT_METHODS.some((m) => m.id === payMethod && m.available) &&
+    !placing;
+
+  const showOrderSuccess = (order) => {
+    setPlacedOrder(order);
+    window.scrollTo({ top: 0 });
+  };
 
   const handleplaceOrder = async () => {
     if (!canPlace) return;
     setPlacing(true);
     setOrderError("");
+
+    if (payMethod === "razorpay") {
+      await payWithRazorpay();
+      return; // payWithRazorpay turns `placing` off itself (popup closes later)
+    }
+
     try {
       const response = await placeOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
-      setPlacedOrder(response.data);
-      window.scrollTo({ top: 0 });
+      showOrderSuccess(response.data);
     } catch (error) {
       console.error("Error placing order:", error);
       setOrderError(error?.data?.message || "Could not place your order. Please try again.");
     } finally {
       setPlacing(false);
     }
+  };
+
+  // 1. server creates a Razorpay order  2. popup  3. server verifies and creates our order
+  const payWithRazorpay = async () => {
+    const fail = (message) => {
+      setOrderError(message);
+      setPlacing(false);
+    };
+
+    const loaded = await loadRazorpay();
+    if (!loaded) return fail("Could not load the payment window. Check your connection and try again.");
+
+    let rzp;
+    try {
+      const response = await placeOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
+      rzp = response.data; // { razorpayOrderId, amount, currency, keyId }
+    } catch (error) {
+      console.error("Error starting payment:", error);
+      return fail(error?.data?.message || "Could not start the payment. Please try again.");
+    }
+
+    const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
+
+    const razorpay = new window.Razorpay({
+      key: rzp.keyId,
+      order_id: rzp.razorpayOrderId,
+      amount: rzp.amount,
+      currency: rzp.currency,
+      name: "Fashion Bazar",
+      description: "Order payment",
+      prefill: { name: fullName, email: user?.email, contact: user?.phone },
+      theme: { color: "#7b2d3d" },
+
+      // Payment done in the popup -> let the server confirm it and create the order
+      handler: async (paymentResult) => {
+        try {
+          const response = await verifyPayment({
+            razorpay_order_id: paymentResult.razorpay_order_id,
+            razorpay_payment_id: paymentResult.razorpay_payment_id,
+            razorpay_signature: paymentResult.razorpay_signature,
+          }).unwrap();
+          setPlacing(false);
+          showOrderSuccess(response.data);
+        } catch (error) {
+          console.error("Error verifying payment:", error);
+          fail(
+            error?.data?.message ||
+              "Payment received but we couldn't confirm your order. Please contact support before paying again."
+          );
+        }
+      },
+
+      modal: {
+        // user closed the popup without paying
+        ondismiss: () => setPlacing(false),
+      },
+    });
+
+    // Card declined, UPI failed... Razorpay lets the user retry inside the popup,
+    // so just show the reason here.
+    razorpay.on("payment.failed", (response) => {
+      setOrderError(response?.error?.description || "Payment failed. Please try again.");
+    });
+
+    razorpay.open();
   };
 
   // Use the server's order for the success screen: the cart is empty by now
@@ -682,6 +762,21 @@ function CheckoutPage() {
                 </div>
               </div>
             )}
+
+            {payMethod === "razorpay" && (
+              <div className="mt-4 flex items-start gap-3 rounded-2xl bg-mist p-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-50 text-mint">
+                  <ShieldCheck size={18} />
+                </span>
+                <div className="text-sm text-ink-soft">
+                  <p className="font-bold text-ink">Pay {money(total)} securely with Razorpay</p>
+                  <p className="mt-1 text-xs text-muted">
+                    A secure window opens to pay by UPI, card, netbanking or wallet. Your order is confirmed
+                    as soon as the payment goes through.
+                  </p>
+                </div>
+              </div>
+            )}
           </Section>
 
           {/* 5. Place order */}
@@ -689,11 +784,12 @@ function CheckoutPage() {
             <PrimaryButton type="button" onClick={handleplaceOrder} disabled={!canPlace} className="w-full">
               {placing ? (
                 <>
-                  <Loader2 size={17} className="animate-spin" /> Placing order...
+                  <Loader2 size={17} className="animate-spin" />{" "}
+                  {payMethod === "razorpay" ? "Waiting for payment..." : "Placing order..."}
                 </>
               ) : (
                 <>
-                  <Lock size={15} /> Place order — {money(total)}
+                  <Lock size={15} /> {payMethod === "razorpay" ? "Pay" : "Place order"} — {money(total)}
                 </>
               )}
             </PrimaryButton>
