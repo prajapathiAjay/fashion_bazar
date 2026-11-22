@@ -20,6 +20,8 @@ import {
   Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import { useGetShippingQuery } from "../lib/api/shippingApi";
+import { DEFAULT_SHIPPING, calcShipping } from "../utils/shipping";
 import {useIsWishlist} from "../hooks/isWishList"
 import {
   useGetCartItemsQuery,
@@ -29,7 +31,6 @@ import {
 import { useSelector } from "react-redux";
 import { useAddToWishlistMutation ,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 
-const FREE_SHIPPING_AT = 999;
 
 const SUGGESTIONS = [
   { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, rating: 4.6, bg: "var(--color-coral-50)", image: unsplash(PHOTOS.bomberJacket, 400, 500) },
@@ -71,10 +72,11 @@ function PaymentChips({ className = "" }) {
   );
 }
 
-function FreeShippingBar({ subtotal }) {
-  const remaining = Math.max(0, FREE_SHIPPING_AT - subtotal);
+// freeAt = standard delivery's "free on orders of" amount from the admin's Shipping page
+function FreeShippingBar({ subtotal, freeAt }) {
+  const remaining = Math.max(0, freeAt - subtotal);
   const unlocked = remaining === 0;
-  const pct = Math.min(100, Math.round((subtotal / FREE_SHIPPING_AT) * 100));
+  const pct = freeAt > 0 ? Math.min(100, Math.round((subtotal / freeAt) * 100)) : 100;
 
   return (
     <div
@@ -399,6 +401,9 @@ function CartPage() {
   const [appliedPromo, setAppliedPromo] = useState(null);
 
   const { data: cartItems = [], isLoading, isError } = useGetCartItemsQuery();
+  // delivery rates set by the admin (defaults only while loading); the bag shows standard delivery
+  const { data: shippingData } = useGetShippingQuery();
+  const standardShipping = (shippingData ?? DEFAULT_SHIPPING).standard;
 
   const removePromo = () => setAppliedPromo(null);
 
@@ -412,10 +417,15 @@ function CartPage() {
     0
   );
   const unitCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 99;
+  const shipping = subtotal === 0 ? 0 : calcShipping({ standard: standardShipping }, "standard", subtotal);
   const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
   const total = subtotal + shipping - discount;
-  const savings = discount + (shipping === 0 ? 99 : 0);
+  const savings = discount + (shipping === 0 ? standardShipping.price : 0);
+  // only show the "away from free shipping" bar if standard delivery can be free
+  const freeShippingAt =
+    standardShipping.enabled && standardShipping.freeAbove != null && standardShipping.price > 0
+      ? standardShipping.freeAbove
+      : null;
 
   return (
     <div className="mx-auto max-w-7xl px-5 pb-36 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-10">
@@ -444,7 +454,7 @@ function CartPage() {
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10">
         {/* Items */}
         <section aria-label="Items in your bag" className="flex min-w-0 flex-col gap-4">
-          <FreeShippingBar subtotal={subtotal} />
+          {freeShippingAt !== null && <FreeShippingBar subtotal={subtotal} freeAt={freeShippingAt} />}
           <ul className="flex flex-col gap-3 sm:gap-4">
             {cartItems.map((item) => (
               <CartItem key={item._id} item={item} />

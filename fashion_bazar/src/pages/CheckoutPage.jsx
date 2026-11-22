@@ -29,6 +29,8 @@ import { formatPrice } from "../utils/formatPrice";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 import { usePlaceOrderMutation, useVerifyPaymentMutation } from "../lib/api/checkoutApi";
+import { useGetShippingQuery } from "../lib/api/shippingApi";
+import { DEFAULT_SHIPPING, calcShipping, etaLabel } from "../utils/shipping";
 import { loadRazorpay } from "../utils/loadRazorpay";
 /* ------------------------------------------------------------------ */
 
@@ -161,7 +163,7 @@ function SecurityNote() {
   );
 }
 
-function SuccessScreen({ orderNumber, total, shipMethod, email, itemCount }) {
+function SuccessScreen({ orderNumber, total, eta, email, itemCount }) {
   const timeline = [
     { label: "Ordered", icon: Check, done: true },
     { label: "Packed", icon: Package, done: false },
@@ -208,7 +210,7 @@ function SuccessScreen({ orderNumber, total, shipMethod, email, itemCount }) {
             <div className="rounded-2xl border border-line bg-white p-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">Arriving in</p>
               <p className="mt-1 text-base font-bold text-ink">
-                {shipMethod === "express" ? "1-2" : "4-6"} business days
+                {eta}
               </p>
             </div>
             <div className="rounded-2xl border border-line bg-white p-4">
@@ -272,6 +274,9 @@ function CheckoutPage() {
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
   const [placeOrder] = usePlaceOrderMutation();
   const [verifyPayment] = useVerifyPaymentMutation();
+  // delivery rates set by the admin (defaults only while loading)
+  const { data: shippingData } = useGetShippingQuery();
+  const shippingSettings = shippingData ?? DEFAULT_SHIPPING;
 
   const user = userData?.user;
   const addresses = user?.addresses ?? [];
@@ -296,7 +301,11 @@ function CheckoutPage() {
   /* ---- totals ---- */
   const subtotal =
     cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
-  const shipping = shipMethod === "express" ? 199 : subtotal >= 999 ? 0 : 99;
+  // if the admin turned the chosen method off, fall back to one that is on
+  const activeShipMethod = shippingSettings[shipMethod]?.enabled
+    ? shipMethod
+    : ["standard", "express"].find((m) => shippingSettings[m]?.enabled) ?? shipMethod;
+  const shipping = calcShipping(shippingSettings, activeShipMethod, subtotal);
   const total = subtotal + shipping;
   const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
   const lineCount = cartItems?.length || 0;
@@ -323,7 +332,7 @@ function CheckoutPage() {
     }
 
     try {
-      const response = await placeOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
+      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod }).unwrap();
       showOrderSuccess(response.data);
     } catch (error) {
       console.error("Error placing order:", error);
@@ -345,7 +354,7 @@ function CheckoutPage() {
 
     let rzp;
     try {
-      const response = await placeOrder({ address: selectedAddress, shipMethod, payMethod }).unwrap();
+      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod }).unwrap();
       rzp = response.data; // { razorpayOrderId, amount, currency, keyId }
     } catch (error) {
       console.error("Error starting payment:", error);
@@ -404,32 +413,38 @@ function CheckoutPage() {
       <SuccessScreen
         orderNumber={placedOrder.orderNumber}
         total={placedOrder.totalAmount}
-        shipMethod={placedOrder.shippingMethod}
+        eta={etaLabel(shippingSettings[placedOrder.shippingMethod])}
         email={user?.email}
         itemCount={placedOrder.items.reduce((sum, i) => sum + i.quantity, 0)}
       />
     );
   }
 
+  // price label for a method on this cart ("Free" or "₹99")
+  const priceLabel = (method) => {
+    const cost = calcShipping(shippingSettings, method, subtotal);
+    return cost === 0 ? "Free" : money(cost);
+  };
+
   const shipOptions = [
     {
       id: "standard",
       label: "Standard",
-      eta: "4-6 business days",
-      price: subtotal >= 999 ? "Free" : money(99),
+      eta: etaLabel(shippingSettings.standard),
+      price: priceLabel("standard"),
       icon: Truck,
       tone: "bg-sky-50 text-sky",
     },
     {
       id: "express",
       label: "Express",
-      eta: "1-2 business days",
-      price: money(199),
+      eta: etaLabel(shippingSettings.express),
+      price: priceLabel("express"),
       icon: Zap,
       tone: "bg-sun-50 text-sun-dark",
       badge: "Fastest",
     },
-  ];
+  ].filter((opt) => shippingSettings[opt.id]?.enabled); // hide methods the admin turned off
 
   return (
     <div className="mx-auto max-w-6xl px-5 pb-16 pt-6 sm:px-6 lg:px-8 lg:pt-10">
@@ -636,7 +651,7 @@ function CheckoutPage() {
               <legend className="sr-only">Delivery method</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {shipOptions.map((opt) => {
-                  const selected = shipMethod === opt.id;
+                  const selected = activeShipMethod === opt.id;
                   const Icon = opt.icon;
                   return (
                     <label
