@@ -2,6 +2,12 @@ import {baseApi} from "./baseApi";
 export const checkoutApi=baseApi.injectEndpoints({
 
     endpoints:(builder)=>({
+        // check a coupon on the current cart: data = { code }
+        // returns { code, type, value, maxDiscount, minOrder, amount, subTotal }
+        applyCoupon:builder.mutation({query:(data)=>({
+            url:"/discounts/apply",method:"POST",body:data}),
+            transformResponse:(response)=>response.data}),
+
         placeOrder:builder.mutation({query:(data)=>({
             url:"/orders",method:"POST",body:data}),
             // server empties the cart and reduces stock, so refetch those
@@ -19,4 +25,4 @@ export const checkoutApi=baseApi.injectEndpoints({
             providesTags:["Order"]})
     })
 })
- export const {usePlaceOrderMutation,useVerifyPaymentMutation,useGetMyOrdersQuery}=checkoutApi;
+ export const {usePlaceOrderMutation,useVerifyPaymentMutation,useGetMyOrdersQuery,useApplyCouponMutation}=checkoutApi;

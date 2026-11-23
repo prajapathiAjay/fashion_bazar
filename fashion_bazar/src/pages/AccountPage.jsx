@@ -761,6 +761,12 @@ function OrderDetails({ order }) {
               <dt>Shipping ({raw.shippingMethodName || raw.shippingMethod})</dt>
               <dd className="tabular-nums">{raw.shipping === 0 ? "Free" : money(raw.shipping)}</dd>
             </div>
+            {raw.discount > 0 && (
+              <div className="flex justify-between text-muted">
+                <dt>Coupon ({raw.discountCode})</dt>
+                <dd className="tabular-nums text-success">-{money(raw.discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between pt-1 font-bold text-ink">
               <dt>Total</dt>
               <dd className="tabular-nums">{money(raw.totalAmount)}</dd>

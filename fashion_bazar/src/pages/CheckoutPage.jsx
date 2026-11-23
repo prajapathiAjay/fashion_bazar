@@ -23,12 +23,14 @@ import {
   ArrowRight,
   Loader2,
   Plus,
+  X,
   ShoppingBag,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
-import { usePlaceOrderMutation, useVerifyPaymentMutation } from "../lib/api/checkoutApi";
+import { useApplyCouponMutation, usePlaceOrderMutation, useVerifyPaymentMutation } from "../lib/api/checkoutApi";
+import { couponAmount, couponLabel } from "../utils/coupon";
 import { useGetShippingQuery } from "../lib/api/shippingApi";
 import { DEFAULT_SHIPPING, calcShipping, etaLabel } from "../utils/shipping";
 import { loadRazorpay } from "../utils/loadRazorpay";
@@ -110,7 +112,7 @@ function SummaryItems({ items }) {
   );
 }
 
-function SummaryTotals({ subtotal, shipping, total }) {
+function SummaryTotals({ subtotal, shipping, discount, couponCode, total }) {
   return (
     <>
       <dl className="mt-5 flex flex-col gap-2.5 border-t border-dashed border-line-strong pt-5 text-sm">
@@ -124,6 +126,14 @@ function SummaryTotals({ subtotal, shipping, total }) {
             {shipping === 0 ? "Free" : money(shipping)}
           </dd>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted">
+              Coupon <span className="font-mono text-xs font-semibold text-ink-soft">{couponCode}</span>
+            </dt>
+            <dd className="font-semibold tabular-nums text-success">-{money(discount)}</dd>
+          </div>
+        )}
       </dl>
       <div className="mt-4 flex items-end justify-between border-t border-line-strong pt-4">
         <div>
@@ -136,18 +146,91 @@ function SummaryTotals({ subtotal, shipping, total }) {
   );
 }
 
-function PromoHint() {
+// Coupon field: type a code, Apply checks it on the server; shows the applied code with Remove
+function CouponBox({ applied, discount, onApply, onRemove }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const clean = code.trim().toUpperCase();
+    if (!clean) return;
+    setChecking(true);
+    setError("");
+    try {
+      await onApply(clean);
+      setCode("");
+    } catch (err) {
+      setError(err?.data?.message || "Couldn't check this coupon, please try again");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  if (applied) {
+    return (
+      <div className="mt-4 rounded-2xl border border-dashed border-mint/40 bg-mint-50 px-3.5 py-3">
+        <div className="flex items-center gap-2">
+          <Tag size={14} className="shrink-0 text-mint" />
+          <span className="rounded-md bg-white px-2 py-0.5 font-mono text-xs font-bold tracking-wider text-ink">{applied.code}</span>
+          <span className="truncate text-xs text-ink-soft">{couponLabel(applied)}</span>
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`Remove coupon ${applied.code}`}
+            className="ml-auto rounded-full p-1 text-muted transition-colors hover:bg-white hover:text-ink"
+          >
+            <X size={14} />
+          </button>
+        </div>
+        {discount === null ? (
+          <p className="mt-1.5 text-xs font-semibold text-pop-dark">
+            Your bag is now below ₹{applied.minOrder.toLocaleString("en-IN")}, so this coupon won&apos;t apply.
+          </p>
+        ) : (
+          <p className="mt-1.5 text-xs font-semibold text-success">You save {money(discount)} with this coupon</p>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <p className="mt-4 flex items-center gap-2 rounded-2xl border border-dashed border-pop/30 bg-pop-50 px-3.5 py-2.5 text-xs text-ink-soft">
-      <Tag size={14} className="shrink-0 text-pop" />
-      <span>
-        Have a promo code? Add <span className="font-bold text-ink">BAZAR10</span> in your{" "}
-        <Link to="/cart" className="font-semibold text-pop-dark underline-offset-2 hover:underline">
-          bag
-        </Link>
-        .
-      </span>
-    </p>
+    <form onSubmit={submit} className="mt-4" noValidate>
+      <label htmlFor="coupon" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+        <Tag size={13} className="text-pop" /> Have a coupon?
+      </label>
+      <div className="flex gap-2">
+        <input
+          id="coupon"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20));
+            setError("");
+          }}
+          placeholder="Enter code"
+          autoComplete="off"
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "coupon-error" : undefined}
+          className={`h-10 min-w-0 flex-1 rounded-xl border bg-white px-3 font-mono text-sm uppercase tracking-wider text-ink placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-subtle focus:outline-none focus:ring-4 ${
+            error ? "border-pop/50 focus:ring-pop/15" : "border-line-strong focus:border-brand focus:ring-brand/15"
+          }`}
+        />
+        <button
+          type="submit"
+          disabled={checking || !code.trim()}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-ink px-4 text-sm font-bold text-white transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {checking && <Loader2 size={14} className="animate-spin" />}
+          Apply
+        </button>
+      </div>
+      {error && (
+        <p id="coupon-error" role="alert" className="mt-1.5 text-xs font-medium text-pop-dark">
+          {error}
+        </p>
+      )}
+    </form>
   );
 }
 
@@ -274,6 +357,7 @@ function CheckoutPage() {
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
   const [placeOrder] = usePlaceOrderMutation();
   const [verifyPayment] = useVerifyPaymentMutation();
+  const [applyCoupon] = useApplyCouponMutation();
   // delivery options set by the admin, in display order (defaults only while loading)
   const { data: shippingData } = useGetShippingQuery();
   const shippingMethods = shippingData?.length ? shippingData : DEFAULT_SHIPPING;
@@ -305,7 +389,13 @@ function CheckoutPage() {
   const activeMethod = shippingMethods.find((m) => m.code === shipMethod) ?? shippingMethods[0];
   const activeShipMethod = activeMethod?.code;
   const shipping = calcShipping(activeMethod, subtotal);
-  const total = subtotal + shipping;
+  // coupon checked by the server on Apply; the amount follows the cart if it changes
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const couponDiscount = couponAmount(appliedCoupon, subtotal); // null = below its minimum order
+  const discount = couponDiscount ?? 0;
+  // only send the code if it still applies to this cart
+  const couponCode = appliedCoupon && couponDiscount ? appliedCoupon.code : undefined;
+  const total = subtotal + shipping - discount;
   const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
   const lineCount = cartItems?.length || 0;
 
@@ -331,7 +421,7 @@ function CheckoutPage() {
     }
 
     try {
-      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod }).unwrap();
+      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod, couponCode }).unwrap();
       showOrderSuccess(response.data);
     } catch (error) {
       console.error("Error placing order:", error);
@@ -353,7 +443,7 @@ function CheckoutPage() {
 
     let rzp;
     try {
-      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod }).unwrap();
+      const response = await placeOrder({ address: selectedAddress, shipMethod: activeShipMethod, payMethod, couponCode }).unwrap();
       rzp = response.data; // { razorpayOrderId, amount, currency, keyId }
     } catch (error) {
       console.error("Error starting payment:", error);
@@ -475,8 +565,19 @@ function CheckoutPage() {
             <h2 id="price-details" className="text-xl font-bold text-ink">
               Price details
             </h2>
-            <SummaryTotals subtotal={subtotal} shipping={shipping} total={total} />
-            <PromoHint />
+            <SummaryTotals
+              subtotal={subtotal}
+              shipping={shipping}
+              discount={discount}
+              couponCode={appliedCoupon?.code}
+              total={total}
+            />
+            <CouponBox
+              applied={appliedCoupon}
+              discount={couponDiscount}
+              onApply={async (code) => setAppliedCoupon(await applyCoupon({ code }).unwrap())}
+              onRemove={() => setAppliedCoupon(null)}
+            />
             <SecurityNote />
           </div>
         </aside>
