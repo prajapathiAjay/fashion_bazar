@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, Eye, EyeOff, Loader2, Lock, ShieldCheck } from "lucide-react";
+import { useResetPasswordWithTokenMutation } from "../lib/api/userApi";
 
 const inputWrapClass =
   "flex items-center gap-2.5 rounded-xl border border-line-strong bg-white px-3.5 py-3 transition-colors focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10";
@@ -22,6 +23,7 @@ function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [resetPasswordWithToken] = useResetPasswordWithTokenMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,8 +38,7 @@ function ResetPasswordPage() {
     }
     setSubmitting(true);
     try {
-      // TODO(api): call the "reset password" mutation here with { token, password }
-      console.log("reset password for token", token);
+      await resetPasswordWithToken({ token, password }).unwrap();
       setDone(true);
     } catch (err) {
       setError(err?.data?.message || "This link is invalid or has expired.");

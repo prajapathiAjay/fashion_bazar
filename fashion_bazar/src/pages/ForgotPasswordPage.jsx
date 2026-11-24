@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, KeyRound, Loader2, Mail, MailCheck } from "lucide-react";
+import { useForgotPasswordMutation } from "../lib/api/userApi";
 
 const inputWrapClass =
   "flex items-center gap-2.5 rounded-xl border border-line-strong bg-white px-3.5 py-3 transition-colors focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10";
@@ -12,6 +13,7 @@ function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [forgotPassword] = useForgotPasswordMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ function ForgotPasswordPage() {
     }
     setSubmitting(true);
     try {
-      // TODO(api): call the "forgot password" mutation here with { email }
+      await forgotPassword({ email: email.trim() }).unwrap();
       setSent(true);
     } catch (err) {
       setError(err?.data?.message || "Something went wrong");

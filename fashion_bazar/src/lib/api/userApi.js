@@ -26,13 +26,20 @@ const userApi = baseApi.injectEndpoints({
             transformResponse: (response) => response?.data,
             invalidatesTags: ["User"]
 
-        })
+        }),
 
+        // emails a reset link: data = { email }
+        forgotPassword: builder.mutation({
+            query: (data) => ({ url: "/users/forgot-password", method: "POST", body: data }),
+        }),
 
-
+        // from the email link: data = { token, password }
+        resetPasswordWithToken: builder.mutation({
+            query: (data) => ({ url: "/users/reset-password", method: "POST", body: data }),
+        }),
 
     })
 
 })
 
-export const { useSignupMutation, useSigninMutation, useGetUserByIdQuery,useUpdateUserMutation } = userApi;
+export const { useSignupMutation, useSigninMutation, useGetUserByIdQuery, useUpdateUserMutation, useForgotPasswordMutation, useResetPasswordWithTokenMutation } = userApi;
