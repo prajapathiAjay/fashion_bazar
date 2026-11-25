@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import SmartImage from "../components/SmartImage";
 import {
   ChevronLeft,
@@ -352,8 +353,10 @@ function CheckoutPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
  
   /* ---- data from API ---- */
-  const { data: cartItems } = useGetCartItemsQuery();
-  const { data: userData } = useGetUserByIdQuery();
+  const token = useSelector((state) => state.auth.token);
+  // checkout needs a login; skip the requests when logged out (redirect is below the hooks)
+  const { data: cartItems } = useGetCartItemsQuery(undefined, { skip: !token });
+  const { data: userData } = useGetUserByIdQuery(undefined, { skip: !token });
   const [updateUser, { isLoading: savingDefault }] = useUpdateUserMutation();
   const [placeOrder] = usePlaceOrderMutation();
   const [verifyPayment] = useVerifyPaymentMutation();
@@ -495,6 +498,8 @@ function CheckoutPage() {
 
     razorpay.open();
   };
+
+  if (!token) return <Navigate to="/login" replace state={{ from: "/checkout" }} />;
 
   // Use the server's order for the success screen: the cart is empty by now
   if (placedOrder) {

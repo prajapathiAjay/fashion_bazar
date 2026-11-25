@@ -82,12 +82,19 @@ const AUTH_TILES = [
 ];
 
 function AuthPage() {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
   const navigate = useNavigate();
   const mode = pathname === "/register" ? "signup" : "login";
+  // page that sent the user here (e.g. /checkout), so we can go back after login.
+  // Only paths inside this site are allowed.
+  const from =
+    typeof state?.from === "string" && state.from.startsWith("/") && !state.from.startsWith("//")
+      ? state.from
+      : "/";
   const setMode = (next) => {
     setError("");
-    navigate(next === "signup" ? "/register" : "/login");
+    // keep "from" when switching between log in and sign up
+    navigate(next === "signup" ? "/register" : "/login", { state });
   };
   const dispatch = useDispatch();
   const [showPassword, setShowPassword] = useState(false);
@@ -120,7 +127,7 @@ function AuthPage() {
         const response = await signin({ email, password }).unwrap();
         dispatch(setCredentials(response.token));
 
-        navigate("/");
+        navigate(from, { replace: true });
       }
     } catch (err) {
       setError(err?.data?.message || "Something went wrong");

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import SmartImage from "../components/SmartImage";
 import ReviewModal from "../components/ReviewModal";
@@ -284,6 +284,7 @@ function ProductDetail() {
 
   const { productId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const token = useSelector((state) => state.auth.token);
 
   const { data: product, isLoading, error } = useGetProductsByIdQuery(productId);
@@ -327,7 +328,8 @@ function ProductDetail() {
   // The bag, wishlist and reviews belong to an account
   const requireLogin = () => {
     if (token) return true;
-    navigate("/login");
+    // come back to this product after logging in
+    navigate("/login", { state: { from: location.pathname } });
     return false;
   };
 

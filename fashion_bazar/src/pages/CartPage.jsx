@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import {
@@ -400,7 +400,9 @@ function CartPage() {
   // promo code is currently disabled (PromoForm commented out), kept for the discount row
   const [appliedPromo, setAppliedPromo] = useState(null);
 
-  const { data: cartItems = [], isLoading, isError } = useGetCartItemsQuery();
+  const token = useSelector((state) => state.auth.token);
+  // the bag lives on the server, so it needs a login (skip the request when logged out)
+  const { data: cartItems = [], isLoading, isError } = useGetCartItemsQuery(undefined, { skip: !token });
   // delivery options set by the admin (defaults only while loading); the bag shows the default (first) one
   const { data: shippingData } = useGetShippingQuery();
   const defaultShipping = (shippingData?.length ? shippingData : DEFAULT_SHIPPING)[0];
@@ -408,6 +410,7 @@ function CartPage() {
   const removePromo = () => setAppliedPromo(null);
 
   // all hooks are above; early returns are safe from here on
+  if (!token) return <Navigate to="/login" replace state={{ from: "/cart" }} />;
   if (isLoading) return <p className="p-6">Loading bag...</p>;
   if (isError) return <p className="p-6">Couldn&apos;t load your bag.</p>;
   if (cartItems.length === 0) return <EmptyBag />;

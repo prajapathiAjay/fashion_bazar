@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
@@ -21,8 +22,21 @@ function ProductCard({ product }) {
   const { isWishlisted, wishlistItemId } = useIsWishlist(productId);
   const { isInCart, getCartId } = useCart(productId);
 
+  const token = useSelector((state) => state.auth.token);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Bag and wishlist are saved on the server, so they need a login.
+  // Logged out -> go to login, then come back to this same page.
+  const requireLogin = () => {
+    if (token) return true;
+    navigate("/login", { state: { from: location.pathname + location.search } });
+    return false;
+  };
+
   // Plain function — no hooks inside event handlers
   const handleWishlist = () => {
+    if (!requireLogin()) return;
     if (isWishlisted) {
       deleteFromWishList(wishlistItemId);
     } else {
@@ -31,6 +45,7 @@ function ProductCard({ product }) {
   };
 
   const handleCart=async ()=>{
+  if (!requireLogin()) return;
 
   try {
     if(isInCart){
