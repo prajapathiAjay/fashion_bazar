@@ -1,27 +1,77 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Heart } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
+import {useAddToWishlistMutation,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
+import {useAddToCartMutation,useDeleteCartItemMutation} from "../lib/api/cartApi";
+import { useIsWishlist } from "../hooks/isWishList";
+import { useCart } from "../hooks/isCart";
 
 // "Editorial Overlay" card: a tall photo with the name and price printed over
 // a dark fade, like a magazine page, and a full-width Add to bag below.
 function ProductCard({ product }) {
+  const [deleteFromWishList] = useDeleteFromWishListMutation();
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [addToCart] = useAddToCartMutation();
+  const [deleteCartItem] = useDeleteCartItemMutation();
 
-  const [wishlisted, setWishlisted] = useState(false);
-  const productId = product._id ?? product.id;
+  const productId = product?._id ;
+  // Hook called once, at the top level of the component
+  const { isWishlisted, wishlistItemId } = useIsWishlist(productId);
+  const { isInCart, getCartId } = useCart(productId);
+
+  const token = useSelector((state) => state.auth.token);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Bag and wishlist are saved on the server, so they need a login.
+  // Logged out -> go to login, then come back to this same page.
+  const requireLogin = () => {
+    if (token) return true;
+    navigate("/login", { state: { from: location.pathname + location.search } });
+    return false;
+  };
+
+  // Plain function — no hooks inside event handlers
+  const handleWishlist = () => {
+    if (!requireLogin()) return;
+    if (isWishlisted) {
+      deleteFromWishList(wishlistItemId);
+    } else {
+      addToWishlist(productId);
+    }
+  };
+
+  const handleCart=async ()=>{
+  if (!requireLogin()) return;
+
+  try {
+    if(isInCart){
+      await deleteCartItem(getCartId).unwrap()
+    }else{
+      await addToCart({productID:productId}).unwrap()
+    }
+
+  } catch (error) {
+    console.error("Could not update the bag:", error?.data?.message ?? error)
+  }
+
+
+    
+  }
   const href = `/products/${productId}`;
-  const sellerName = typeof product.seller === "object" ? product.seller?.name : product.seller;
-  const discount = product.originalPrice > product.price
-    ? Math.round(100 - (product.price / product.originalPrice) * 100)
-    : 0;
+  const sellerName =
+    (typeof product.seller === "object" ? product.seller?.name : product.seller) ?? product.brand;
+  // sale = what the shopper pays, original = the crossed-out price
+  const { sale, original, discount } = getPrices(product);
   // Corner tag: the product's own badge if it has one, otherwise the discount
   const tag = product.badge ?? product.tag ?? (discount > 0 ? `${discount}% off` : null);
 
   // A second photo, if there is one, fades in on hover (desktop only)
   const mainImage = product.image ?? product.images?.[0] ?? product.thumbnail;
   const hoverImage = product.images?.find((img) => img && img !== mainImage);
-
   return (
     <article className="group relative flex flex-col bg-white">
       <div className="relative aspect-2/3 overflow-hidden rounded-sm bg-shimmer">
@@ -52,9 +102,9 @@ function ProductCard({ product }) {
             )}
             <h3 className="line-clamp-2 font-display text-[15px] leading-snug sm:text-[19px]">{product.name}</h3>
             <div className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="text-[15px] font-medium sm:text-base">{formatPrice(product.price)}</span>
+              <span className="text-[15px] font-medium sm:text-base">{formatPrice(sale)}</span>
               {discount > 0 && (
-                <span className="text-xs text-white/60 line-through">{formatPrice(product.originalPrice)}</span>
+                <span className="text-xs text-white/60 line-through">{formatPrice(original)}</span>
               )}
             </div>
           </div>
@@ -68,25 +118,26 @@ function ProductCard({ product }) {
 
         <button
           type="button"
-          onClick={() => setWishlisted((v) => !v)}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={wishlisted}
+          onClick={handleWishlist}
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={isWishlisted}
           className="absolute right-2.5 top-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-all hover:bg-white active:scale-90 sm:right-3 sm:top-3 sm:h-10 sm:w-10"
         >
           <Heart
             size={16}
             strokeWidth={1.6}
-            className={`transition-transform duration-300 ${wishlisted ? "scale-110 fill-pop text-pop" : "text-ink"}`}
+            className={`transition-transform duration-300 ${isWishlisted ? "scale-110 fill-pop text-pop" : "text-ink"}`}
           />
         </button>
       </div>
 
       <button
         type="button"
+        onClick={handleCart}
         aria-label={`Add ${product.name} to bag`}
-        className="mt-2.5 w-full border border-ink bg-white py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-ink transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs"
+        className={`mt-2.5 w-full border border-ink ${isInCart ? "bg-ink text-white" : "bg-white text-ink"} py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs`}
       >
-        Add to bag
+       {isInCart ? "Remove from bag" : "Add to bag"}
       </button>
     </article>
   );

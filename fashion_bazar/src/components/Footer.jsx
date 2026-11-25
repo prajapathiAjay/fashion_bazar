@@ -9,32 +9,23 @@ import {
   Store,
   ArrowRight,
 } from "lucide-react";
+import { CONTACT_INFO } from "../utils/contactInfo";
+
+const CONTACT_ICONS = { address: MapPin, phone: Phone, email: Mail, hours: Clock };
 
 const FOOTER_LINKS = [
-  {
-    heading: "Shop",
-    links: [
-      { label: "Women", to: "/categories/women" },
-      { label: "Men", to: "/categories/men" },
-      { label: "Kids", to: "/categories/kids" },
-      { label: "New arrivals", to: "/new-arrivals" },
-      { label: "Sale", to: "/deals" },
-    ],
-  },
   {
     heading: "Company",
     links: [
       { label: "About us", to: "/about" },
       { label: "Become a seller", to: "/sell" },
-      { label: "Careers", to: "/careers" },
-      { label: "Press", to: "/press" },
     ],
   },
   {
     heading: "Help",
     links: [
       { label: "Track your order", to: "/account" },
-      { label: "Shipping & returns", to: "/help/shipping" },
+      { label: "Shipping & returns", to: "/help/faq#shipping" },
       { label: "FAQs", to: "/help/faq" },
       { label: "Contact us", to: "/contact" },
     ],
@@ -64,14 +55,7 @@ const SOCIALS = [
   },
 ];
 
-const PAYMENT_METHODS = ["Visa", "Mastercard", "UPI", "PayPal", "Amex"];
-
-const CONTACT_INFO = [
-  { icon: MapPin, text: "123 Fashion Street, New York, NY 10001" },
-  { icon: Phone, text: "+1 (555) 123-4567" },
-  { icon: Mail, text: "support@fashionbazar.com" },
-  { icon: Clock, text: "Mon-Fri: 9AM - 6PM EST" },
-];
+const PAYMENT_METHODS = ["UPI", "RuPay", "Visa", "Mastercard", "Net banking", "COD"];
 
 function Footer() {
   return (
@@ -105,7 +89,7 @@ function Footer() {
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-12">
           {/* Brand Section */}
-          <div className="lg:col-span-6 lg:pr-10">
+          <div className="lg:col-span-4">
             <Link to="/" className="group inline-flex items-center gap-2.5">
               <span className="font-display text-3xl font-semibold text-white">
                 Fashion<span className="italic text-sun">Bazar</span>
@@ -119,14 +103,15 @@ function Footer() {
 
             {/* Contact Info */}
             <div className="mt-6 space-y-3">
-              {CONTACT_INFO.map((item, index) => {
-                const Icon = item.icon;
+              {CONTACT_INFO.map((item) => {
+                const Icon = CONTACT_ICONS[item.type];
+                const Tag = item.href ? "a" : "span";
                 return (
-                  <div key={index} className="flex items-center gap-3 text-sm text-white/40">
+                  <div key={item.type} className="flex items-center gap-3 text-sm text-white/40">
                     <Icon size={16} className="text-sun shrink-0" />
-                    <span className="hover:text-white/70 transition-colors">
+                    <Tag href={item.href} className="hover:text-white/70 transition-colors">
                       {item.text}
-                    </span>
+                    </Tag>
                   </div>
                 );
               })}
@@ -149,29 +134,36 @@ function Footer() {
                 </a>
               ))}
             </div>
-
-            {/* Newsletter Signup */}
-            <div className="mt-8">
-              <p className="text-sm font-semibold text-white">Stay updated</p>
-              <form onSubmit={(e) => e.preventDefault()} className="mt-3 flex max-w-md">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 rounded-l-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-white/30 focus:border-sun focus:outline-none focus:ring-2 focus:ring-sun/20"
-                />
-                <button
-                  type="submit"
-                  className="rounded-r-lg bg-sun px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-sun-dark"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
           </div>
 
-          {/* Footer Links */}
+          {/* Subscribe column — sits right after the brand, above the links on mobile */}
+          <div className="lg:col-span-4">
+            <p className="text-sm font-semibold uppercase tracking-wider text-white">
+              Stay updated
+            </p>
+            <p className="mt-4 text-sm leading-relaxed text-white/50">
+              New drops, seller stories and members-only offers. One email a week, no spam.
+            </p>
+            <form onSubmit={(e) => e.preventDefault()} className="mt-5 flex max-w-md">
+              <input
+                type="email"
+                required
+                placeholder="Enter your email"
+                className="min-w-0 flex-1 rounded-l-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-sun focus:outline-none focus:ring-2 focus:ring-sun/20"
+              />
+              <button
+                type="submit"
+                className="rounded-r-lg bg-sun px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-sun-dark"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
+
+          {/* Footer Links — side by side even on mobile */}
+          <div className="grid grid-cols-2 gap-8 md:col-span-2 lg:col-span-4">
           {FOOTER_LINKS.map((column) => (
-            <div key={column.heading} className="lg:col-span-2">
+            <div key={column.heading}>
               <p className="text-sm font-semibold text-white uppercase tracking-wider">
                 {column.heading}
               </p>
@@ -195,6 +187,7 @@ function Footer() {
               </ul>
             </div>
           ))}
+          </div>
         </div>
 
         {/* Bottom Bar */}
