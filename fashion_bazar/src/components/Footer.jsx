@@ -9,7 +9,7 @@ import {
   Store,
   ArrowRight,
 } from "lucide-react";
-import { CONTACT_INFO } from "../utils/contactInfo";
+import { useContactInfo } from "../utils/contactInfo";
 
 const CONTACT_ICONS = { address: MapPin, phone: Phone, email: Mail, hours: Clock };
 
@@ -58,6 +58,7 @@ const SOCIALS = [
 const PAYMENT_METHODS = ["UPI", "RuPay", "Visa", "Mastercard", "Net banking", "COD"];
 
 function Footer() {
+  const { items: contactItems, storeName } = useContactInfo();
   return (
     <footer className="relative bg-ink text-white/70">
       <div className="h-1.5 bg-gradient-to-r from-brand via-pop to-sun" />
@@ -103,7 +104,7 @@ function Footer() {
 
             {/* Contact Info */}
             <div className="mt-6 space-y-3">
-              {CONTACT_INFO.map((item) => {
+              {contactItems.map((item) => {
                 const Icon = CONTACT_ICONS[item.type];
                 const Tag = item.href ? "a" : "span";
                 return (
@@ -194,7 +195,7 @@ function Footer() {
         <div className="mt-16 flex flex-col gap-6 border-t border-white/10 pt-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
             <p className="text-xs text-white/40">
-              © {new Date().getFullYear()} Fashion Bazar. All rights reserved.
+              © {new Date().getFullYear()} {storeName}. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               <Link 

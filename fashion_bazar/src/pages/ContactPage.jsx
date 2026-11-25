@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, Phone, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import { CONTACT_INFO } from "../utils/contactInfo";
+import { useContactInfo } from "../utils/contactInfo";
 import { useSendContactMessageMutation } from "../lib/api/contactApi";
 
 const TOPICS = ["Order or delivery", "Returns & refunds", "Selling on Fashion Bazar", "Something else"];
@@ -13,6 +13,7 @@ const inputClass =
   "w-full rounded-xl border border-line-strong bg-white px-4 py-3 text-sm text-ink placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/15";
 
 function ContactPage() {
+  const { items: contactItems } = useContactInfo();
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
   const [sendMessage, { isLoading: sending }] = useSendContactMessageMutation();
@@ -40,7 +41,7 @@ function ContactPage() {
       <section className="mx-auto grid max-w-6xl gap-6 px-5 py-14 sm:px-6 lg:grid-cols-5 lg:gap-10 lg:px-8 lg:py-20">
         {/* Contact details */}
         <div className="space-y-3 lg:col-span-2">
-          {CONTACT_INFO.map(({ type, label, text, href }) => {
+          {contactItems.map(({ type, label, text, href }) => {
             const Icon = ICONS[type];
             const content = (
               <>

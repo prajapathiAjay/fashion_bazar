@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import PageHeader from "./PageHeader";
-import { CONTACT_INFO } from "../utils/contactInfo";
+import { useContactInfo } from "../utils/contactInfo";
 
 const LEGAL_LINKS = [
   { to: "/privacy", label: "Privacy policy" },
@@ -8,11 +8,10 @@ const LEGAL_LINKS = [
   { to: "/cookies", label: "Cookies" },
 ];
 
-const supportEmail = CONTACT_INFO.find((c) => c.type === "email");
-
 // Shared layout for Privacy, Terms and Cookies pages.
 // sections: [{ id, title, body: [string | string[]] }] — a string is a paragraph, an array is a bullet list.
 function LegalPage({ title, accent, intro, updated, sections, current }) {
+  const { supportEmail } = useContactInfo();
   return (
     <div>
       <PageHeader eyebrow="Legal" title={title} accent={accent}>
@@ -65,11 +64,17 @@ function LegalPage({ title, accent, intro, updated, sections, current }) {
           <div className="mt-12 rounded-3xl bg-mist p-6 sm:p-8">
             <p className="font-display text-xl font-bold text-ink">Questions about this page?</p>
             <p className="mt-1 text-sm text-muted">
-              Email us at{" "}
-              <a href={supportEmail?.href} className="font-medium text-brand hover:underline">
-                {supportEmail?.text}
-              </a>{" "}
-              or use our <Link to="/contact" className="font-medium text-brand hover:underline">contact form</Link>.
+              {supportEmail && (
+                <>
+                  Email us at{" "}
+                  <a href={supportEmail.href} className="font-medium text-brand hover:underline">
+                    {supportEmail.text}
+                  </a>{" "}
+                  or use our{" "}
+                </>
+              )}
+              {!supportEmail && "Use our "}
+              <Link to="/contact" className="font-medium text-brand hover:underline">contact form</Link>.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {LEGAL_LINKS.filter((l) => l.to !== current).map((l) => (
