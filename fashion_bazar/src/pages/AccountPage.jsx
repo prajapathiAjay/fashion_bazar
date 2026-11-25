@@ -46,7 +46,7 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
+import { useGetUserByIdQuery, useUpdateUserMutation, useChangePasswordMutation } from "../lib/api/userApi";
 import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
 import { useAddToCartMutation, useDeleteCartItemMutation } from "../lib/api/cartApi";
@@ -1068,6 +1068,7 @@ function ChangePasswordPanel() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [changePassword] = useChangePasswordMutation();
 
   const onField = (e) => {
     setValues((cur) => ({ ...cur, [e.target.name]: e.target.value }));
@@ -1087,7 +1088,7 @@ function ChangePasswordPanel() {
 
     setSubmitting(true);
     try {
-      // TODO(api): call the "change password" mutation here with { currentPassword, newPassword }
+      await changePassword({ currentPassword, newPassword }).unwrap();
       setValues(EMPTY_PASSWORDS);
       setSaved(true);
     } catch (err) {

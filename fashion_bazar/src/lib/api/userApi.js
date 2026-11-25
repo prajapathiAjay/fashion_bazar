@@ -38,8 +38,13 @@ const userApi = baseApi.injectEndpoints({
             query: (data) => ({ url: "/users/reset-password", method: "POST", body: data }),
         }),
 
+        // logged in, from Account > Change password: data = { currentPassword, newPassword }
+        changePassword: builder.mutation({
+            query: (data) => ({ url: "/users/resetPassword", method: "PUT", body: data }),
+        }),
+
     })
 
 })
 
-export const { useSignupMutation, useSigninMutation, useGetUserByIdQuery, useUpdateUserMutation, useForgotPasswordMutation, useResetPasswordWithTokenMutation } = userApi;
+export const { useSignupMutation, useSigninMutation, useGetUserByIdQuery, useUpdateUserMutation, useForgotPasswordMutation, useResetPasswordWithTokenMutation, useChangePasswordMutation } = userApi;
