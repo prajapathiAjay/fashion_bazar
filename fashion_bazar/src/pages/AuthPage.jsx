@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import {
@@ -13,8 +13,8 @@ import {
   Star,
 } from "lucide-react";
 import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";
-import { useDispatch } from "react-redux";
-import { setCredentials } from "../lib/slices/authSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { setCredentials, clearSessionExpired } from "../lib/slices/authSlice";
 
 function GoogleIcon() {
   return (
@@ -102,10 +102,14 @@ function AuthPage() {
   const [error, setError] = useState("");
   const [signup] = useSignupMutation(); // top level ✅
   const [signin] = useSigninMutation();
+  const token = useSelector((s) => s.auth.token);
+  // true when we logged the shopper out because their login expired
+  const sessionExpired = useSelector((s) => s.auth.sessionExpired);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    dispatch(clearSessionExpired()); // hide the "session expired" note once they try again
     setSubmitting(true);
     const formData = new FormData(e.target);
     const firstName = formData.get("firstName");
@@ -135,6 +139,9 @@ function AuthPage() {
       setSubmitting(false);
     }
   };
+
+  // already logged in -> no need for this page, go where they were heading
+  if (token) return <Navigate to={from} replace />;
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-84px)] max-w-7xl items-center px-5 pb-12 pt-4 sm:px-6 lg:px-8">
@@ -224,6 +231,15 @@ function AuthPage() {
               ? "Log in to pick up where you left off."
               : "Join the bazar in under a minute."}
           </p>
+
+          {mode === "login" && sessionExpired && (
+            <p
+              role="status"
+              className="mt-4 rounded-xl border border-sun/40 bg-sun-50 px-4 py-3 text-sm text-ink-soft"
+            >
+              Your session expired. Please log in again to continue.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
             {mode === "signup" && (

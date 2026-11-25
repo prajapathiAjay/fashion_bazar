@@ -4,6 +4,7 @@ import { PHOTOS, unsplash } from "../assets/images";
 import {
   Link,
   Navigate,
+  useLocation,
   useNavigate,
   useParams,
   useSearchParams,
@@ -51,7 +52,7 @@ import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wi
 import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
 import { useAddToCartMutation, useDeleteCartItemMutation } from "../lib/api/cartApi";
 import { baseApi } from "../lib/api/baseApi";
-import { logout } from "../lib/slices/authSlice";
+import { logout, setCredentials } from "../lib/slices/authSlice";
 /* ------------------------------------------------------------------
    Mock data (UI only — no API)
    ------------------------------------------------------------------ */
@@ -1069,6 +1070,7 @@ function ChangePasswordPanel() {
   const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [changePassword] = useChangePasswordMutation();
+  const dispatch = useDispatch();
 
   const onField = (e) => {
     setValues((cur) => ({ ...cur, [e.target.name]: e.target.value }));
@@ -1088,7 +1090,9 @@ function ChangePasswordPanel() {
 
     setSubmitting(true);
     try {
-      await changePassword({ currentPassword, newPassword }).unwrap();
+      const res = await changePassword({ currentPassword, newPassword }).unwrap();
+      // the change logs out every older login, including this one, so keep the fresh token
+      if (res?.data?.token) dispatch(setCredentials(res.data.token));
       setValues(EMPTY_PASSWORDS);
       setSaved(true);
     } catch (err) {
@@ -1709,13 +1713,14 @@ function AccountPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   const { data } = useGetUserByIdQuery(undefined, { skip: !token });
   const user = data?.user;
   const tabParam = searchParams.get("tab");
   const active = NAV_ITEMS.some((n) => n.id === tabParam) ? tabParam : "orders";
- const {data:watchListItems}=useGetWishlistQuery()
+ const {data:watchListItems}=useGetWishlistQuery(undefined, { skip: !token })
   const { data: myOrders } = useGetMyOrdersQuery(undefined, { skip: !token });
   const setActive = (id) => {
     setSearchParams(id === "orders" ? {} : { tab: id }, { replace: true });
@@ -1730,11 +1735,13 @@ function AccountPage() {
   const handleLogout = () => {
     dispatch(logout());
     dispatch(baseApi.util.resetApiState());
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
-  // account page is only for logged-in users
-  if (!token) return <Navigate to="/login" replace />;
+  // account page is only for logged-in users.
+  // Remember this page (e.g. /orders/123?tab=...), so logging in brings them back here.
+  if (!token)
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-10">

@@ -6,7 +6,8 @@
    ------------------------------------------------------------------ */
 @theme {
   /* Fonts (loaded in index.html) */
-  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+  /* Inter for everything customers read (clear at small sizes); Playfair only for the logo and big headings */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
 
   /* Refined weights: headings never go heavier than semibold */

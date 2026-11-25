@@ -15,10 +15,13 @@ const rawBaseQuery = fetchBaseQuery({
 // Runs every request. If we sent a token and the server says 401 (expired or invalid login),
 // log out here once, instead of every page quietly failing while still looking logged in.
 const baseQueryWithLogout = async (args, api, extraOptions) => {
+    const sentToken = api.getState().auth?.token;
     const result = await rawBaseQuery(args, api, extraOptions);
 
-    if (result.error?.status === 401 && api.getState().auth?.token) {
-        api.dispatch(logout());
+    // Only if the refused token is still the one we're using: after a password change the
+    // app swaps in a fresh token, and a slow request made with the old one mustn't log us out.
+    if (result.error?.status === 401 && sentToken && sentToken === api.getState().auth?.token) {
+        api.dispatch(logout({ expired: true }));
         // forget the old user's cart, wishlist, orders...
         api.dispatch(baseApi.util.resetApiState());
     }
