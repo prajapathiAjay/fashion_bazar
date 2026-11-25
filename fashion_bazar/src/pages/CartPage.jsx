@@ -1,68 +1,36 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
-
 import {
   Minus,
   Plus,
   Trash2,
-  Tag,
   ArrowRight,
   ArrowLeft,
   ShoppingBag,
   Heart,
-  Bookmark,
   Truck,
   ShieldCheck,
   RotateCcw,
   Lock,
   Sparkles,
   PartyPopper,
-  CheckCircle2,
-  AlertCircle,
   X,
   Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import { useGetShippingQuery } from "../lib/api/shippingApi";
+import { DEFAULT_SHIPPING, calcShipping } from "../utils/shipping";
+import {useIsWishlist} from "../hooks/isWishList"
+import {
+  useGetCartItemsQuery,
+  useDeleteCartItemMutation,
+  useUpdateCartItemMutation,
+} from "../lib/api/cartApi";
+import { useSelector } from "react-redux";
+import { useAddToWishlistMutation ,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 
-const FREE_SHIPPING_AT = 999;
-
-const INITIAL_ITEMS = [
-  {
-    id: "p1",
-    name: "Draped midi dress",
-    seller: "Amara Studio",
-    price: 2499,
-    size: "M",
-    color: "Violet",
-    qty: 1,
-    bg: "#D9D2F0",
-    image: unsplash(PHOTOS.floralDress, 200, 250),
-  },
-  {
-    id: "p4",
-    name: "Suede loafers",
-    seller: "Marchetti",
-    price: 3899,
-    size: "8",
-    color: "Black",
-    qty: 1,
-    bg: "#F7DFA8",
-    image: unsplash(PHOTOS.leatherShoes, 200, 250),
-  },
-  {
-    id: "p6",
-    name: "Gold hoop earrings",
-    seller: "Luna Jewels",
-    price: 1199,
-    size: "One size",
-    color: "Gold",
-    qty: 2,
-    bg: "#F0C4C4",
-    image: unsplash(PHOTOS.goldHoops, 200, 250),
-  },
-];
 
 const SUGGESTIONS = [
   { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, rating: 4.6, bg: "var(--color-coral-50)", image: unsplash(PHOTOS.bomberJacket, 400, 500) },
@@ -104,10 +72,11 @@ function PaymentChips({ className = "" }) {
   );
 }
 
-function FreeShippingBar({ subtotal }) {
-  const remaining = Math.max(0, FREE_SHIPPING_AT - subtotal);
+// freeAt = standard delivery's "free on orders of" amount from the admin's Shipping page
+function FreeShippingBar({ subtotal, freeAt }) {
+  const remaining = Math.max(0, freeAt - subtotal);
   const unlocked = remaining === 0;
-  const pct = Math.min(100, Math.round((subtotal / FREE_SHIPPING_AT) * 100));
+  const pct = freeAt > 0 ? Math.min(100, Math.round((subtotal / freeAt) * 100)) : 100;
 
   return (
     <div
@@ -154,26 +123,34 @@ function FreeShippingBar({ subtotal }) {
   );
 }
 
-function QtyStepper({ item, onChange }) {
+function QtyStepper({ item }) {
+  const [updateCartItem] = useUpdateCartItemMutation();
+
+  const changeQty = (delta) => {
+    const next = item.quantity + delta;
+    if (next < 1) return;
+    updateCartItem({ id: item._id, quantity: next });
+  };
+
   return (
     <div className="inline-flex items-center rounded-full border border-line-strong bg-white">
       <button
         type="button"
-        onClick={() => onChange(item.id, -1)}
-        disabled={item.qty <= 1}
+        onClick={() => changeQty(-1)}
+        disabled={item.quantity <= 1}
         className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-mist disabled:cursor-not-allowed disabled:text-faint disabled:hover:bg-transparent"
-        aria-label={`Decrease quantity of ${item.name}`}
+        aria-label={`Decrease quantity of ${item.productID?.name}`}
       >
         <Minus size={14} />
       </button>
       <span className="w-7 text-center text-sm font-semibold tabular-nums text-ink" aria-live="polite">
-        {item.qty}
+        {item.quantity}
       </span>
       <button
         type="button"
-        onClick={() => onChange(item.id, 1)}
+        onClick={() => changeQty(1)}
         className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-mist"
-        aria-label={`Increase quantity of ${item.name}`}
+        aria-label={`Increase quantity of ${item.productID?.name}`}
       >
         <Plus size={14} />
       </button>
@@ -181,18 +158,31 @@ function QtyStepper({ item, onChange }) {
   );
 }
 
-function CartItem({ item, onQty, onRemove }) {
-  const [saved, setSaved] = useState(null); // "wishlist" | "later" | null
+function CartItem({ item }) {
+  const [addToWishlist] = useAddToWishlistMutation();
+  const [deleteCartItem] = useDeleteCartItemMutation();
+  const [deleteFromWishlist] = useDeleteFromWishListMutation();
+  const { isWishlisted, wishlistItemId } = useIsWishlist(item.productID?._id);
+ 
+  const product = item?.productID;
+
+  const handleWishlist = () => {
+    if(isWishlisted){
+      deleteFromWishlist(wishlistItemId);
+    }else{
+      addToWishlist(product?._id);
+    }
+  };
 
   return (
     <li className="group relative flex gap-4 rounded-3xl border border-line bg-white p-3.5 transition-all hover:border-line-hover hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] sm:gap-5 sm:p-4">
       <Link
-        to={`/products/${item.id}`}
+        to={`/products/${product?._id}`}
         className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl sm:h-40 sm:w-32"
       >
         <SmartImage
-          src={item.image}
-          alt={item.name}
+          src={product?.images?.[0]}
+          alt={product?.name}
           bg={item.bg}
           imgClassName="transition-transform duration-500 group-hover:scale-105"
         />
@@ -201,20 +191,22 @@ function CartItem({ item, onQty, onRemove }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">
-              {item.seller}
-            </p>
+            {item.seller && (
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-subtle">
+                {item.seller}
+              </p>
+            )}
             <Link
-              to={`/products/${item.id}`}
+              to={`/products/${product?._id}`}
               className="mt-0.5 block truncate text-[15px] font-semibold text-ink hover:text-brand sm:text-base"
             >
-              {item.name}
+              {product?.name}
             </Link>
           </div>
           <button
             type="button"
-            onClick={() => onRemove(item.id)}
-            aria-label={`Remove ${item.name} from bag`}
+            onClick={() => deleteCartItem(item._id)}
+            aria-label={`Remove ${product?.name} from bag`}
             className="-mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-subtle transition-colors hover:bg-danger-50 hover:text-danger"
           >
             <Trash2 size={16} />
@@ -222,25 +214,29 @@ function CartItem({ item, onQty, onRemove }) {
         </div>
 
         <div className="mt-2 flex flex-wrap gap-1.5">
-          <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-            Size: <span className="font-semibold text-ink">{item.size}</span>
-          </span>
-          <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-            Colour: <span className="font-semibold text-ink">{item.color}</span>
-          </span>
+          {item.size && (
+            <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
+              Size: <span className="font-semibold text-ink">{item.size}</span>
+            </span>
+          )}
+          {item.color && (
+            <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
+              Colour: <span className="font-semibold text-ink">{item.color}</span>
+            </span>
+          )}
           <span className="hidden rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-semibold text-success sm:inline">
             In stock
           </span>
         </div>
 
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-3">
-          <QtyStepper item={item} onChange={onQty} />
+          <QtyStepper item={item} />
           <div className="text-right">
             <p className="text-base font-bold tabular-nums text-ink sm:text-lg">
-              {money(item.price * item.qty)}
+              {money((product?.price ?? 0) * item.quantity)}
             </p>
-            {item.qty > 1 && (
-              <p className="text-[11px] text-subtle">{money(item.price)} each</p>
+            {product?.price && item.quantity > 1 && (
+              <p className="text-[11px] text-subtle">{money(product.price)} each</p>
             )}
           </div>
         </div>
@@ -248,85 +244,18 @@ function CartItem({ item, onQty, onRemove }) {
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-2.5 text-xs font-semibold">
           <button
             type="button"
-            onClick={() => setSaved(saved === "wishlist" ? null : "wishlist")}
-            aria-pressed={saved === "wishlist"}
+            onClick={handleWishlist}
+            aria-pressed={isWishlisted}
             className={`inline-flex items-center gap-1.5 rounded-full py-1 transition-colors ${
-              saved === "wishlist" ? "text-pop" : "text-muted hover:text-pop"
+              isWishlisted ? "text-red-500 hover:text-red-600" : "text-muted hover:text-pop"
             }`}
           >
-            <Heart size={13} className={saved === "wishlist" ? "fill-pop" : ""} />
-            {saved === "wishlist" ? "In wishlist" : "Move to wishlist"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSaved(saved === "later" ? null : "later")}
-            aria-pressed={saved === "later"}
-            className={`inline-flex items-center gap-1.5 rounded-full py-1 transition-colors ${
-              saved === "later" ? "text-brand" : "text-muted hover:text-brand"
-            }`}
-          >
-            <Bookmark size={13} className={saved === "later" ? "fill-brand" : ""} />
-            {saved === "later" ? "Saved" : "Save for later"}
+            <Heart size={13} className={isWishlisted ? "fill-red-500" : ""} />
+            {isWishlisted ? "Remove from wishlist" : "Move to wishlist"}
           </button>
         </div>
       </div>
     </li>
-  );
-}
-
-function PromoForm({ promoCode, setPromoCode, appliedPromo, promoError, onApply }) {
-  const status = appliedPromo ? "success" : promoError ? "error" : "idle";
-  return (
-    <div>
-      <form onSubmit={onApply} className="flex gap-2">
-        <label htmlFor="promo-code" className="sr-only">
-          Promo code
-        </label>
-        <div
-          className={`flex min-w-0 flex-1 items-center rounded-full border bg-white px-3.5 transition-colors focus-within:ring-4 ${
-            status === "success"
-              ? "border-success/50 focus-within:ring-success/10"
-              : status === "error"
-              ? "border-danger/50 focus-within:ring-danger/10"
-              : "border-line-strong focus-within:border-brand/40 focus-within:ring-brand/10"
-          }`}
-        >
-          <Tag size={14} className="shrink-0 text-subtle" aria-hidden="true" />
-          <input
-            id="promo-code"
-            type="text"
-            autoComplete="off"
-            value={promoCode}
-            onChange={(e) => setPromoCode(e.target.value)}
-            placeholder="Promo code"
-            aria-invalid={status === "error"}
-            aria-describedby="promo-status"
-            className="ml-2 w-full min-w-0 bg-transparent py-2.5 text-sm uppercase text-ink outline-none placeholder:normal-case placeholder:text-subtle"
-          />
-        </div>
-        <button
-          type="submit"
-          className="shrink-0 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover"
-        >
-          Apply
-        </button>
-      </form>
-      <div id="promo-status" aria-live="polite">
-        {promoError && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-danger">
-            <AlertCircle size={13} /> {promoError} Try <span className="font-bold">BAZAR10</span>.
-          </p>
-        )}
-        {appliedPromo && (
-          <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-success-50 px-3 py-2 text-xs font-medium text-success">
-            <CheckCircle2 size={14} />
-            <span>
-              <span className="font-bold">{appliedPromo.code}</span> applied — {appliedPromo.percent}% off
-            </span>
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -468,47 +397,36 @@ function EmptyBag() {
 /* ---------------------------------------------------------------- */
 
 function CartPage() {
-  const [items, setItems] = useState(INITIAL_ITEMS);
-  const [promoCode, setPromoCode] = useState("");
+  // promo code is currently disabled (PromoForm commented out), kept for the discount row
   const [appliedPromo, setAppliedPromo] = useState(null);
-  const [promoError, setPromoError] = useState("");
 
-  const updateQty = (id, delta) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item
-      )
-    );
-  };
+  const token = useSelector((state) => state.auth.token);
+  // the bag lives on the server, so it needs a login (skip the request when logged out)
+  const { data: cartItems = [], isLoading, isError } = useGetCartItemsQuery(undefined, { skip: !token });
+  // delivery options set by the admin (defaults only while loading); the bag shows the default (first) one
+  const { data: shippingData } = useGetShippingQuery();
+  const defaultShipping = (shippingData?.length ? shippingData : DEFAULT_SHIPPING)[0];
 
-  const removeItem = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  const removePromo = () => setAppliedPromo(null);
 
-  const applyPromo = (e) => {
-    e.preventDefault();
-    if (promoCode.trim().toUpperCase() === "BAZAR10") {
-      setAppliedPromo({ code: "BAZAR10", percent: 10 });
-      setPromoError("");
-    } else {
-      setPromoError("That code isn't valid.");
-      setAppliedPromo(null);
-    }
-  };
+  // all hooks are above; early returns are safe from here on
+  if (!token) return <Navigate to="/login" replace state={{ from: "/cart" }} />;
+  if (isLoading) return <p className="p-6">Loading bag...</p>;
+  if (isError) return <p className="p-6">Couldn&apos;t load your bag.</p>;
+  if (cartItems.length === 0) return <EmptyBag />;
 
-  const removePromo = () => {
-    setAppliedPromo(null);
-    setPromoCode("");
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const shipping = subtotal >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : 99;
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + (item.productID?.price ?? 0) * item.quantity,
+    0
+  );
+  const unitCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const shipping = subtotal === 0 ? 0 : calcShipping(defaultShipping, subtotal);
   const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
   const total = subtotal + shipping - discount;
-  const unitCount = items.reduce((sum, item) => sum + item.qty, 0);
-  const savings = discount + (shipping === 0 ? 99 : 0);
-
-  if (items.length === 0) return <EmptyBag />;
+  const savings = discount + (shipping === 0 ? defaultShipping.price : 0);
+  // only show the "away from free shipping" bar if the default delivery can become free
+  const freeShippingAt =
+    defaultShipping.freeAbove != null && defaultShipping.price > 0 ? defaultShipping.freeAbove : null;
 
   return (
     <div className="mx-auto max-w-7xl px-5 pb-36 pt-8 sm:px-6 lg:px-8 lg:pb-16 lg:pt-10">
@@ -522,7 +440,7 @@ function CartPage() {
             </span>
           </h1>
           <p className="mt-1.5 text-sm text-muted">
-            From {items.length} independent {items.length === 1 ? "seller" : "sellers"} · items aren&apos;t reserved until checkout
+            From {cartItems.length} independent {cartItems.length === 1 ? "seller" : "sellers"} · items aren&apos;t reserved until checkout
           </p>
         </div>
         <Link
@@ -537,10 +455,10 @@ function CartPage() {
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-10">
         {/* Items */}
         <section aria-label="Items in your bag" className="flex min-w-0 flex-col gap-4">
-          <FreeShippingBar subtotal={subtotal} />
+          {freeShippingAt !== null && <FreeShippingBar subtotal={subtotal} freeAt={freeShippingAt} />}
           <ul className="flex flex-col gap-3 sm:gap-4">
-            {items.map((item) => (
-              <CartItem key={item.id} item={item} onQty={updateQty} onRemove={removeItem} />
+            {cartItems.map((item) => (
+              <CartItem key={item._id} item={item} />
             ))}
           </ul>
 
@@ -569,16 +487,6 @@ function CartPage() {
             <h2 id="summary-title" className="text-xl font-bold text-ink">
               Order summary
             </h2>
-
-            <div className="mt-5">
-              <PromoForm
-                promoCode={promoCode}
-                setPromoCode={setPromoCode}
-                appliedPromo={appliedPromo}
-                promoError={promoError}
-                onApply={applyPromo}
-              />
-            </div>
 
             <dl className="mt-5 flex flex-col gap-3 border-t border-dashed border-line-strong pt-5 text-sm">
               <SummaryRow label={`Subtotal (${unitCount} items)`} value={money(subtotal)} />

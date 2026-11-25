@@ -151,7 +151,7 @@ function Hero() {
 
             {/* Featured product card */}
             <Link
-              to="/products/p1"
+              to="/categories/women"
               className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex md:hidden lg:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
             >
               <span className="h-16 w-12 overflow-hidden">

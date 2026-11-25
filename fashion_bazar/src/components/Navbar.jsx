@@ -13,25 +13,24 @@ import {
   Sparkles,
   Truck,
   Store,
+  LogOut,
 } from "lucide-react";
 import SmartImage from "./SmartImage";
+import AccountMenu from "./AccountMenu";
 import { PHOTOS, unsplash } from "../assets/images";
-
+import {useGetCategoryQuery} from "../lib/api/categoryApi";
+import { useGetUserByIdQuery } from "../lib/api/userApi";
+import { useGetCartItemsQuery } from "../lib/api/cartApi";
+import { useGetWishlistQuery } from "../lib/api/wishlistApi";
+import { baseApi } from "../lib/api/baseApi";
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "../lib/slices/authSlice";
 const NAV_LINKS = [
   { to: "/", label: "Home" },
   { to: "/products", label: "Shop" },
   { to: "/categories", label: "Categories", mega: true },
   { to: "/new-arrivals", label: "New In" },
   { to: "/deals", label: "Deals", hot: true },
-];
-
-const MEGA_CATEGORIES = [
-  { to: "/categories/women", label: "Women", note: "Dresses, tops, knits", photo: PHOTOS.womanPlaid, tone: "bg-pop-50" },
-  { to: "/categories/men", label: "Men", note: "Shirts, suits, outerwear", photo: PHOTOS.menswearFlatlay, tone: "bg-sky-50" },
-  { to: "/categories/kids", label: "Kids", note: "Play-ready & comfy", photo: PHOTOS.kidRaincoat, tone: "bg-sun-50" },
-  { to: "/categories/footwear", label: "Footwear", note: "Sneakers, heels, loafers", photo: PHOTOS.sneakers, tone: "bg-coral-50" },
-  { to: "/categories/jewelry", label: "Jewelry", note: "Hoops, bangles, pearls", photo: PHOTOS.goldBangle, tone: "bg-mint-50" },
-  { to: "/categories/accessories", label: "Accessories", note: "Bags, scarves & more", photo: PHOTOS.wovenTote, tone: "bg-brand-50" },
 ];
 
 const ANNOUNCEMENTS = [
@@ -46,7 +45,7 @@ function CountBadge({ count, className }) {
   if (!count) return null;
   return (
     <span
-      className={`absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold ring-2 ring-white ${className}`}
+      className={`absolute -right-1.5 -top-1.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 text-[10px] font-bold ring-2 ring-white ${className}`}
     >
       {count}
     </span>
@@ -63,6 +62,20 @@ function Navbar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const megaTimer = useRef(null);
+
+ const { data: categories } = useGetCategoryQuery();
+  const dispatch = useDispatch();
+  const token = useSelector((state) => state.auth.token);
+  // skip until logged in, otherwise /users returns 401
+  const { data: userData } = useGetUserByIdQuery(undefined, { skip: !token });
+  const firstName = userData?.user?.firstName ;
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(baseApi.util.resetApiState());
+    closeAll();
+    navigate("/");
+  };
 
   // Small delay so the menu survives the mouse travelling from button to panel
   const openMega = () => {
@@ -88,9 +101,11 @@ function Navbar() {
     };
   }, []);
 
-  // placeholder counts until the cart / wishlist store is wired up
-  const cartCount = 2;
-  const wishlistCount = 3;
+  // real counts for the badges; skipped until logged in (the same cached queries the pages use)
+  const { data: cartItems } = useGetCartItemsQuery(undefined, { skip: !token });
+  const { data: wishlist } = useGetWishlistQuery(undefined, { skip: !token });
+  const cartCount = token ? cartItems?.length ?? 0 : 0;
+  const wishlistCount = token ? wishlist?.length ?? 0 : 0;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -168,7 +183,7 @@ function Navbar() {
         </div>
       </div>
 
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-[76px] lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-19 lg:px-8">
         {/* Mobile menu trigger */}
         <button
           type="button"
@@ -226,7 +241,7 @@ function Navbar() {
         <form
           onSubmit={handleSearch}
           role="search"
-          className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist px-4 py-2.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
+          className="hidden max-w-xs flex-1 items-center rounded-full border border-line bg-mist py-1.5 pl-4 pr-1.5 transition-all focus-within:border-brand/40 focus-within:bg-white focus-within:ring-4 focus-within:ring-brand/10 lg:flex xl:max-w-sm"
         >
           <Search size={17} className="shrink-0 text-subtle" />
           <input
@@ -237,10 +252,18 @@ function Navbar() {
             aria-label="Search products"
             className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
           />
+          <button
+            type="submit"
+            aria-label="Search"
+            className="ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark active:scale-95"
+          >
+            <ArrowRight size={15} />
+          </button>
         </form>
 
         {/* Action icons */}
         <div className="flex items-center gap-0.5 sm:gap-1.5">
+          {/* Search (mobile / tablet) */}
           <button
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
@@ -273,22 +296,7 @@ function Navbar() {
             </span>
           </Link>
 
-          <Link
-            to="/login"
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition-colors hover:bg-brand-50 max-sm:hidden xl:hidden"
-            aria-label="Sign in"
-          >
-            <User size={20} />
-          </Link>
-          <Link
-            to="/login"
-            className="ml-1 hidden items-center gap-2 rounded-full bg-ink py-2 pl-2 pr-4 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover hover:shadow-lg xl:flex"
-          >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15">
-              <User size={14} />
-            </span>
-            Sign in
-          </Link>
+          <AccountMenu token={token} user={userData?.user} onLogout={handleLogout} />
         </div>
       </div>
 
@@ -304,30 +312,32 @@ function Navbar() {
           <div className="col-span-8">
             <p className="text-xs font-bold uppercase tracking-wider text-subtle">Shop by category</p>
             <div className="mt-4 grid grid-cols-3 gap-3">
-              {MEGA_CATEGORIES.map((cat) => (
+              {categories?.map((cat) => (
                 <Link
-                  key={cat.to}
-                  to={cat.to}
+                  key={cat.slug}
+                  to={`/categories/${cat.slug}`}
                   onClick={closeAll}
                   className={`group flex items-center gap-3 rounded-2xl p-2.5 pr-4 transition-all hover:-translate-y-0.5 hover:shadow-md ${cat.tone}`}
                 >
                   <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
                     <SmartImage
-                      src={unsplash(cat.photo, 120, 120)}
+                      // src={unsplash(cat?.image, 120, 120)}
+                      src={cat?.image}
                       alt=""
                       imgClassName="transition-transform duration-500 group-hover:scale-110"
                     />
                   </span>
                   <span className="min-w-0">
                     <span className="flex items-center gap-1 text-sm font-bold text-ink">
-                      {cat.label}
+                      {cat.categoryName}
                       <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                     </span>
-                    <span className="block truncate text-xs text-muted">{cat.note}</span>
+                    <span className="block truncate text-xs text-muted">{cat.description}</span>
                   </span>
                 </Link>
               ))}
             </div>
+            {/* Trending searches */}
             <div className="mt-5 flex items-center gap-2 text-sm">
               <span className="text-subtle">Trending:</span>
               {POPULAR_SEARCHES.map((term) => (
@@ -354,7 +364,7 @@ function Navbar() {
               className="absolute inset-0"
               imgClassName="transition-transform duration-700 group-hover:scale-105"
             />
-            <span className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/30 to-transparent" />
+            <span className="absolute inset-0 bg-linear-to-t from-ink/85 via-ink/30 to-transparent" />
             <span className="absolute right-4 top-4 rotate-12 rounded-full bg-pop px-3 py-1.5 text-xs font-extrabold text-white shadow-lg">
               -50%
             </span>
@@ -377,9 +387,9 @@ function Navbar() {
           <form
             onSubmit={handleSearch}
             role="search"
-            className="flex items-center rounded-full border border-line bg-mist px-4 py-2.5 focus-within:border-brand/40 focus-within:bg-white"
+            className="flex items-center rounded-full border border-line bg-mist py-1.5 pl-4 pr-1.5 focus-within:border-brand/40 focus-within:bg-white"
           >
-            <Search size={17} className="text-subtle" />
+            <Search size={17} className="shrink-0 text-subtle" />
             <input
               autoFocus
               type="search"
@@ -389,6 +399,13 @@ function Navbar() {
               aria-label="Search products"
               className="ml-2.5 w-full bg-transparent text-sm text-ink outline-none placeholder:text-subtle"
             />
+            <button
+              type="submit"
+              aria-label="Search"
+              className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-white transition-colors hover:bg-brand-dark active:scale-95"
+            >
+              <ArrowRight size={16} />
+            </button>
           </form>
           <div className="mt-3 flex flex-wrap gap-2">
             {POPULAR_SEARCHES.map((term) => (
@@ -407,7 +424,7 @@ function Navbar() {
 
       {/* Mobile drawer */}
       <div
-        className={`fixed inset-0 z-[60] transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-60 transition-opacity duration-300 lg:hidden ${
           mobileOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!mobileOpen}
@@ -434,14 +451,29 @@ function Navbar() {
                 <X size={20} />
               </button>
             </div>
-            <p className="relative mt-4 text-sm text-white/85">Welcome! Sign in for faster checkout and order tracking.</p>
-            <Link
-              to="/login"
-              onClick={closeAll}
-              className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
-            >
-              Sign in / Join <ArrowRight size={14} />
-            </Link>
+            {token ? (
+              <>
+                <p className="relative mt-4 text-sm text-white/85">Welcome back, {firstName}!</p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
+                >
+                  Log out <LogOut size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="relative mt-4 text-sm text-white/85">Welcome! Sign in for faster checkout and order tracking.</p>
+                <Link
+                  to="/login"
+                  onClick={closeAll}
+                  className="relative mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink"
+                >
+                  Sign in / Join <ArrowRight size={14} />
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
@@ -469,17 +501,18 @@ function Navbar() {
 
             <p className="mb-2 mt-6 px-4 text-xs font-bold uppercase tracking-wider text-subtle">Categories</p>
             <div className="grid grid-cols-2 gap-2">
-              {MEGA_CATEGORIES.map((cat) => (
+              {categories?.map((cat) => (
                 <Link
-                  key={cat.to}
-                  to={cat.to}
+                  key={cat.slug}
+                  to={`/categories/${cat.slug}`}
                   onClick={closeAll}
-                  className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 ${cat.tone}`}
+                  className={`flex min-w-0 items-center gap-2 rounded-2xl p-1.5 `}
                 >
                   <span className="h-9 w-9 shrink-0 overflow-hidden rounded-xl">
-                    <SmartImage src={unsplash(cat.photo, 80, 80)} alt="" />
+                    {/* <SmartImage src={unsplash(cat.photo, 80, 80)} alt="" /> */}
+                    <SmartImage src={cat.image} alt="" />
                   </span>
-                  <span className="min-w-0 truncate text-sm font-semibold text-ink">{cat.label}</span>
+                  <span className="min-w-0 truncate text-sm font-semibold text-ink">{cat.categoryName}</span>
                 </Link>
               ))}
             </div>
