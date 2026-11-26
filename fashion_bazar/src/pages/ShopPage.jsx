@@ -22,7 +22,6 @@ import SmartImage from "../components/SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
 import { ProductGridSkeleton, ProductsEmpty } from "../components/ProductGridStatus";
 import { formatPrice } from "../utils/formatPrice";
-import { swatchFor } from "../utils/colorSwatch";
 import { useGetProductsQuery, useGetProductFiltersQuery } from "../lib/api/productApi";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
 import { useFreeShipping } from "../hooks/useFreeShipping";
@@ -214,11 +213,8 @@ function PriceFilter({ priceMax, priceCeiling, onCommit, idPrefix }) {
 
 function FilterPanel({
   sizes,
-  colors,
   sizeOptions,
-  colorOptions,
   toggleSize,
-  toggleColor,
   priceMax,
   priceCeiling,
   setPriceMax,
@@ -255,35 +251,6 @@ function FilterPanel({
                   }`}
                 >
                   {size}
-                </button>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {colorOptions.length > 0 && (
-        <FilterSection title="Colour" hint={colors.length || null}>
-          <div className="grid grid-cols-3 gap-2">
-            {colorOptions.map((color) => {
-              const active = colors.includes(color);
-              return (
-                <button
-                  type="button"
-                  key={color}
-                  onClick={() => toggleColor(color)}
-                  aria-pressed={active}
-                  className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2 text-[11px] font-medium capitalize transition-colors ${
-                    active ? "border-ink bg-mist text-ink" : "border-transparent text-muted hover:bg-mist"
-                  }`}
-                >
-                  <span
-                    className="relative flex h-7 w-7 items-center justify-center rounded-full ring-1 ring-line ring-offset-2"
-                    style={{ backgroundColor: swatchFor(color) }}
-                  >
-                    {active && <Check size={14} className="text-white mix-blend-difference" strokeWidth={3} />}
-                  </span>
-                  <span className="max-w-full truncate">{color}</span>
                 </button>
               );
             })}
@@ -363,12 +330,9 @@ function SortMenu({ sort, setSort }) {
   );
 }
 
-function FilterChip({ children, onRemove, label, swatch }) {
+function FilterChip({ children, onRemove, label }) {
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-brand/20 bg-brand-50 py-1 pl-3 pr-1 text-xs font-semibold text-brand">
-      {swatch && (
-        <span className="h-3 w-3 rounded-full ring-1 ring-white" style={{ backgroundColor: swatch }} />
-      )}
       {children}
       <button
         type="button"
@@ -460,7 +424,7 @@ function ShopPage() {
   const isNewArrivals = pathname === "/new-arrivals";
   const isDeals = pathname === "/deals";
 
-  // Every filter lives in the URL: ?q=shirt&size=M,L&color=black&maxPrice=3000&sort=price_asc&page=2
+  // Every filter lives in the URL: ?q=shirt&size=M,L&maxPrice=3000&sort=price_asc&page=2
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Change one key and keep the others. An empty value removes the key.
@@ -475,7 +439,6 @@ function ShopPage() {
   // READ the filters from the URL
   const searchQuery = searchParams.get("q") || "";
   const sizes = toList(searchParams.get("size"));
-  const colors = toList(searchParams.get("color"));
   const defaultSort = isNewArrivals ? "newest" : "popular";
   const sortParam = searchParams.get("sort");
   const sort = SORT_KEYS.includes(sortParam) ? sortParam : defaultSort;
@@ -488,7 +451,6 @@ function ShopPage() {
     const ib = SIZE_ORDER.indexOf(b);
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
   });
-  const colorOptions = filterOptions?.colors ?? [];
   // slider maximum: the highest price rounded up to the next 500
   const priceCeiling = Math.ceil((filterOptions?.maxPrice || PRICE_CEILING) / 500) * 500;
   const maxPriceParam = Number(searchParams.get("maxPrice"));
@@ -500,7 +462,6 @@ function ShopPage() {
   const toggleInList = (key, list, value) =>
     updateParam(key, (list.includes(value) ? list.filter((v) => v !== value) : [...list, value]).join(","));
   const toggleSize = (size) => toggleInList("size", sizes, size);
-  const toggleColor = (color) => toggleInList("color", colors, color);
   const setPriceMax = (value) => updateParam("maxPrice", value >= priceCeiling ? "" : value);
   const goToPage = (n) => {
     updateParam("page", n > 1 ? n : "");
@@ -513,14 +474,13 @@ function ShopPage() {
     setSearchParams(next);
   };
 
-  const activeFilterCount = sizes.length + colors.length + (priceActive ? 1 : 0);
+  const activeFilterCount = sizes.length + (priceActive ? 1 : 0);
 
   // SEND the same filters to the API. A new combination = a new request (and its own cache entry).
   const { data, isLoading: loading, isFetching, error } = useGetProductsQuery({
     q: searchQuery,
     category: categorySlug,
     size: sizes.join(","),
-    color: colors.join(","),
     maxPrice: priceActive ? priceMax : "",
     onSale: isDeals,
     sort,
@@ -570,11 +530,8 @@ function ShopPage() {
   const itemCount = data?.total ?? 0;
   const filterProps = {
     sizes,
-    colors,
     sizeOptions,
-    colorOptions,
     toggleSize,
-    toggleColor,
     priceMax,
     priceCeiling,
     setPriceMax,
@@ -744,11 +701,6 @@ function ShopPage() {
               {sizes.map((s) => (
                 <FilterChip key={`s-${s}`} label={`size ${s}`} onRemove={() => toggleSize(s)}>
                   Size {s}
-                </FilterChip>
-              ))}
-              {colors.map((c) => (
-                <FilterChip key={`col-${c}`} label={c} swatch={swatchFor(c)} onRemove={() => toggleColor(c)}>
-                  <span className="capitalize">{c}</span>
                 </FilterChip>
               ))}
               {priceActive && (

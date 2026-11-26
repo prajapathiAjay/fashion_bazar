@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { getPrices } from "../utils/productPrice";
-import { swatchFor } from "../utils/colorSwatch";
 import { useGetProductsByIdQuery, useGetProductsQuery } from "../lib/api/productApi";
 import { useGetCategoryQuery } from "../lib/api/categoryApi";
 import { useAddToCartMutation } from "../lib/api/cartApi";
@@ -282,7 +281,6 @@ function ProductDetail() {
     ...TRUST,
   ];
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
   const [qty, setQty] = useState(1);
   const [addedToBag, setAddedToBag] = useState(false);
   const [cartError, setCartError] = useState("");
@@ -316,7 +314,6 @@ function ProductDetail() {
   const { sale: price, original: originalPrice, discount } = getPrices(product);
   const stock = product?.stock ?? 0;
   const size = selectedSize || product?.sizes?.[0] || "";
-  const color = selectedColor || product?.colors?.[0] || "";
   const category = categories?.find((c) => c.slug !== "all" && product?.categories?.includes(c._id));
 
   // Review summary
@@ -520,34 +517,8 @@ function ProductDetail() {
              {product?.description}
             </p>
 
-            {/* Colour */}
-            {product.colors?.length > 0 && (
-              <fieldset className="mt-7">
-                <legend className="text-sm font-bold text-ink">
-                  Colour <span className="font-normal capitalize text-subtle">— {color}</span>
-                </legend>
-                <div className="mt-3 flex flex-wrap gap-3">
-                  {product.colors.map((name) => (
-                    <button
-                      type="button"
-                      key={name}
-                      onClick={() => setSelectedColor(name)}
-                      aria-label={name}
-                      aria-pressed={color === name}
-                      className={`relative flex h-11 w-11 items-center justify-center rounded-full ring-offset-2 transition-all ${
-                        color === name ? "ring-2 ring-ink" : "ring-1 ring-line hover:ring-line-hover"
-                      }`}
-                      style={{ backgroundColor: swatchFor(name) }}
-                    >
-                      {color === name && <Check size={16} strokeWidth={3} className="text-white mix-blend-difference" />}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-
             {/* Size */}
-            <fieldset className={`mt-6 ${product.sizes?.length ? "" : "hidden"}`}>
+            <fieldset className={`mt-7 ${product.sizes?.length ? "" : "hidden"}`}>
               <div className="flex items-center justify-between">
                 <legend className="text-sm font-bold text-ink">
                   Size <span className="font-normal text-subtle">— {size}</span>
@@ -700,7 +671,6 @@ function ProductDetail() {
                   {product.summary && <li>{product.summary}</li>}
                   {product.brand && <li>Brand: {product.brand}</li>}
                   {product.sizes?.length > 0 && <li>Sizes: {product.sizes.join(", ")}</li>}
-                  {product.colors?.length > 0 && <li className="capitalize">Colours: {product.colors.join(", ")}</li>}
                 </ul>
               </Accordion>
               <Accordion title="Care" icon={Leaf} tone="bg-mint-50 text-success">
@@ -899,7 +869,7 @@ function ProductDetail() {
               )}
             </p>
             <p className="truncate text-[11px] text-subtle">
-              {[color, size && `Size ${size}`].filter(Boolean).join(" · ") || product.name}
+              {size ? `Size ${size}` : product.name}
             </p>
           </div>
           <button

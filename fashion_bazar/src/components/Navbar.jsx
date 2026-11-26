@@ -65,8 +65,8 @@ function Navbar() {
     "Cash on delivery available",
     "Secure checkout",
   ];
-  // search shortcuts = the shop's real category names
-  const POPULAR_SEARCHES = (categories ?? []).slice(0, 5).map((c) => c.categoryName);
+  // shortcuts = the shop's real categories ("all" is just the whole shop, so it's left out)
+  const POPULAR_SEARCHES = (categories ?? []).filter((c) => c.slug !== "all").slice(0, 5);
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   // skip until logged in, otherwise /users returns 401
@@ -139,6 +139,12 @@ function Navbar() {
   const runSearch = (term) => {
     const q = term.trim();
     navigate(q ? `/products?q=${encodeURIComponent(q)}` : "/products");
+    closeAll();
+  };
+
+  // a shortcut chip opens its category page instead of searching for the word
+  const openCategory = (slug) => {
+    navigate(`/categories/${slug}`);
     closeAll();
   };
 
@@ -343,14 +349,14 @@ function Navbar() {
             {/* Trending searches */}
             <div className="mt-5 flex items-center gap-2 text-sm">
               <span className="text-subtle">Trending:</span>
-              {POPULAR_SEARCHES.map((term) => (
+              {POPULAR_SEARCHES.map((cat) => (
                 <button
-                  key={term}
+                  key={cat.slug}
                   type="button"
-                  onClick={() => runSearch(term)}
+                  onClick={() => openCategory(cat.slug)}
                   className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-soft transition-colors hover:border-brand hover:text-brand"
                 >
-                  {term}
+                  {cat.categoryName}
                 </button>
               ))}
             </div>
@@ -411,14 +417,14 @@ function Navbar() {
             </button>
           </form>
           <div className="mt-3 flex flex-wrap gap-2">
-            {POPULAR_SEARCHES.map((term) => (
+            {POPULAR_SEARCHES.map((cat) => (
               <button
-                key={term}
+                key={cat.slug}
                 type="button"
-                onClick={() => runSearch(term)}
+                onClick={() => openCategory(cat.slug)}
                 className="rounded-full bg-mist px-3 py-1.5 text-xs font-medium text-ink-soft"
               >
-                {term}
+                {cat.categoryName}
               </button>
             ))}
           </div>

@@ -213,11 +213,6 @@ function CartItem({ item }) {
               Size: <span className="font-semibold text-ink">{item.size}</span>
             </span>
           )}
-          {item.color && (
-            <span className="rounded-full bg-mist px-2.5 py-1 text-[11px] font-medium text-ink-soft">
-              Colour: <span className="font-semibold text-ink">{item.color}</span>
-            </span>
-          )}
           <span className="hidden rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-semibold text-success sm:inline">
             In stock
           </span>

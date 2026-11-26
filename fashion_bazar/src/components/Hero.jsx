@@ -115,7 +115,7 @@ function Hero() {
             <div className="grid grid-cols-12 gap-4 sm:gap-5">
               {/* Main look */}
               <Link
-                to="/categories/women"
+                to="/categories/womens"
                 className="group relative col-span-8 aspect-[4/5] overflow-hidden md:aspect-[3/5] lg:aspect-[4/5] rounded-sm"
               >
                 <SmartImage
@@ -138,7 +138,7 @@ function Hero() {
 
               {/* Side column */}
               <div className="col-span-4 flex flex-col gap-4 sm:gap-5">
-                <Link to="/categories/men" className="group relative aspect-[3/4] overflow-hidden rounded-sm">
+                <Link to="/categories/mens" className="group relative aspect-[3/4] overflow-hidden rounded-sm">
                   <SmartImage
                     src={unsplash(PHOTOS.manSuit, 400, 540)}
                     alt="Man in a navy suit"
@@ -149,7 +149,7 @@ function Hero() {
                     Men
                   </span>
                 </Link>
-                <Link to="/categories/jewelry" className="group relative flex-1 overflow-hidden rounded-sm">
+                <Link to="/products?q=gold" className="group relative flex-1 overflow-hidden rounded-sm">
                   <SmartImage
                     src={unsplash(PHOTOS.goldHoops, 400, 400)}
                     alt="Gold twisted hoop earrings"
