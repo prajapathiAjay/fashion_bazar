@@ -4,6 +4,16 @@ import { Mail, Phone, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { useContactInfo } from "../utils/contactInfo";
 import { useSendContactMessageMutation } from "../lib/api/contactApi";
+import { checkEmail } from "../utils/validation";
+
+const MESSAGE_MAX = 2000; // same limit as the backend
+
+const FieldMessage = ({ text }) =>
+  text ? (
+    <p role="alert" className="mt-1.5 text-xs font-semibold text-danger">
+      {text}
+    </p>
+  ) : null;
 
 const TOPICS = ["Order or delivery", "Returns & refunds", "Selling on Fashion Bazar", "Something else"];
 
@@ -16,13 +26,27 @@ function ContactPage() {
   const { items: contactItems } = useContactInfo();
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  // one message per field, and a live character count for the message box
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [messageLength, setMessageLength] = useState(0);
   const [sendMessage, { isLoading: sending }] = useSendContactMessageMutation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     // FormData reads every field of the form by its "name"
-    const form = Object.fromEntries(new FormData(e.currentTarget));
+    const raw = Object.fromEntries(new FormData(e.currentTarget));
+    const form = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v).trim()]));
+    // same checks as the server, shown under each field
+    const errors = {
+      name: form.name ? "" : "Enter your name",
+      email: checkEmail(form.email),
+      topic: form.topic ? "" : "Choose what it's about",
+      message: form.message ? "" : "Write your message",
+    };
+    const shown = Object.fromEntries(Object.entries(errors).filter(([, m]) => m));
+    setFieldErrors(shown);
+    if (Object.keys(shown).length) return;
     try {
       await sendMessage(form).unwrap();
       setSent(true);
@@ -90,14 +114,26 @@ function ContactPage() {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              noValidate
+              onSubmit={handleSubmit}
+              onChange={(e) => e.target.name && setFieldErrors((fe) => ({ ...fe, [e.target.name]: "" }))}
+              className="space-y-4"
+            >
               <h2 className="text-xl font-bold text-ink sm:text-2xl">Send us a message</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <input required maxLength={100} name="name" placeholder="Your name" className={inputClass} />
-                <input required maxLength={200} type="email" name="email" placeholder="Email address" className={inputClass} />
+                <div>
+                  <input maxLength={100} name="name" autoComplete="name" aria-invalid={Boolean(fieldErrors.name)} placeholder="Your name" className={inputClass} />
+                  <FieldMessage text={fieldErrors.name} />
+                </div>
+                <div>
+                  <input maxLength={200} type="email" name="email" autoComplete="email" aria-invalid={Boolean(fieldErrors.email)} placeholder="Email address" className={inputClass} />
+                  <FieldMessage text={fieldErrors.email} />
+                </div>
               </div>
               <input maxLength={100} name="orderId" placeholder="Order ID (optional)" className={inputClass} />
-              <select required name="topic" defaultValue="" className={inputClass}>
+              <div>
+              <select name="topic" defaultValue="" aria-invalid={Boolean(fieldErrors.topic)} className={inputClass}>
                 <option value="" disabled>
                   What's it about?
                 </option>
@@ -105,14 +141,25 @@ function ContactPage() {
                   <option key={t}>{t}</option>
                 ))}
               </select>
-              <textarea
-                required
-                maxLength={2000}
-                name="message"
-                rows={5}
-                placeholder="How can we help?"
-                className={`${inputClass} resize-none`}
-              />
+              <FieldMessage text={fieldErrors.topic} />
+              </div>
+              <div>
+                <textarea
+                  maxLength={MESSAGE_MAX}
+                  name="message"
+                  rows={5}
+                  aria-invalid={Boolean(fieldErrors.message)}
+                  onChange={(e) => setMessageLength(e.target.value.length)}
+                  placeholder="How can we help?"
+                  className={`${inputClass} resize-none`}
+                />
+                <div className="flex items-start justify-between gap-3">
+                  <FieldMessage text={fieldErrors.message} />
+                  <p className={`ml-auto mt-1.5 text-xs ${messageLength >= MESSAGE_MAX ? "font-semibold text-danger" : "text-subtle"}`}>
+                    {messageLength} / {MESSAGE_MAX}
+                  </p>
+                </div>
+              </div>
               {error && (
                 <p role="alert" className="rounded-xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger">
                   {error}

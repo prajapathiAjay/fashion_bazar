@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { checkEmail } from "../utils/validation";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, KeyRound, Loader2, Mail, MailCheck } from "lucide-react";
 import { useForgotPasswordMutation } from "../lib/api/userApi";
@@ -18,13 +19,15 @@ function ForgotPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!email.trim()) {
-      setError("Enter the email you signed up with.");
+    // same email check as sign-up (utils/validation.js)
+    const emailError = email.trim() ? checkEmail(email) : "Enter the email you signed up with.";
+    if (emailError) {
+      setError(emailError);
       return;
     }
     setSubmitting(true);
     try {
-      await forgotPassword({ email: email.trim() }).unwrap();
+      await forgotPassword({ email: email.trim().toLowerCase() }).unwrap();
       setSent(true);
     } catch (err) {
       setError(err?.data?.message || "Something went wrong");
@@ -88,13 +91,12 @@ function ForgotPasswordPage() {
               No worries. Enter your email and we'll send you a reset link.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+            <form noValidate onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
               <div className={inputWrapClass}>
                 <Mail size={16} className="shrink-0 text-subtle" />
                 <input
                   name="email"
                   type="email"
-                  required
                   autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

@@ -14,6 +14,17 @@ import {
 import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials, clearSessionExpired } from "../lib/slices/authSlice";
+import { NAME_MAX, PASSWORD_HINT, checkEmail, checkName, checkPassword } from "../utils/validation";
+
+// Red message under one field (nothing when there is no problem)
+function FieldMessage({ text }) {
+  if (!text) return null;
+  return (
+    <p role="alert" className="mt-1.5 text-[11px] font-semibold text-danger">
+      {text}
+    </p>
+  );
+}
 
 const inputWrapClass =
   "flex items-center gap-2.5 rounded-xl border border-line-strong bg-white px-3.5 py-3 transition-colors focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10";
@@ -56,6 +67,7 @@ function AuthPage() {
       ? state.from
       : "/";
   const setMode = (next) => {
+    setFieldErrors({});
     setError("");
     // keep "from" when switching between log in and sign up
     navigate(next === "signup" ? "/register" : "/login", { state });
@@ -64,6 +76,8 @@ function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // one message per field, shown under that field
+  const [fieldErrors, setFieldErrors] = useState({});
   const [signup] = useSignupMutation(); // top level ✅
   const [signin] = useSigninMutation();
   const token = useSelector((s) => s.auth.token);
@@ -76,19 +90,24 @@ function AuthPage() {
     dispatch(clearSessionExpired()); // hide the "session expired" note once they try again
     setSubmitting(true);
     const formData = new FormData(e.target);
-    const firstName = formData.get("firstName");
-    const lastName=formData.get("lastName")
-    const email = formData.get("email");
-    const password = formData.get("password");
+    const firstName = String(formData.get("firstName") ?? "").trim();
+    const lastName = String(formData.get("lastName") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const password = String(formData.get("password") ?? "");
 
-    if (!email || !password || (mode === "signup" && !firstName)) {
-      setError("Fill in all required fields.");
-      setSubmitting(false);
-      return;
-    }
-    // same rule the server uses (and the reset / change password forms)
-    if (mode === "signup" && (password.length < 8 || !/[a-zA-Z]/.test(password) || !/\d/.test(password))) {
-      setError("Password must be at least 8 characters and include a letter and a number.");
+    // same rules as the server (utils/validation.js); login only needs something typed in
+    const errors =
+      mode === "signup"
+        ? {
+            firstName: checkName(firstName),
+            lastName: lastName.length > 50 ? "Last name can be at most 50 characters" : "",
+            email: checkEmail(email),
+            password: checkPassword(password),
+          }
+        : { email: checkEmail(email), password: password ? "" : "Enter your password" };
+    const shown = Object.fromEntries(Object.entries(errors).filter(([, m]) => m));
+    setFieldErrors(shown);
+    if (Object.keys(shown).length) {
       setSubmitting(false);
       return;
     }
@@ -192,48 +211,69 @@ function AuthPage() {
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+          {/* noValidate: our own messages under each field instead of the browser's bubbles;
+              typing in a field clears its message */}
+          <form
+            noValidate
+            onSubmit={handleSubmit}
+            onChange={(e) => e.target.name && setFieldErrors((fe) => ({ ...fe, [e.target.name]: "" }))}
+            className="mt-6 flex flex-col gap-4"
+          >
             {mode === "signup" && (
-              <div>
-                {" "}
-                <div className={inputWrapClass}>
-                  <User size={16} className="shrink-0 text-subtle" />
-                  <input
-                    name="firstName"
-                    required
-                    placeholder="First name"
-                    className={inputClass}
-                  />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <div className={inputWrapClass}>
+                    <User size={16} className="shrink-0 text-subtle" />
+                    <input
+                      name="firstName"
+                      maxLength={NAME_MAX}
+                      autoComplete="given-name"
+                      aria-invalid={Boolean(fieldErrors.firstName)}
+                      placeholder="First name"
+                      className={inputClass}
+                    />
+                  </div>
+                  <FieldMessage text={fieldErrors.firstName} />
                 </div>
-                <div className={inputWrapClass}>
-                  <User size={16} className="shrink-0 text-subtle" />
-                  <input
-                    name="lastName"
-                    required
-                    placeholder="Last name"
-                    className={inputClass}
-                  />
+                <div>
+                  <div className={inputWrapClass}>
+                    <User size={16} className="shrink-0 text-subtle" />
+                    <input
+                      name="lastName"
+                      maxLength={50}
+                      autoComplete="family-name"
+                      placeholder="Last name (optional)"
+                      className={inputClass}
+                    />
+                  </div>
+                  <FieldMessage text={fieldErrors.lastName} />
                 </div>
               </div>
             )}
 
-            <div className={inputWrapClass}>
-              <Mail size={16} className="shrink-0 text-subtle" />
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                className={inputClass}
-              />
+            <div>
+              <div className={inputWrapClass}>
+                <Mail size={16} className="shrink-0 text-subtle" />
+                <input
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={Boolean(fieldErrors.email)}
+                  placeholder="you@example.com"
+                  className={inputClass}
+                />
+              </div>
+              <FieldMessage text={fieldErrors.email} />
             </div>
 
+            <div>
             <div className={inputWrapClass}>
               <Lock size={16} className="shrink-0 text-subtle" />
               <input
                 name="password"
                 type={showPassword ? "text" : "password"}
-                required
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                aria-invalid={Boolean(fieldErrors.password)}
                 placeholder={
                   mode === "signup" ? "Create a password" : "Password"
                 }
@@ -248,8 +288,14 @@ function AuthPage() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
+              {fieldErrors.password ? (
+                <FieldMessage text={fieldErrors.password} />
+              ) : (
+                mode === "signup" && <p className="mt-1.5 text-[11px] text-subtle">{PASSWORD_HINT}</p>
+              )}
+            </div>
 
-            {error && <p className="text-xs text-danger">{error}</p>}
+            {error && <p role="alert" className="text-xs text-danger">{error}</p>}
 
             {mode === "login" && (
               <div className="flex items-center justify-end text-xs">

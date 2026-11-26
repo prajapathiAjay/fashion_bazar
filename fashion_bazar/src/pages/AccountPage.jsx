@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { getPrices } from "../utils/productPrice";
+import { rules, phoneDigits } from "../utils/validation";
 import { useGetUserByIdQuery, useUpdateUserMutation, useChangePasswordMutation } from "../lib/api/userApi";
 import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { useGetMyOrdersQuery, useCancelOrderMutation, useRequestReturnMutation } from "../lib/api/checkoutApi";
@@ -192,7 +193,7 @@ function IconChip({ icon: Icon, tone, size = "md" }) {
   );
 }
 
-function Field({ id, label, hint, children }) {
+function Field({ id, label, hint, error, children }) {
   return (
     <div>
       <label
@@ -202,7 +203,13 @@ function Field({ id, label, hint, children }) {
         {label}
       </label>
       {children}
-      {hint && <p className="mt-1.5 text-[11px] text-subtle">{hint}</p>}
+      {error ? (
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-[11px] font-semibold text-danger">
+          {error}
+        </p>
+      ) : (
+        hint && <p className="mt-1.5 text-[11px] text-subtle">{hint}</p>
+      )}
     </div>
   );
 }
@@ -1113,7 +1120,9 @@ function PasswordInput({ id, placeholder, ...rest }) {
 function ProfilePanel({ user }) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const { register, handleSubmit, reset } = useForm({
+  // mode onTouched: a field is checked when you leave it, then again on every change
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    mode: "onTouched",
     defaultValues: {
       firstName: user?.firstName ?? "",
       lastName: user?.lastName ?? "",
@@ -1128,7 +1137,15 @@ function ProfilePanel({ user }) {
   const onSubmit = async (value) => {
     setSaveError("");
     try {
-      await updateUser(value).unwrap();
+      // trimmed values, phone as the 10 digits the server keeps
+      const clean = {
+        ...value,
+        firstName: value.firstName.trim(),
+        lastName: value.lastName.trim(),
+        email: value.email.trim().toLowerCase(),
+        phone: value.phone.trim() ? phoneDigits(value.phone) : "",
+      };
+      await updateUser(clean).unwrap();
       setSaved(true);
     } catch (err) {
       // e.g. "Another account already uses this email" / invalid mobile number
@@ -1138,6 +1155,7 @@ function ProfilePanel({ user }) {
 
   return (
     <form
+      noValidate
       onSubmit={handleSubmit(onSubmit)}
       onChange={() => {
         setSaved(false);
@@ -1157,42 +1175,47 @@ function ProfilePanel({ user }) {
         desc="How sellers and couriers reach you."
       >
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field id="first-name" label="First name">
+          <Field id="first-name" error={errors.firstName?.message} label="First name">
             <input
               id="first-name"
               autoComplete="given-name"
               className={INPUT_CLASS}
-              {...register("firstName")}
+              aria-invalid={Boolean(errors.firstName)}
+              {...register("firstName", rules.firstName)}
             />
           </Field>
-          <Field id="last-name" label="Last name">
+          <Field id="last-name" error={errors.lastName?.message} label="Last name">
             <input
               id="last-name"
               autoComplete="family-name"
               className={INPUT_CLASS}
-              {...register("lastName")}
+              aria-invalid={Boolean(errors.lastName)}
+              {...register("lastName", rules.lastName)}
             />
           </Field>
-          <Field id="email" label="Email">
+          <Field id="email" error={errors.email?.message} label="Email">
             <input
               id="email"
               type="email"
               autoComplete="email"
               className={INPUT_CLASS}
-              {...register("email")}
+              aria-invalid={Boolean(errors.email)}
+              {...register("email", rules.email)}
             />
           </Field>
-          <Field id="phone" label="Phone">
+          <Field id="phone" error={errors.phone?.message} label="Phone">
             <input
               id="phone"
               type="tel"
               autoComplete="tel"
               className={INPUT_CLASS}
-              {...register("phone")}
+              aria-invalid={Boolean(errors.phone)}
+              {...register("phone", rules.phone)}
             />
           </Field>
           <Field
             id="dob"
+            error={errors.dob?.message}
             label="Date of birth"
             hint="We'll send you a birthday treat."
           >
@@ -1200,7 +1223,8 @@ function ProfilePanel({ user }) {
               id="dob"
               type="date"
               className={INPUT_CLASS}
-              {...register("dob")}
+              max={new Date().toISOString().slice(0, 10)}
+              {...register("dob", rules.dob)}
             />
           </Field>
           {/* <Field id="pronouns" label="Pronouns (optional)">
@@ -1425,7 +1449,10 @@ function AddressesPanel({ addresses }) {
   const [editingIndex, setEditingIndex] = useState(null);
   const [addrError, setAddrError] = useState("");
   const [updateUser, { isLoading: savingAddr }] = useUpdateUserMutation();
-  const { register, handleSubmit, reset, watch, setValue } = useForm({ defaultValues: EMPTY_FORM });
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
+    mode: "onTouched",
+    defaultValues: EMPTY_FORM,
+  });
 
   const tag = watch("tag");
   const TAGS = {
@@ -1558,6 +1585,7 @@ function AddressesPanel({ addresses }) {
 
         {showForm && (
           <form
+            noValidate
             onSubmit={handleSubmit(onSubmit)}
             className={`${CARD_CLASS} mb-4 p-5 sm:p-6`}
           >
@@ -1601,35 +1629,33 @@ function AddressesPanel({ addresses }) {
               <input id="addr-phone" type="tel" required value={form.phone} onChange={update("phone")} className={INPUT_CLASS} />
             </Field> */}
               <div className="sm:col-span-2">
-                <Field id="addr-line1" label="Address line 1">
+                <Field id="addr-line1" label="Address line 1" error={errors.line1?.message}>
                   <input
                     id="addr-line1"
-                    required
-                    {...register("line1")}
+                    {...register("line1", rules.line1)}
                     className={INPUT_CLASS}
                   />
                 </Field>
               </div>
               <div className="sm:col-span-2">
-                <Field id="addr-line2" label="Address line 2 (optional)">
+                <Field id="addr-line2" label="Address line 2 (optional)" error={errors.line2?.message}>
                   <input
                     id="addr-line2"
-                    {...register("line2")}
+                    {...register("line2", rules.line2)}
                     className={INPUT_CLASS}
                   />
                 </Field>
               </div>
-              <Field id="addr-city" label="City">
+              <Field id="addr-city" label="City" error={errors.city?.message}>
                 <input
                   id="addr-city"
-                  required
-                  {...register("city")}
+                  {...register("city", rules.city)}
                   className={INPUT_CLASS}
                 />
               </Field>
-              <Field id="addr-state" label="State">
+              <Field id="addr-state" label="State" error={errors.state?.message}>
                 {/* a list (not free text), so every order has the same spelling for the admin's region report */}
-                <select id="addr-state" required {...register("state")} className={INPUT_CLASS}>
+                <select id="addr-state" {...register("state", rules.state)} className={INPUT_CLASS}>
                   <option value="">Choose your state</option>
                   {/* an older address typed by hand still shows until it's changed */}
                   {watch("state") && !INDIAN_STATES.includes(watch("state")) && (
@@ -1640,14 +1666,12 @@ function AddressesPanel({ addresses }) {
                   ))}
                 </select>
               </Field>
-              <Field id="addr-pin" label="Pincode">
+              <Field id="addr-pin" label="Pincode" error={errors.pinCode?.message}>
                 <input
                   id="addr-pin"
-                  required
                   inputMode="numeric"
-                  pattern="[0-9]{6}"
                   maxLength={6}
-                  {...register("pinCode")}
+                  {...register("pinCode", rules.pinCode)}
                   className={INPUT_CLASS}
                 />
               </Field>
