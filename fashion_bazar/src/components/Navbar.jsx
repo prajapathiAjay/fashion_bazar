@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Sparkles,
   Truck,
-  Store,
   LogOut,
 } from "lucide-react";
 import SmartImage from "./SmartImage";
@@ -184,9 +183,6 @@ function Navbar() {
           <div className="hidden items-center gap-4 md:flex">
             <Link to="/account" className="text-white/90 hover:text-white">
               Track order
-            </Link>
-            <Link to="/sell" className="flex items-center gap-1 text-white/90 hover:text-white">
-              <Store size={13} /> Sell on Bazar
             </Link>
           </div>
         </div>

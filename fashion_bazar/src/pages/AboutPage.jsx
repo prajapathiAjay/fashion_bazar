@@ -96,12 +96,6 @@ function AboutPage() {
               Start shopping
               <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <Link
-              to="/sell"
-              className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
-            >
-              Become a seller
-            </Link>
           </div>
         </div>
       </section>

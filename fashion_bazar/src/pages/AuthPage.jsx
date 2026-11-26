@@ -15,41 +15,6 @@ import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials, clearSessionExpired } from "../lib/slices/authSlice";
 
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-      <path
-        fill="#4285F4"
-        d="M23.5 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.16 3.57-8.81Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.07 7.94-2.9l-3.87-3c-1.07.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96h-4v3.1A12 12 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58v-3.1h-4a12 12 0 0 0 0 10.78l4-3.1Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.43-3.43A11.5 11.5 0 0 0 12 0 12 12 0 0 0 1.27 6.61l4 3.1C6.22 6.86 8.87 4.75 12 4.75Z"
-      />
-    </svg>
-  );
-}
-
-function AppleIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-4 w-4 fill-current"
-      aria-hidden="true"
-    >
-      <path d="M16.37 12.6c-.03-2.68 2.19-3.97 2.29-4.03-1.25-1.82-3.19-2.07-3.88-2.1-1.65-.17-3.22.97-4.06.97-.84 0-2.13-.95-3.5-.92A5.2 5.2 0 0 0 2.83 9.2c-1.88 3.25-.48 8.07 1.35 10.71.9 1.29 1.96 2.74 3.36 2.69 1.35-.05 1.86-.87 3.49-.87 1.63 0 2.09.87 3.51.84 1.45-.03 2.37-1.31 3.26-2.61a11.5 11.5 0 0 0 1.48-3.03c-.03-.02-2.84-1.09-2.87-4.33ZM13.7 4.73A4.6 4.6 0 0 0 14.78 1.4a4.7 4.7 0 0 0-3.06 1.58 4.4 4.4 0 0 0-1.11 3.2c1.17.09 2.36-.59 3.09-1.45Z" />
-    </svg>
-  );
-}
-
 const inputWrapClass =
   "flex items-center gap-2.5 rounded-xl border border-line-strong bg-white px-3.5 py-3 transition-colors focus-within:border-brand/40 focus-within:ring-4 focus-within:ring-brand/10";
 const inputClass =
@@ -121,11 +86,20 @@ function AuthPage() {
       setSubmitting(false);
       return;
     }
+    // same rule the server uses (and the reset / change password forms)
+    if (mode === "signup" && (password.length < 8 || !/[a-zA-Z]/.test(password) || !/\d/.test(password))) {
+      setError("Password must be at least 8 characters and include a letter and a number.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       if (mode === "signup") {
         await signup({ firstName,lastName, email, password }).unwrap();
-        navigate("/");
+        // log the new shopper straight in and take them where they were going (e.g. checkout)
+        const response = await signin({ email, password }).unwrap();
+        dispatch(setCredentials(response.token));
+        navigate(from, { replace: true });
       } else {
         const response = await signin({ email, password }).unwrap();
         dispatch(setCredentials(response.token));
@@ -133,7 +107,8 @@ function AuthPage() {
         navigate(from, { replace: true });
       }
     } catch (err) {
-      setError(err?.data?.message || "Something went wrong");
+      // the server sends { message } (or plain text for a few errors)
+      setError(err?.data?.message || (typeof err?.data === "string" ? err.data : "") || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -277,14 +252,7 @@ function AuthPage() {
             {error && <p className="text-xs text-danger">{error}</p>}
 
             {mode === "login" && (
-              <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center gap-2 text-muted">
-                  <input
-                    type="checkbox"
-                    className="h-3.5 w-3.5 rounded border-line-hover text-brand focus:ring-brand/30"
-                  />
-                  Remember me
-                </label>
+              <div className="flex items-center justify-end text-xs">
                 <Link
                   to="/forgot-password"
                   className="font-medium text-brand hover:text-brand-dark"
@@ -308,29 +276,6 @@ function AuthPage() {
               {!submitting && <ArrowRight size={15} />}
             </button>
           </form>
-
-          <div className="mt-6 flex items-center gap-3">
-            <span className="h-px flex-1 bg-line" />
-            <span className="text-xs text-subtle">or continue with</span>
-            <span className="h-px flex-1 bg-line" />
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 rounded-xl border border-line-strong py-3 text-sm font-medium text-ink transition-colors hover:border-faint hover:bg-mist"
-            >
-              <GoogleIcon />
-              Google
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 rounded-xl border border-line-strong py-3 text-sm font-medium text-ink transition-colors hover:border-faint hover:bg-mist"
-            >
-              <AppleIcon />
-              Apple
-            </button>
-          </div>
 
           <p className="mt-6 text-center text-xs text-subtle">
             {mode === "login" ? (

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   CreditCard,
@@ -6,10 +7,61 @@ import {
   Phone,
   Mail,
   Clock,
-  Store,
-  ArrowRight,
 } from "lucide-react";
 import { useContactInfo } from "../utils/contactInfo";
+import { useSubscribeMutation } from "../lib/api/contactApi";
+
+// Same newsletter sign-up as the home page, compact for the footer
+function FooterSubscribe() {
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  const [subscribe, { isLoading }] = useSubscribeMutation();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setError("");
+    try {
+      await subscribe(email.trim()).unwrap();
+      setDone(true);
+    } catch (err) {
+      setError(err?.data?.message || "Could not subscribe. Please try again.");
+    }
+  };
+
+  if (done) {
+    return <p role="status" className="mt-5 text-sm font-semibold text-sun">You're on the list — thank you!</p>;
+  }
+  return (
+    <>
+      <form onSubmit={handleSubmit} className="mt-5 flex max-w-md">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          aria-label="Email address"
+          placeholder="Enter your email"
+          className="min-w-0 flex-1 rounded-l-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-sun focus:outline-none focus:ring-2 focus:ring-sun/20"
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="rounded-r-lg bg-sun px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-sun-dark disabled:opacity-60"
+        >
+          {isLoading ? "Joining…" : "Subscribe"}
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className="mt-2 text-xs font-medium text-red-300">
+          {error}
+        </p>
+      )}
+    </>
+  );
+}
 
 const CONTACT_ICONS = { address: MapPin, phone: Phone, email: Mail, hours: Clock };
 
@@ -18,7 +70,6 @@ const FOOTER_LINKS = [
     heading: "Company",
     links: [
       { label: "About us", to: "/about" },
-      { label: "Become a seller", to: "/sell" },
     ],
   },
   {
@@ -40,30 +91,6 @@ function Footer() {
     <footer className="relative bg-ink text-white/70">
       <div className="h-1.5 bg-gradient-to-r from-brand via-pop to-sun" />
       <div className="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8 lg:py-20">
-        {/* Seller CTA */}
-        <div className="relative mb-14 overflow-hidden rounded-3xl bg-brand-gradient p-6 sm:p-8 lg:mb-16 lg:flex lg:items-center lg:justify-between lg:p-10">
-          <span className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 animate-blob rounded-full bg-sun/30 blur-3xl" />
-          <span className="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-mint/30 blur-3xl" />
-          <div className="relative">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-              <Store size={13} /> For makers & brands
-            </span>
-            <p className="mt-3 font-display text-2xl font-extrabold text-white sm:text-3xl">
-              Got a stall? Open it on Fashion Bazar.
-            </p>
-            <p className="mt-2 max-w-lg text-sm text-white/80">
-              List your products and reach shoppers across India from one simple dashboard.
-            </p>
-          </div>
-          <Link
-            to="/sell"
-            className="group relative mt-6 inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-bold text-ink shadow-lg transition-transform hover:-translate-y-0.5 lg:mt-0"
-          >
-            Start selling
-            <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
-
         {/* Main Footer Grid */}
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-12">
           {/* Brand Section */}
@@ -104,20 +131,7 @@ function Footer() {
             <p className="mt-4 text-sm leading-relaxed text-white/50">
               New drops and offers from the bazar. No spam.
             </p>
-            <form onSubmit={(e) => e.preventDefault()} className="mt-5 flex max-w-md">
-              <input
-                type="email"
-                required
-                placeholder="Enter your email"
-                className="min-w-0 flex-1 rounded-l-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-sun focus:outline-none focus:ring-2 focus:ring-sun/20"
-              />
-              <button
-                type="submit"
-                className="rounded-r-lg bg-sun px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-sun-dark"
-              >
-                Subscribe
-              </button>
-            </form>
+            <FooterSubscribe />
           </div>
 
           {/* Footer Links — side by side even on mobile */}

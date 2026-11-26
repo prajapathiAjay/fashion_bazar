@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
 import { useGetShippingQuery } from "../lib/api/shippingApi";
 import { DEFAULT_SHIPPING, calcShipping } from "../utils/shipping";
 import {useIsWishlist} from "../hooks/isWishList"
@@ -117,6 +118,29 @@ function FreeShippingBar({ subtotal, freeAt }) {
   );
 }
 
+// Real availability of a bag line (checkout refuses lines that can't be bought)
+function StockChip({ product, quantity }) {
+  const stock = product?.stock ?? 0;
+  const problem =
+    !product || product.isActive === false
+      ? "No longer available — please remove"
+      : stock <= 0
+      ? "Out of stock — please remove"
+      : quantity > stock
+      ? `Only ${stock} left — lower the quantity`
+      : null;
+  if (problem) {
+    return (
+      <span className="rounded-full bg-danger-50 px-2.5 py-1 text-[11px] font-semibold text-danger">{problem}</span>
+    );
+  }
+  return (
+    <span className="hidden rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-semibold text-success sm:inline">
+      {stock <= 5 ? `Only ${stock} left` : "In stock"}
+    </span>
+  );
+}
+
 function QtyStepper({ item }) {
   const [updateCartItem] = useUpdateCartItemMutation();
 
@@ -143,7 +167,8 @@ function QtyStepper({ item }) {
       <button
         type="button"
         onClick={() => changeQty(1)}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-mist"
+        disabled={item.quantity >= (item.productID?.stock ?? 0)}
+        className="flex h-9 w-9 items-center justify-center rounded-full text-ink transition-colors hover:bg-mist disabled:cursor-not-allowed disabled:text-faint disabled:hover:bg-transparent"
         aria-label={`Increase quantity of ${item.productID?.name}`}
       >
         <Plus size={14} />
@@ -213,19 +238,17 @@ function CartItem({ item }) {
               Size: <span className="font-semibold text-ink">{item.size}</span>
             </span>
           )}
-          <span className="hidden rounded-full bg-success-50 px-2.5 py-1 text-[11px] font-semibold text-success sm:inline">
-            In stock
-          </span>
+          <StockChip product={product} quantity={item.quantity} />
         </div>
 
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-3">
           <QtyStepper item={item} />
           <div className="text-right">
             <p className="text-base font-bold tabular-nums text-ink sm:text-lg">
-              {money((product?.price ?? 0) * item.quantity)}
+              {money(getPrices(product).sale * item.quantity)}
             </p>
-            {product?.price && item.quantity > 1 && (
-              <p className="text-[11px] text-subtle">{money(product.price)} each</p>
+            {getPrices(product).sale > 0 && item.quantity > 1 && (
+              <p className="text-[11px] text-subtle">{money(getPrices(product).sale)} each</p>
             )}
           </div>
         </div>
@@ -379,7 +402,7 @@ function CartPage() {
   if (cartItems.length === 0) return <EmptyBag />;
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + (item.productID?.price ?? 0) * item.quantity,
+    (sum, item) => sum + getPrices(item.productID).sale * item.quantity,
     0
   );
   const unitCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -521,7 +544,7 @@ function CartPage() {
         </aside>
       </div>
 
-      <YouMightAlsoLike excludeIds={cartItems.map((item) => item.product)} />
+      <YouMightAlsoLike excludeIds={cartItems.map((item) => item.productID?._id)} />
 
       {/* Mobile sticky checkout bar */}
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-10px_30px_-15px_rgba(26,16,51,0.25)] backdrop-blur lg:hidden">

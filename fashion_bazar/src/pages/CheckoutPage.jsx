@@ -28,6 +28,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetUserByIdQuery, useUpdateUserMutation } from "../lib/api/userApi";
 import { useApplyCouponMutation, usePlaceOrderMutation, useVerifyPaymentMutation } from "../lib/api/checkoutApi";
@@ -104,7 +105,7 @@ function SummaryItems({ items }) {
               {meta && <p className="truncate text-[11px] text-subtle">{meta}</p>}
             </div>
             <p className="text-sm font-semibold tabular-nums text-ink">
-              {money((item.productID?.price || 0) * item.quantity)}
+              {money(getPrices(item.productID).sale * item.quantity)}
             </p>
           </li>
         );
@@ -387,7 +388,7 @@ function CheckoutPage() {
 
   /* ---- totals ---- */
   const subtotal =
-    cartItems?.reduce((sum, i) => sum + (i.productID?.price || 0) * i.quantity, 0) || 0;
+    cartItems?.reduce((sum, i) => sum + getPrices(i.productID).sale * i.quantity, 0) || 0;
   // the picked option, or the first one (also used if the admin removed the picked option)
   const activeMethod = shippingMethods.find((m) => m.code === shipMethod) ?? shippingMethods[0];
   const activeShipMethod = activeMethod?.code;
@@ -402,8 +403,17 @@ function CheckoutPage() {
   const unitCount = cartItems?.reduce((sum, i) => sum + i.quantity, 0) || 0;
   const lineCount = cartItems?.length || 0;
 
+  // the courier needs a 10-digit mobile number (the server refuses the order without one)
+  const hasPhone = /^[6-9]\d{9}$/.test(String(user?.phone ?? "").replace(/\D/g, "").slice(-10));
+  // lines that can't be bought (hidden, sold out, more than in stock) block the order
+  const blockedLine = cartItems?.find(
+    (i) => !i.productID || i.productID.isActive === false || i.quantity > (i.productID.stock ?? 0)
+  );
+
   const canPlace =
     Boolean(selectedAddress) &&
+    hasPhone &&
+    !blockedLine &&
     lineCount > 0 &&
     PAYMENT_METHODS.some((m) => m.id === payMethod && m.available) &&
     !placing;
@@ -655,7 +665,13 @@ function CheckoutPage() {
                 </li>
                 <li className="flex items-center gap-2.5">
                   <Phone size={14} className="shrink-0 text-brand" />
-                  <span>{user?.phone}</span>
+                  {hasPhone ? (
+                    <span>{user?.phone}</span>
+                  ) : (
+                    <Link to="/account?tab=profile" className="font-semibold text-pop-dark underline underline-offset-2">
+                      Add your mobile number
+                    </Link>
+                  )}
                 </li>
               </ul>
             </div>
@@ -921,6 +937,16 @@ function CheckoutPage() {
             {!selectedAddress && (
               <p className="mt-2 text-center text-xs font-medium text-pop-dark">
                 Select a delivery address to place your order.
+              </p>
+            )}
+            {!hasPhone && (
+              <p className="mt-2 text-center text-xs font-medium text-pop-dark">
+                Add a 10-digit mobile number in your <Link to="/account?tab=profile" className="underline">profile</Link> so the courier can reach you.
+              </p>
+            )}
+            {blockedLine && (
+              <p className="mt-2 text-center text-xs font-medium text-pop-dark">
+                {blockedLine.productID?.name ?? "An item"} can't be ordered right now. <Link to="/cart" className="underline">Update your bag</Link> to continue.
               </p>
             )}
             <p className="mt-3 text-center text-[11px] text-subtle">

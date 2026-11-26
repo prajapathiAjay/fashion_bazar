@@ -17,11 +17,9 @@ import {
   Check,
   BadgeCheck,
   Store,
-  MapPin,
   Ruler,
   Share2,
   Leaf,
-  Zap,
   ShoppingBag,
   ThumbsUp,
   Package,
@@ -31,7 +29,7 @@ import { formatPrice } from "../utils/formatPrice";
 import { getPrices } from "../utils/productPrice";
 import { useGetProductsByIdQuery, useGetProductsQuery } from "../lib/api/productApi";
 import { useGetCategoryQuery } from "../lib/api/categoryApi";
-import { useAddToCartMutation } from "../lib/api/cartApi";
+import { useAddToCartMutation, useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useAddToWishlistMutation, useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { useIsWishlist } from "../hooks/isWishList";
 import { useFreeShipping } from "../hooks/useFreeShipping";
@@ -110,9 +108,6 @@ function Gallery({ discount,images }) {
 
   const badges = (
     <div className="pointer-events-none absolute left-4 top-4 flex flex-col items-start gap-2">
-      <span className="rounded-full bg-mint px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-md">
-        New
-      </span>
       {discount > 0 && (
         <span className="-rotate-3 rounded-full bg-pop px-3 py-1 text-xs font-bold text-white shadow-md">
           -{discount}%
@@ -206,67 +201,6 @@ function Gallery({ discount,images }) {
   );
 }
 
-function DeliveryCard() {
-  const [pincode, setPincode] = useState("");
-  const [eta, setEta] = useState(null);
-  const valid = /^\d{5,6}$/.test(pincode);
-
-  const check = (e) => {
-    e.preventDefault();
-    if (!valid) return;
-    const d = new Date();
-    d.setDate(d.getDate() + 4);
-    setEta(d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }));
-  };
-
-  return (
-    <div className="rounded-3xl border border-line bg-snow p-4 sm:p-5">
-      <p className="flex items-center gap-2 text-sm font-bold text-ink">
-        <MapPin size={16} className="text-pop" /> Check delivery
-      </p>
-      <form onSubmit={check} className="mt-3 flex gap-2">
-        <label htmlFor="pincode" className="sr-only">
-          Postcode
-        </label>
-        <input
-          id="pincode"
-          inputMode="numeric"
-          autoComplete="postal-code"
-          maxLength={6}
-          placeholder="Enter postcode"
-          value={pincode}
-          onChange={(e) => {
-            setPincode(e.target.value.replace(/\D/g, ""));
-            setEta(null);
-          }}
-          className="h-11 min-w-0 flex-1 rounded-full border border-line-strong bg-white px-4 text-sm text-ink placeholder:text-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-        />
-        <button
-          type="submit"
-          disabled={!valid}
-          className="h-11 shrink-0 rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-ink-hover disabled:opacity-40"
-        >
-          Check
-        </button>
-      </form>
-      <div aria-live="polite" className="mt-3 space-y-2 text-xs text-muted">
-        {eta ? (
-          <p className="flex items-center gap-2 rounded-xl bg-success-50 px-3 py-2 font-semibold text-success">
-            <Check size={14} /> Arrives by {eta} · Free delivery
-          </p>
-        ) : (
-          <p className="flex items-center gap-2">
-            <Truck size={14} className="text-brand" /> Usually ships in 1–2 business days
-          </p>
-        )}
-        <p className="flex items-center gap-2">
-          <Zap size={14} className="text-sun-dark" /> Order in the next 3 hrs for same-day dispatch
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Page                                                                 */
 /* ------------------------------------------------------------------ */
@@ -304,6 +238,7 @@ function ProductDetail() {
   const related = relatedData?.items ?? [];
 
   const [addToCart, { isLoading: adding }] = useAddToCartMutation();
+  const { data: cartItems } = useGetCartItemsQuery(undefined, { skip: !token });
   const [addToWishlist] = useAddToWishlistMutation();
   const [deleteFromWishList] = useDeleteFromWishListMutation();
   const [addReview] = useAddReviewMutation();
@@ -361,7 +296,11 @@ function ProductDetail() {
 
   const handleBuyNow = async () => {
     if (!requireLogin()) return;
-    if (await addCurrentToBag()) navigate("/checkout");
+    // already in the bag in this size -> go straight to checkout (don't add it twice)
+    const inBag = cartItems?.some(
+      (item) => item.productID?._id === product._id && (item.size || "") === (size || "")
+    );
+    if (inBag || (await addCurrentToBag())) navigate("/checkout");
   };
 
   const handleWishlist = () => {
@@ -409,7 +348,10 @@ function ProductDetail() {
     );
   }
 
-  const addLabel = addedToBag ? (
+  const soldOut = stock <= 0;
+  const addLabel = soldOut ? (
+    "Out of stock"
+  ) : addedToBag ? (
     <>
       <Check size={17} strokeWidth={2.5} />
       Added to bag
@@ -598,8 +540,9 @@ function ProductDetail() {
                 <span className="w-8 text-center text-sm font-bold text-ink" aria-live="polite">{qty}</span>
                 <button
                   type="button"
-                  onClick={() => setQty((q) => q + 1)}
-                  className="flex h-12 w-11 items-center justify-center rounded-r-full text-ink hover:bg-mist"
+                  onClick={() => setQty((q) => Math.min(stock, q + 1))}
+                  disabled={qty >= stock}
+                  className="flex h-12 w-11 items-center justify-center rounded-r-full text-ink hover:bg-mist disabled:opacity-40"
                   aria-label="Increase quantity"
                 >
                   <Plus size={15} />
@@ -609,8 +552,8 @@ function ProductDetail() {
               <button
                 type="button"
                 onClick={handleAddToBag}
-                disabled={adding}
-                className={`flex h-12 min-w-[10rem] flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+                disabled={adding || soldOut}
+                className={`flex h-12 min-w-[10rem] flex-1 items-center justify-center gap-2 rounded-full text-sm font-bold text-white shadow-[0_10px_24px_rgba(124,58,237,0.25)] transition-all hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 ${
                   addedToBag ? "bg-success" : "bg-brand-gradient"
                 }`}
               >
@@ -633,7 +576,7 @@ function ProductDetail() {
             <button
               type="button"
               onClick={handleBuyNow}
-              disabled={adding}
+              disabled={adding || soldOut}
               className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-ink text-sm font-bold text-ink transition-colors hover:bg-ink hover:text-white disabled:opacity-60"
             >
               Buy now <ArrowRight size={16} />
@@ -660,9 +603,6 @@ function ProductDetail() {
               ))}
             </ul>
 
-            <div className="mt-6">
-              <DeliveryCard />
-            </div>
 
             {/* Accordions */}
             <div className="mt-6 rounded-3xl border border-line px-4 sm:px-5">
@@ -797,12 +737,6 @@ function ProductDetail() {
                       <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{r.reply.text}</p>
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="mt-4 inline-flex items-center gap-1.5 self-start rounded-full bg-mist px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-brand-50 hover:text-brand"
-                  >
-                    <ThumbsUp size={13} /> Helpful ({r.helpful ?? 0})
-                  </button>
                 </li>
                 );
               })}
@@ -884,8 +818,8 @@ function ProductDetail() {
           <button
             type="button"
             onClick={handleAddToBag}
-            disabled={adding}
-            className={`flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm font-bold text-white active:scale-[0.98] ${
+            disabled={adding || soldOut}
+            className={`flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-4 text-sm font-bold text-white active:scale-[0.98] disabled:opacity-50 ${
               addedToBag ? "bg-success" : "bg-brand-gradient"
             }`}
           >
@@ -904,4 +838,11 @@ function ProductDetail() {
   );
 }
 
-export default ProductDetail;
+// A fresh page for every product: without the key, the size, quantity and photo picked on one
+// product would carry over when you open another (e.g. a related product).
+function ProductDetailPage() {
+  const { productId } = useParams();
+  return <ProductDetail key={productId} />;
+}
+
+export default ProductDetailPage;

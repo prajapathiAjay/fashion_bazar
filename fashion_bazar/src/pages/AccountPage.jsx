@@ -19,9 +19,7 @@ import {
   // Bell, // used by the commented-out Notifications panel
   LogOut,
   ChevronRight,
-  Crown,
   Pencil,
-  Gift,
   Truck,
   Check,
   FileText,
@@ -34,7 +32,6 @@ import {
   Headphones,
   MessageCircle,
   Sparkles,
-  Tag,
   Mail,
   Lock,
   Eye,
@@ -47,9 +44,10 @@ import {
   X,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
 import { useGetUserByIdQuery, useUpdateUserMutation, useChangePasswordMutation } from "../lib/api/userApi";
 import { useGetWishlistQuery,useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
-import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
+import { useGetMyOrdersQuery, useCancelOrderMutation, useRequestReturnMutation } from "../lib/api/checkoutApi";
 import { useAddToCartMutation, useDeleteCartItemMutation } from "../lib/api/cartApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout, setCredentials } from "../lib/slices/authSlice";
@@ -101,8 +99,7 @@ const formatDate = (date) =>
 
 // Turns an order from the server into the shape the order card shows
 const toCardOrder = (order) => {
-  const status =
-    order.status === "Delivered" || order.status === "Cancelled" ? order.status : "In transit";
+  const status = ["Delivered", "Cancelled", "Returned"].includes(order.status) ? order.status : "In transit";
   const eta = new Date(order.createdAt);
   // new orders save the delivery days of the option picked; older ones only have the code
   const maxDays = order.deliveryDays?.max ?? (order.shippingMethod === "express" ? 2 : 6);
@@ -113,7 +110,7 @@ const toCardOrder = (order) => {
     status,
     step: Math.max(0, ORDER_STEPS.indexOf(order.status)),
     eta: `Arriving by ${eta.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}`,
-    deliveredOn: `Delivered ${formatDate(order.updatedAt)}`,
+    deliveredOn: `Delivered ${formatDate(order.deliveredAt ?? order.updatedAt)}`,
     total: order.totalAmount,
     products: order.items.map((item) => ({ photo: item.image, name: item.name })),
     raw: order, // full server order, used by the details view
@@ -124,9 +121,10 @@ const STATUS_STYLES = {
   Delivered: { pill: "bg-success-50 text-success", icon: PackageCheck },
   "In transit": { pill: "bg-info-50 text-info", icon: Truck },
   Cancelled: { pill: "bg-danger-50 text-danger", icon: PackageX },
+  Returned: { pill: "bg-mist text-ink-soft", icon: RotateCcw },
 };
 
-const ORDER_FILTERS = ["All", "In transit", "Delivered", "Cancelled"];
+const ORDER_FILTERS = ["All", "In transit", "Delivered", "Cancelled", "Returned"];
 
 // Notifications are hidden until there is a backend to save the choices.
 // const NOTIFICATION_SETTINGS = [
@@ -254,8 +252,6 @@ function ActionButton({ icon: Icon, children, onClick, tone = "default" }) {
    ------------------------------------------------------------------ */
 
 function ProfileHero({ user, onEdit }) {
-  const points = 1680;
-  const nextTier = 2000;
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString("en-IN", {
         month: "long",
@@ -295,10 +291,6 @@ function ProfileHero({ user, onEdit }) {
                 <h1 className="text-2xl font-extrabold text-ink sm:text-[28px]">
                   {user?.firstName || "Loading..."}
                 </h1>
-                <span className="inline-flex items-center gap-1 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-ink">
-                  <Crown size={12} />
-                  Gold member
-                </span>
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-subtle">
                 {memberSince && (
@@ -325,34 +317,6 @@ function ProfileHero({ user, onEdit }) {
           </button>
         </div>
 
-        {/* rewards progress */}
-        <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-sun-50 p-4 sm:flex-row sm:items-center sm:gap-5">
-          <IconChip icon={Gift} tone="bg-sun text-ink" size="sm" />
-          <div className="flex-1">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <p className="text-sm font-semibold text-ink">
-                {nextTier - points} points to{" "}
-                <span className="text-gradient">Platinum</span>
-              </p>
-              <p className="text-xs text-muted">
-                {points.toLocaleString()} / {nextTier.toLocaleString()} pts
-              </p>
-            </div>
-            <div
-              className="mt-2 h-2 overflow-hidden rounded-full bg-white"
-              role="progressbar"
-              aria-label="Progress to Platinum tier"
-              aria-valuemin={0}
-              aria-valuemax={nextTier}
-              aria-valuenow={points}
-            >
-              <div
-                className="h-full rounded-full bg-brand-gradient"
-                style={{ width: `${(points / nextTier) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
@@ -375,13 +339,6 @@ function StatTiles({ onSelect, orderCount, wishlistCount, addressCount }) {
       tab: "wishlist",
     },
     {
-      label: "Reward points",
-      value: "1,680",
-      icon: Gift,
-      tone: "bg-sun-50 text-sun-dark",
-      tab: null,
-    },
-    {
       label: "Saved addresses",
       value: addressCount,
       icon: MapPin,
@@ -391,7 +348,7 @@ function StatTiles({ onSelect, orderCount, wishlistCount, addressCount }) {
   ];
 
   return (
-    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+    <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
       {stats.map(({ label, value, icon, tone, tab }, i) => {
         const inner = (
           <>
@@ -490,6 +447,271 @@ function OrderTracker({ step }) {
   );
 }
 
+// Days a delivered order can be returned (same as the backend, Terms and FAQ)
+const RETURN_DAYS = 30;
+const CANCEL_REASONS = ["Changed my mind", "Ordered by mistake", "Found a better price", "Delivery is taking too long", "Other"];
+const RETURN_REASONS = ["Size doesn't fit", "Not as described", "Damaged or defective", "Received the wrong item", "Changed my mind", "Other"];
+
+// Can this order still be returned? (delivered, no request yet, inside the window)
+const returnInfo = (raw) => {
+  if (raw.status !== "Delivered" || raw.returnRequest?.status) return { canReturn: false };
+  const lastDay = new Date(new Date(raw.deliveredAt ?? raw.updatedAt).getTime() + RETURN_DAYS * 24 * 60 * 60 * 1000);
+  return { canReturn: Date.now() <= lastDay.getTime(), lastDay };
+};
+
+// What's happening with a cancelled / returned order, in the shopper's words
+function OrderStatusNote({ raw }) {
+  const total = money(raw.totalAmount);
+  const r = raw.returnRequest;
+  const online = raw.paymentMethod === "razorpay";
+
+  if (raw.status === "Cancelled") {
+    return (
+      <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
+        <PackageX size={15} className="shrink-0" />
+        {raw.paymentStatus === "Refunded"
+          ? `Cancelled · Refund of ${total} issued to your original payment method`
+          : raw.paymentStatus === "Paid"
+            ? `Cancelled · Refund of ${total} is being processed`
+            : "This order was cancelled"}
+      </p>
+    );
+  }
+  if (!r?.status) return null;
+
+  const NOTES = {
+    Requested: { tone: "bg-sun-50 text-sun-dark", text: `Return requested on ${formatDate(r.requestedAt)}. We'll reply within 2 working days.` },
+    Approved: { tone: "bg-info-50 text-info", text: "Return approved — we'll contact you to arrange the pickup." },
+    Rejected: { tone: "bg-danger-50 text-danger", text: "We couldn't accept this return." },
+    Received: {
+      tone: "bg-info-50 text-info",
+      text: online
+        ? `We've received your return. Your refund of ${total} is being processed.`
+        : `We've received your return. Your refund of ${total} will be sent to ${r.refundTo}.`,
+    },
+    Refunded: {
+      tone: "bg-success-50 text-success",
+      text: online
+        ? `Returned · Refund of ${total} issued to your original payment method (5–7 working days)`
+        : `Returned · Refund of ${total} sent to ${r.refundTo}`,
+    },
+  };
+  const note = NOTES[r.status];
+  if (!note) return null;
+  return (
+    <div className={`mt-4 rounded-2xl px-3.5 py-2.5 text-xs font-semibold ${note.tone}`}>
+      <p className="flex items-center gap-1.5">
+        <RotateCcw size={15} className="shrink-0" />
+        {note.text}
+      </p>
+      {r.adminNote && <p className="mt-1 pl-[21px] font-normal">Note from us: {r.adminNote}</p>}
+    </div>
+  );
+}
+
+// Track / Cancel / Buy again / Return / Invoice for one order (card and details page)
+function OrderActions({ order, showTrack = false }) {
+  const raw = order.raw;
+  const navigate = useNavigate();
+  const [panel, setPanel] = useState(null); // null | "cancel" | "return"
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [refundTo, setRefundTo] = useState("");
+  const [message, setMessage] = useState(null); // { type: "success" | "error", text }
+  const [buying, setBuying] = useState(false);
+  const [cancelOrder, { isLoading: cancelling }] = useCancelOrderMutation();
+  const [requestReturn, { isLoading: returning }] = useRequestReturnMutation();
+  const [addToCart] = useAddToCartMutation();
+
+  const canCancel = raw.status === "Ordered" || raw.status === "Packed";
+  const { canReturn, lastDay } = returnInfo(raw);
+  const isCod = raw.paymentMethod === "cod";
+  const showInvoice = raw.status === "Delivered" || raw.status === "Returned";
+  const showBuyAgain = raw.status === "Delivered" || raw.status === "Cancelled" || raw.status === "Returned";
+
+  const openPanel = (name) => {
+    setPanel((p) => (p === name ? null : name));
+    setReason("");
+    setDetails("");
+    setMessage(null);
+  };
+
+  const handleCancel = async () => {
+    try {
+      const res = await cancelOrder({ id: raw._id, reason: reason || undefined }).unwrap();
+      setPanel(null);
+      setMessage({ type: "success", text: res.message });
+    } catch (err) {
+      setMessage({ type: "error", text: err?.data?.message || "Could not cancel the order. Please try again." });
+    }
+  };
+
+  const handleReturn = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await requestReturn({
+        id: raw._id,
+        reason: [reason, details.trim()].filter(Boolean).join(" — "),
+        refundTo: isCod ? refundTo.trim() : undefined,
+      }).unwrap();
+      setPanel(null);
+      setMessage({ type: "success", text: res.message });
+    } catch (err) {
+      setMessage({ type: "error", text: err?.data?.message || "Could not request the return. Please try again." });
+    }
+  };
+
+  // Puts the same pieces (and sizes) back in the bag; skips what's sold out or no longer sold
+  const handleBuyAgain = async () => {
+    setBuying(true);
+    setMessage(null);
+    let added = 0;
+    const skipped = [];
+    for (const item of raw.items) {
+      try {
+        await addToCart({ productID: item.product, quantity: item.quantity, size: item.size || undefined }).unwrap();
+        added += 1;
+      } catch {
+        skipped.push(item.name);
+      }
+    }
+    setBuying(false);
+    if (added && !skipped.length) return navigate("/cart");
+    setMessage(
+      added
+        ? { type: "success", text: `Added to your bag. Not available right now: ${skipped.join(", ")}.` }
+        : { type: "error", text: "These items aren't available right now." }
+    );
+  };
+
+  const selectClass = `${INPUT_CLASS} mt-1`;
+
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap gap-2">
+        {showTrack && raw.status !== "Delivered" && raw.status !== "Cancelled" && raw.status !== "Returned" && (
+          <ActionButton icon={Truck} tone="brand" onClick={() => navigate(`/orders/${order.id}`)}>
+            Track
+          </ActionButton>
+        )}
+        {canCancel && (
+          <ActionButton icon={PackageX} onClick={() => openPanel("cancel")}>
+            Cancel order
+          </ActionButton>
+        )}
+        {showBuyAgain && (
+          <ActionButton icon={ShoppingBag} tone="brand" onClick={handleBuyAgain}>
+            {buying ? "Adding…" : "Buy again"}
+          </ActionButton>
+        )}
+        {canReturn && (
+          <ActionButton icon={RotateCcw} onClick={() => openPanel("return")}>
+            Return
+          </ActionButton>
+        )}
+        {showInvoice && (
+          <ActionButton icon={FileText} onClick={() => window.open(`/orders/${order.id}/invoice`, "_blank", "noopener")}>
+            Invoice
+          </ActionButton>
+        )}
+      </div>
+
+      {panel === "cancel" && (
+        <div className="mt-3 rounded-2xl border border-line bg-snow p-4">
+          <p className="text-sm font-bold text-ink">Cancel order #{order.id}?</p>
+          <p className="mt-1 text-xs text-muted">
+            {raw.paymentMethod === "razorpay" && raw.paymentStatus === "Paid"
+              ? `You'll get ${money(raw.totalAmount)} back to your original payment method in 5–7 working days.`
+              : "Nothing has been charged, so there's nothing to refund."}
+          </p>
+          <label className="mt-3 block text-xs font-semibold text-ink-soft">
+            Reason (optional)
+            <select value={reason} onChange={(e) => setReason(e.target.value)} className={selectClass}>
+              <option value="">Choose a reason</option>
+              {CANCEL_REASONS.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+          </label>
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => setPanel(null)} className="rounded-full border border-line-strong px-4 py-2 text-xs font-semibold text-ink-soft hover:bg-mist">
+              Keep order
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={cancelling}
+              className="rounded-full bg-danger px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+            >
+              {cancelling ? "Cancelling…" : "Yes, cancel order"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {panel === "return" && (
+        <form onSubmit={handleReturn} className="mt-3 rounded-2xl border border-line bg-snow p-4">
+          <p className="text-sm font-bold text-ink">Return order #{order.id}</p>
+          <p className="mt-1 text-xs text-muted">
+            Items must be unused with their tags on. You can return until {formatDate(lastDay)}.
+          </p>
+          <label className="mt-3 block text-xs font-semibold text-ink-soft">
+            Why are you returning it?
+            <select required value={reason} onChange={(e) => setReason(e.target.value)} className={selectClass}>
+              <option value="">Choose a reason</option>
+              {RETURN_REASONS.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+          </label>
+          <label className="mt-3 block text-xs font-semibold text-ink-soft">
+            Anything else we should know? (optional)
+            <textarea
+              rows={2}
+              maxLength={300}
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              className={`${INPUT_CLASS} mt-1 resize-none`}
+            />
+          </label>
+          {isCod && (
+            <label className="mt-3 block text-xs font-semibold text-ink-soft">
+              Where should we send your refund? (UPI ID or bank account + IFSC)
+              <input
+                required
+                maxLength={200}
+                value={refundTo}
+                onChange={(e) => setRefundTo(e.target.value)}
+                placeholder="e.g. name@okaxis"
+                className={`${INPUT_CLASS} mt-1`}
+              />
+            </label>
+          )}
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => setPanel(null)} className="rounded-full border border-line-strong px-4 py-2 text-xs font-semibold text-ink-soft hover:bg-mist">
+              Close
+            </button>
+            <button type="submit" disabled={returning} className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">
+              {returning ? "Sending…" : "Request return"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {message && (
+        <p
+          role={message.type === "error" ? "alert" : "status"}
+          className={`mt-3 rounded-2xl px-3.5 py-2.5 text-xs font-semibold ${
+            message.type === "error" ? "bg-danger-50 text-danger" : "bg-success-50 text-success"
+          }`}
+        >
+          {message.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function OrderCard({ order, highlighted }) {
   const { pill, icon: StatusIcon } = STATUS_STYLES[order.status];
   const itemCount = order.products.length;
@@ -573,41 +795,12 @@ function OrderCard({ order, highlighted }) {
           {order.deliveredOn}
         </p>
       )}
-      {order.status === "Cancelled" && (
-        <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
-          <PackageX size={15} />
-          {/* only mention a refund when money was actually taken online */}
-          {order.raw.paymentStatus === "Refunded"
-            ? `Cancelled · Refund of ${money(order.total)} issued to your original payment method`
-            : order.raw.paymentStatus === "Paid"
-              ? `Cancelled · Refund of ${money(order.total)} is being processed`
-              : "This order was cancelled"}
-        </p>
-      )}
+      {/* cancelled / return in progress / returned */}
+      <OrderStatusNote raw={order.raw} />
 
-      <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {order.status === "In transit" && (
-            <ActionButton icon={Truck} tone="brand">
-              Track
-            </ActionButton>
-          )}
-          {order.status === "Delivered" && (
-            <>
-              <ActionButton icon={ShoppingBag} tone="brand">
-                Buy again
-              </ActionButton>
-              <ActionButton icon={RotateCcw}>Return</ActionButton>
-              <ActionButton icon={FileText}>Invoice</ActionButton>
-            </>
-          )}
-          {order.status === "Cancelled" && (
-            <ActionButton icon={ShoppingBag} tone="brand">
-              Buy again
-            </ActionButton>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-3">
+      <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-start sm:justify-between">
+        <OrderActions order={order} showTrack />
+        <div className="flex shrink-0 items-center justify-between gap-3">
           <p className="font-display text-lg font-bold text-ink sm:hidden">
             {money(order.total)}
           </p>
@@ -676,12 +869,11 @@ function OrderDetails({ order }) {
             {order.deliveredOn}
           </p>
         )}
-        {order.status === "Cancelled" && (
-          <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-danger-50 px-3.5 py-2.5 text-xs font-semibold text-danger">
-            <PackageX size={15} />
-            This order was cancelled
-          </p>
-        )}
+        <OrderStatusNote raw={raw} />
+
+        <div className="mt-4 border-t border-line pt-4">
+          <OrderActions order={order} />
+        </div>
       </div>
 
       {/* Items */}
@@ -920,6 +1112,7 @@ function PasswordInput({ id, placeholder, ...rest }) {
 
 function ProfilePanel({ user }) {
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       firstName: user?.firstName ?? "",
@@ -933,18 +1126,23 @@ function ProfilePanel({ user }) {
   const [updateUser, { isLoading }] = useUpdateUserMutation();
 
   const onSubmit = async (value) => {
+    setSaveError("");
     try {
       await updateUser(value).unwrap();
       setSaved(true);
     } catch (err) {
-      console.error(err);
+      // e.g. "Another account already uses this email" / invalid mobile number
+      setSaveError(err?.data?.message || "Could not save your details. Please try again.");
     }
   };
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      onChange={() => setSaved(false)}
+      onChange={() => {
+        setSaved(false);
+        setSaveError("");
+      }}
       className="flex flex-col gap-4"
     >
       <PanelHeader
@@ -1026,6 +1224,11 @@ function ProfilePanel({ user }) {
           >
             <Check size={16} />
             Changes saved
+          </p>
+        )}
+        {saveError && (
+          <p role="alert" className="text-sm font-semibold text-danger">
+            {saveError}
           </p>
         )}
         <button
@@ -1199,31 +1402,20 @@ function ChangePasswordPanel() {
 
 const EMPTY_FORM = {
   tag: "Home",
-  name: "",
   line1: "",
   line2: "",
   city: "",
   state: "",
-  pincode: "",
-  phone: "",
+  pinCode: "",
 };
 
 function AddressesPanel({ addresses }) {
-  const [defaultId, setDefaultId] = useState("a1");
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [updateUser] = useUpdateUserMutation();
-  const { register, handleSubmit, reset, watch, setValue } = useForm({
-    defaultValues: {
-      tag: "Home",
-      line1: "",
-      line2: "",
-      city: "",
-      state: "",
-      pincode: "",
-    },
-  });
+  // index of the address being edited, null while adding a new one
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [addrError, setAddrError] = useState("");
+  const [updateUser, { isLoading: savingAddr }] = useUpdateUserMutation();
+  const { register, handleSubmit, reset, watch, setValue } = useForm({ defaultValues: EMPTY_FORM });
 
   const tag = watch("tag");
   const TAGS = {
@@ -1231,64 +1423,63 @@ function AddressesPanel({ addresses }) {
     Work: { icon: Briefcase, tone: "bg-sky-50 text-sky" },
     Other: { icon: MapPin, tone: "bg-mint-50 text-mint" },
   };
+  const list = addresses ?? [];
 
-
-
-  const openAdd = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setShowForm(true);
-  };
-
-  const setDefaultAddress = async (i) => {
-    const next=addresses.map((a,idx)=>({...a,isDefault:idx===i}))
+  // Addresses are saved as one list on the profile; returns true when it worked
+  const saveAddresses = async (next) => {
+    setAddrError("");
     try {
-      await updateUser({addresses: next}).unwrap();
+      await updateUser({ addresses: next }).unwrap();
+      return true;
     } catch (err) {
-      console.error(err);
+      setAddrError(err?.data?.message || "Could not save your addresses. Please try again.");
+      return false;
     }
   };
 
-  const deleteAddress = async (i) => {
-    const remAddress = [...addresses];
-    remAddress.splice(i, 1);
-    await updateUser({ addresses: remAddress }).unwrap();
+  const openAdd = () => {
+    setEditingIndex(null);
+    reset(EMPTY_FORM);
+    setShowForm(true);
   };
 
-  const openEdit = (a) => {
-    setEditingId(a.id);
-    // lines: [line1, line2, "City, ST 560038"] -> split back into fields
-    const [line1 = "", line2 = "", last = ""] = a.lines;
-    const [city = "", rest = ""] = last.split(", ");
-    const [state = "", pincode = ""] = rest.split(" ");
-    setForm({
-      tag: a.tag,
-      name: a.name,
-      line1,
-      line2,
-      city,
-      state,
-      pincode,
-      phone: a.phone,
+  const openEdit = (i) => {
+    const a = list[i];
+    setEditingIndex(i);
+    reset({
+      tag: a.tag ?? "Home",
+      line1: a.line1 ?? "",
+      line2: a.line2 ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      pinCode: a.pinCode ?? "",
     });
     setShowForm(true);
   };
 
   const closeForm = () => {
     setShowForm(false);
-    setEditingId(null);
-    setForm(EMPTY_FORM);
+    setEditingIndex(null);
+    reset(EMPTY_FORM);
   };
+
+  const setDefaultAddress = (i) => saveAddresses(list.map((a, idx) => ({ ...a, isDefault: idx === i })));
+
+  // Removing the default makes the next address the default, so checkout always has one picked
+  const deleteAddress = (i) => {
+    const rest = list.filter((_, idx) => idx !== i);
+    if (list[i]?.isDefault && rest.length) rest[0] = { ...rest[0], isDefault: true };
+    return saveAddresses(rest);
+  };
+
   const onSubmit = async (values) => {
-    try {
-      await updateUser({
-        addresses: [...(addresses ?? []), values],
-      }).unwrap();
-      reset();
-      closeForm();
-    } catch (err) {
-      console.error(err);
-    }
+    const next =
+      editingIndex !== null
+        ? // keep the same _id, so an address picked at checkout stays picked
+          list.map((a, idx) => (idx === editingIndex ? { ...a, ...values } : a))
+        : // the first address becomes the default
+          [...list, { ...values, isDefault: list.length === 0 }];
+    if (await saveAddresses(next)) closeForm();
   };
 
   return (
@@ -1298,13 +1489,18 @@ function AddressesPanel({ addresses }) {
         desc="Where should we send your bazar finds?"
       />
 
+      {addrError && (
+        <p role="alert" className="mb-4 rounded-2xl bg-danger-50 px-4 py-3 text-sm font-semibold text-danger">
+          {addrError}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {addresses?.map((a, index) => {
+        {list.map((a, index) => {
           const { icon, tone } = TAGS[a.tag] ?? TAGS.Other;
-          const isDefault = a.id === defaultId;
           return (
             <article
-              key={a.id}
+              key={a._id ?? index}
               className={`${CARD_CLASS} flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(26,16,51,0.06)] ${
                 a.isDefault ? "border-mint/50" : ""
               }`}
@@ -1322,41 +1518,30 @@ function AddressesPanel({ addresses }) {
                 )}
               </div>
               <div className="mt-4 flex-1 text-sm leading-relaxed text-muted">
-                <p className="font-semibold text-ink">{a?.name}</p>
-                {/* {a?.lines?.map((l) => (
-                  <p key={l}>{l}</p>
-                ))} */}
-
                 <p>{a?.line1}</p>
-                <p>{a?.line2}</p>
-                <p>{a?.city}</p>
-                <p>{a?.state}</p>
+                {a?.line2 && <p>{a.line2}</p>}
+                <p>{[a?.city, a?.state].filter(Boolean).join(", ")}</p>
                 <p>{a?.pinCode}</p>
-                <p className="mt-1 text-subtle">{a?.phone}</p>
               </div>
-             {!a?.isDefault&& <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
-                {/* <ActionButton icon={Pencil} onClick={() => openEdit(a)}>
+              <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
+                <ActionButton icon={Pencil} onClick={() => openEdit(index)}>
                   Edit
-                </ActionButton> */}
-             
-                  <>
-                    <ActionButton
-                      icon={Check}
-                      onClick={() => setDefaultAddress(index)}
-                    >
-                      Set as default
-                    </ActionButton>
-                    <button
-                      type="button"
-                      onClick={() => deleteAddress(index)}
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-50"
-                    >
-                      <Trash2 size={14} />
-                      Remove
-                    </button>
-                  </>
-           
-              </div>}
+                </ActionButton>
+                {!a?.isDefault && (
+                  <ActionButton icon={Check} onClick={() => setDefaultAddress(index)}>
+                    Set as default
+                  </ActionButton>
+                )}
+                <button
+                  type="button"
+                  onClick={() => deleteAddress(index)}
+                  disabled={savingAddr}
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger-50 disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              </div>
             </article>
           );
         })}
@@ -1368,7 +1553,7 @@ function AddressesPanel({ addresses }) {
           >
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-base font-bold text-ink">
-                {editingId ? "Edit address" : "Add new address"}
+                {editingIndex !== null ? "Edit address" : "Add new address"}
               </h3>
               <button
                 type="button"
@@ -1463,9 +1648,10 @@ function AddressesPanel({ addresses }) {
               </button>
               <button
                 type="submit"
-                className="rounded-full bg-brand-gradient px-7 py-2.5 text-sm font-semibold text-white"
+                disabled={savingAddr}
+                className="rounded-full bg-brand-gradient px-7 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {editingId ? "Update address" : "Save address"}
+                {savingAddr ? "Saving…" : editingIndex !== null ? "Update address" : "Save address"}
               </button>
             </div>
           </form>
@@ -1517,6 +1703,9 @@ function WishlistCard({ item }) {
     }
   };
 
+  // sale price + MRP, same as the shop cards
+  const { sale, original, discount } = getPrices(product);
+
   return (
     <article className="group flex flex-col">
       <div className="relative">
@@ -1532,9 +1721,9 @@ function WishlistCard({ item }) {
             imgClassName="transition-transform duration-500 group-hover:scale-105"
           />
         </Link>
-        {product?.originalPrice > product?.price && (
+        {discount > 0 && (
           <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-pop px-2.5 py-1 text-[11px] font-bold text-white">
-            -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+            -{discount}%
           </span>
         )}
         <button
@@ -1556,11 +1745,11 @@ function WishlistCard({ item }) {
         </Link>
         <p className="mt-1 flex items-baseline gap-2">
           <span className="text-sm font-bold text-ink">
-            {money(product?.price)}
+            {money(sale)}
           </span>
-          {product?.originalPrice > product?.price && (
+          {discount > 0 && (
             <span className="text-xs text-faint line-through">
-              {money(product.originalPrice)}
+              {money(original)}
             </span>
           )}
         </p>
@@ -1820,10 +2009,6 @@ function AccountPage() {
 
           <SupportCard className="mt-4 hidden lg:block" />
 
-          <div className="mt-4 hidden items-center gap-2 px-2 text-[11px] text-subtle lg:flex">
-            <Tag size={12} />
-            Gold perks: free express shipping on every order
-          </div>
         </aside>
 
         {/* Content */}

@@ -22,7 +22,18 @@ export const checkoutApi=baseApi.injectEndpoints({
         // orders of the logged-in user, newest first
         getMyOrders:builder.query({query:()=>({url:"/orders"}),
             transformResponse:(response)=>response.data,
-            providesTags:["Order"]})
+            providesTags:["Order"]}),
+
+        // cancel before it ships: { id, reason? }. Stock goes back, so products refetch too.
+        // Returns the whole response so the page can show `message` (refund info).
+        cancelOrder:builder.mutation({query:({id, reason})=>({
+            url:`/orders/${id}/cancel`,method:"POST",body:{reason}}),
+            invalidatesTags:["Order","Product"]}),
+
+        // ask to return a delivered order: { id, reason, refundTo? }
+        requestReturn:builder.mutation({query:({id, ...body})=>({
+            url:`/orders/${id}/return`,method:"POST",body}),
+            invalidatesTags:["Order"]}),
     })
 })
- export const {usePlaceOrderMutation,useVerifyPaymentMutation,useGetMyOrdersQuery,useApplyCouponMutation}=checkoutApi;
+ export const {usePlaceOrderMutation,useVerifyPaymentMutation,useGetMyOrdersQuery,useApplyCouponMutation,useCancelOrderMutation,useRequestReturnMutation}=checkoutApi;

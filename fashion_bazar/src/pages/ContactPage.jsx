@@ -93,10 +93,10 @@ function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <h2 className="text-xl font-bold text-ink sm:text-2xl">Send us a message</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <input required name="name" placeholder="Your name" className={inputClass} />
-                <input required type="email" name="email" placeholder="Email address" className={inputClass} />
+                <input required maxLength={100} name="name" placeholder="Your name" className={inputClass} />
+                <input required maxLength={200} type="email" name="email" placeholder="Email address" className={inputClass} />
               </div>
-              <input name="orderId" placeholder="Order ID (optional)" className={inputClass} />
+              <input maxLength={100} name="orderId" placeholder="Order ID (optional)" className={inputClass} />
               <select required name="topic" defaultValue="" className={inputClass}>
                 <option value="" disabled>
                   What's it about?
@@ -107,6 +107,7 @@ function ContactPage() {
               </select>
               <textarea
                 required
+                maxLength={2000}
                 name="message"
                 rows={5}
                 placeholder="How can we help?"

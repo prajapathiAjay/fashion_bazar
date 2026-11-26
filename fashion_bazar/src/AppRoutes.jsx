@@ -10,7 +10,6 @@ import CheckoutPage from "./pages/CheckoutPage";
 import AccountPage from "./pages/AccountPage";
 import NotFound from "./pages/NotFound";
 import AboutPage from "./pages/AboutPage";
-import SellPage from "./pages/SellPage";
 import ContactPage from "./pages/ContactPage";
 import FaqPage from "./pages/FaqPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -18,6 +17,7 @@ import TermsPage from "./pages/TermsPage";
 import CookiesPage from "./pages/CookiesPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import InvoicePage from "./pages/InvoicePage";
 
 const AppRoutes = () => {
   return (
@@ -36,7 +36,8 @@ const AppRoutes = () => {
         <Route path="/account" element={<AccountPage />} />
         <Route path="/orders/:orderId" element={<AccountPage />} />
         <Route path="/about" element={<AboutPage />} />
-        <Route path="/sell" element={<SellPage />} />
+        {/* selling isn't open yet: the Sell page is hidden and its old link goes home */}
+        <Route path="/sell" element={<Navigate to="/" replace />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/help/faq" element={<FaqPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
@@ -44,6 +45,9 @@ const AppRoutes = () => {
         <Route path="/cookies" element={<CookiesPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
+
+      {/* printable invoice: no header / footer around it */}
+      <Route path="/orders/:orderId/invoice" element={<InvoicePage />} />
 
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<AuthPage />} />

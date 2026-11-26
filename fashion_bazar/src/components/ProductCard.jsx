@@ -44,14 +44,22 @@ function ProductCard({ product }) {
     }
   };
 
+  const hasSizes = product?.sizes?.length > 0;
+  const soldOut = (product?.stock ?? 0) <= 0;
+
   const handleCart=async ()=>{
+  // clothes need a size first, so the card opens the product page to pick one
+  if (!isInCart && hasSizes) {
+    navigate(`/products/${productId}`);
+    return;
+  }
   if (!requireLogin()) return;
 
   try {
     if(isInCart){
       await deleteCartItem(getCartId).unwrap()
     }else{
-      await addToCart({productID:productId}).unwrap()
+      await addToCart({productID:productId, quantity: 1}).unwrap()
     }
 
   } catch (error) {
@@ -134,10 +142,11 @@ function ProductCard({ product }) {
       <button
         type="button"
         onClick={handleCart}
-        aria-label={`Add ${product.name} to bag`}
-        className={`mt-2.5 w-full border border-ink ${isInCart ? "bg-ink text-white" : "bg-white text-ink"} py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white sm:py-3 sm:text-xs`}
+        disabled={soldOut && !isInCart}
+        aria-label={isInCart ? `Remove ${product.name} from bag` : hasSizes ? `Choose a size for ${product.name}` : `Add ${product.name} to bag`}
+        className={`mt-2.5 w-full border border-ink ${isInCart ? "bg-ink text-white" : "bg-white text-ink"} py-2.5 text-[11px] font-medium uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-white active:bg-ink active:text-white disabled:cursor-not-allowed disabled:border-line-strong disabled:bg-mist disabled:text-subtle sm:py-3 sm:text-xs`}
       >
-       {isInCart ? "Remove from bag" : "Add to bag"}
+       {isInCart ? "Remove from bag" : soldOut ? "Out of stock" : hasSizes ? "Choose size" : "Add to bag"}
       </button>
     </article>
   );
