@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import SmartImage from "../components/SmartImage";
-import { PHOTOS, unsplash } from "../assets/images";
+import ProductCard from "../components/ProductCard";
+import { useGetProductsQuery } from "../lib/api/productApi";
+import { useGetCategoryQuery } from "../lib/api/categoryApi";
 import {
   Minus,
   Plus,
@@ -12,12 +14,11 @@ import {
   Heart,
   Truck,
   ShieldCheck,
-  RotateCcw,
+  Banknote,
   Lock,
   Sparkles,
   PartyPopper,
   X,
-  Star,
 } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
 import { useGetShippingQuery } from "../lib/api/shippingApi";
@@ -32,18 +33,12 @@ import { useSelector } from "react-redux";
 import { useAddToWishlistMutation ,useDeleteFromWishListMutation} from "../lib/api/wishlistApi";
 
 
-const SUGGESTIONS = [
-  { id: "p2", name: "Satin bomber jacket", seller: "Halden & Co.", price: 3199, rating: 4.6, bg: "var(--color-coral-50)", image: unsplash(PHOTOS.bomberJacket, 400, 500) },
-  { id: "p5", name: "Crochet knit poncho", seller: "Amara Studio", price: 1999, rating: 4.5, bg: "var(--color-sky-50)", image: unsplash(PHOTOS.knitTop, 400, 500) },
-  { id: "p7", name: "Striped wide-leg trousers", seller: "Halden & Co.", price: 2899, rating: 4.6, bg: "var(--color-mint-50)", image: unsplash(PHOTOS.wideLegTrousers, 400, 500) },
-  { id: "p3", name: "Woven tote bag", seller: "Bazar Leather", price: 1799, rating: 4.9, bg: "var(--color-pop-50)", image: unsplash(PHOTOS.wovenTote, 400, 500) },
-];
-
-const EMPTY_CATEGORIES = [
-  { label: "Women", to: "/categories/women", tone: "bg-pop-50 text-pop-dark hover:bg-pop hover:text-white" },
-  { label: "Footwear", to: "/categories/footwear", tone: "bg-sun-50 text-ink hover:bg-sun" },
-  { label: "Jewelry", to: "/categories/jewelry", tone: "bg-mint-50 text-ink hover:bg-mint hover:text-white" },
-  { label: "Men", to: "/categories/men", tone: "bg-sky-50 text-ink hover:bg-sky hover:text-white" },
+// colours for the category chips on the empty bag (the categories themselves come from the API)
+const CHIP_TONES = [
+  "bg-pop-50 text-pop-dark hover:bg-pop hover:text-white",
+  "bg-sun-50 text-ink hover:bg-sun",
+  "bg-mint-50 text-ink hover:bg-mint hover:text-white",
+  "bg-sky-50 text-ink hover:bg-sky hover:text-white",
 ];
 
 const money = formatPrice;
@@ -55,7 +50,6 @@ function PaymentChips({ className = "" }) {
     { label: "VISA", tone: "text-info italic tracking-tight" },
     { label: "Mastercard", tone: "text-coral" },
     { label: "UPI", tone: "text-mint" },
-    { label: "PayPal", tone: "text-sky" },
     { label: "COD", tone: "text-ink-soft" },
   ];
   return (
@@ -268,41 +262,12 @@ function SummaryRow({ label, value, tone = "text-ink" }) {
   );
 }
 
-function SuggestionCard({ product }) {
-  return (
-    <Link
-      to={`/products/${product.id}`}
-      className="group flex w-44 shrink-0 snap-start flex-col sm:w-auto"
-    >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-2xl">
-        <SmartImage
-          src={product.image}
-          alt={product.name}
-          bg={product.bg}
-          imgClassName="transition-transform duration-500 group-hover:scale-105"
-        />
-        <span className="absolute bottom-2.5 right-2.5 flex h-9 w-9 translate-y-1 items-center justify-center rounded-full bg-white text-ink opacity-0 shadow-md transition-all group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-          <Plus size={16} aria-hidden="true" />
-        </span>
-      </div>
-      <p className="mt-2.5 text-[11px] font-semibold uppercase tracking-wider text-subtle">
-        {product.seller}
-      </p>
-      <p className="truncate text-sm font-semibold text-ink group-hover:text-brand">
-        {product.name}
-      </p>
-      <div className="mt-0.5 flex items-center justify-between">
-        <span className="text-sm font-bold text-ink">{money(product.price)}</span>
-        <span className="inline-flex items-center gap-1 text-xs text-muted">
-          <Star size={12} className="fill-sun text-sun" aria-hidden="true" />
-          {product.rating}
-        </span>
-      </div>
-    </Link>
-  );
-}
+// Real products from the shop, leaving out the ones already in the bag
+function YouMightAlsoLike({ excludeIds = [] }) {
+  const { data } = useGetProductsQuery({ limit: 8 });
+  const picks = (data?.items ?? []).filter((p) => !excludeIds.includes(p._id)).slice(0, 4);
+  if (picks.length === 0) return null;
 
-function YouMightAlsoLike() {
   return (
     <section aria-labelledby="also-like" className="mt-14 lg:mt-20">
       <div className="flex items-end justify-between gap-4">
@@ -322,8 +287,10 @@ function YouMightAlsoLike() {
         </Link>
       </div>
       <div className="-mx-5 mt-6 flex snap-x gap-4 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:gap-6">
-        {SUGGESTIONS.map((p) => (
-          <SuggestionCard key={p.id} product={p} />
+        {picks.map((p) => (
+          <div key={p._id} className="w-44 shrink-0 snap-start sm:w-auto">
+            <ProductCard product={p} />
+          </div>
         ))}
       </div>
     </section>
@@ -331,6 +298,7 @@ function YouMightAlsoLike() {
 }
 
 function EmptyBag() {
+  const { data: categories = [] } = useGetCategoryQuery();
   return (
     <div className="mx-auto max-w-7xl px-5 pb-36 pt-12 sm:px-6 lg:px-8 lg:pb-16 lg:pt-16">
       <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-brand-50 via-white to-sun-50 px-6 py-14 text-center sm:py-20">
@@ -376,11 +344,11 @@ function EmptyBag() {
         <nav aria-label="Shop by category" className="relative mt-8">
           <p className="text-xs font-semibold uppercase tracking-wider text-subtle">Or jump into</p>
           <ul className="mt-3 flex flex-wrap justify-center gap-2">
-            {EMPTY_CATEGORIES.map((c) => (
-              <li key={c.label}>
+            {categories.slice(0, 4).map((c, i) => (
+              <li key={c.slug}>
                 <Link
-                  to={c.to}
-                  className={`inline-block rounded-full px-4 py-2 text-sm font-semibold transition-colors ${c.tone}`}
+                  to={`/categories/${c.slug}`}
+                  className={`inline-block rounded-full px-4 py-2 text-sm font-semibold transition-colors ${CHIP_TONES[i % CHIP_TONES.length]}`}
                 >
                   {c.label}
                 </Link>
@@ -464,7 +432,7 @@ function CartPage() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[
-              { icon: RotateCcw, title: "30-day returns", desc: "Free & easy", tone: "bg-pop-50 text-pop" },
+              { icon: Banknote, title: "Cash on delivery", desc: "Pay when it arrives", tone: "bg-pop-50 text-pop" },
               { icon: ShieldCheck, title: "Buyer protection", desc: "On every order", tone: "bg-mint-50 text-mint" },
               { icon: Truck, title: "Tracked delivery", desc: "From each seller", tone: "bg-sky-50 text-sky" },
             ].map(({ icon: Icon, title, desc, tone }) => (
@@ -543,18 +511,22 @@ function CartPage() {
               <PaymentChips className="justify-center" />
               <p className="flex items-center gap-1.5 text-[11px] text-subtle">
                 <ShieldCheck size={12} className="text-mint" />
-                256-bit SSL encrypted · Safe & secure payments
+                Secure online payments via Razorpay
               </p>
             </div>
           </div>
 
           <p className="mt-4 rounded-2xl bg-sun-50 px-4 py-3 text-xs text-ink-soft">
-            <span className="font-bold text-ink">Need help?</span> Our seller support team replies 7 days a week.
+            <span className="font-bold text-ink">Need help?</span>{" "}
+            <Link to="/contact" className="font-semibold text-brand hover:underline">
+              Contact our support team
+            </Link>
+            .
           </p>
         </aside>
       </div>
 
-      <YouMightAlsoLike />
+      <YouMightAlsoLike excludeIds={cartItems.map((item) => item.product)} />
 
       {/* Mobile sticky checkout bar */}
       <div className="fixed inset-x-0 bottom-16 z-30 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-10px_30px_-15px_rgba(26,16,51,0.25)] backdrop-blur lg:hidden">

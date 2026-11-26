@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import SmartImage from "./SmartImage";
-import { PHOTOS, unsplash } from "../assets/images";
 import { useGetCategoryQuery } from "../lib/api/categoryApi";
 function CategoryStrip() {
 

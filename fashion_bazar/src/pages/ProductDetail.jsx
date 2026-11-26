@@ -10,7 +10,7 @@ import {
   Minus,
   Plus,
   Truck,
-  RotateCcw,
+  Banknote,
   ShieldCheck,
   ChevronDown,
   ChevronRight,
@@ -35,6 +35,7 @@ import { useGetCategoryQuery } from "../lib/api/categoryApi";
 import { useAddToCartMutation } from "../lib/api/cartApi";
 import { useAddToWishlistMutation, useDeleteFromWishListMutation } from "../lib/api/wishlistApi";
 import { useIsWishlist } from "../hooks/isWishList";
+import { useFreeShipping } from "../hooks/useFreeShipping";
 import { useAddReviewMutation,useGetReviewQuery } from "../lib/api/reviewApi";
 
 const SIZE_GUIDE = [
@@ -46,8 +47,7 @@ const SIZE_GUIDE = [
 ];
 
 const TRUST = [
-  { icon: Truck, label: "Free shipping", sub: "On orders ₹999+", chip: "bg-brand-50 text-brand" },
-  { icon: RotateCcw, label: "30-day returns", sub: "Free & easy", chip: "bg-pop-50 text-pop-dark" },
+  { icon: Banknote, label: "Cash on delivery", sub: "Pay when it arrives", chip: "bg-pop-50 text-pop-dark" },
   { icon: ShieldCheck, label: "Secure checkout", sub: "Buyer protection", chip: "bg-mint-50 text-success" },
   { icon: Leaf, label: "Small-batch", sub: "Made to last", chip: "bg-sun-50 text-ink" },
 ];
@@ -273,6 +273,14 @@ function DeliveryCard() {
 /* ------------------------------------------------------------------ */
 
 function ProductDetail() {
+  // free-shipping amount from the admin's Shipping page
+  const { freeLabel } = useFreeShipping();
+  const trust = [
+    freeLabel
+      ? { icon: Truck, label: "Free shipping", sub: `On orders ${freeLabel}+`, chip: "bg-brand-50 text-brand" }
+      : { icon: Truck, label: "Tracked orders", sub: "Follow every step", chip: "bg-brand-50 text-brand" },
+    ...TRUST,
+  ];
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [qty, setQty] = useState(1);
@@ -668,7 +676,7 @@ function ProductDetail() {
 
             {/* Trust row */}
             <ul className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {TRUST.map(({ icon: Icon, label, sub, chip }) => (
+              {trust.map(({ icon: Icon, label, sub, chip }) => (
                 <li key={label} className="flex items-center gap-2.5 rounded-2xl border border-line p-3 sm:flex-col sm:items-start">
                   <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${chip}`}>
                     <Icon size={17} />
@@ -700,8 +708,9 @@ function ProductDetail() {
                 hung to dry.
               </Accordion>
               <Accordion title="Shipping & returns" icon={Truck} tone="bg-sky-50 text-info">
-                Ships in 1-2 business days. Free standard shipping on orders over ₹999. Returns
-                accepted within 30 days, unworn with tags attached.
+                Delivery options and charges are shown at checkout.
+                {freeLabel && ` Free delivery on orders over ${freeLabel}.`} You can cancel an order from your
+                account until it ships.
               </Accordion>
               {product.brand && (
                 <Accordion title={`Seller — ${product.brand}`} icon={Store} tone="bg-pop-50 text-pop-dark">

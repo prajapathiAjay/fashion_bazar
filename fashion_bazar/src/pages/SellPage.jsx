@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Users,
   Wallet,
-  Percent,
   Truck,
   UserPlus,
   PackagePlus,
@@ -13,16 +12,15 @@ import {
 import PageHeader from "../components/PageHeader";
 
 const BENEFITS = [
-  { icon: Users, title: "20k+ shoppers", desc: "Get in front of buyers already looking for fashion like yours." },
-  { icon: Percent, title: "Keep 90%", desc: "A flat 10% commission. No listing fees, no monthly rent." },
-  { icon: Wallet, title: "Weekly payouts", desc: "Money from every sale lands in your bank account each week." },
+  { icon: Users, title: "Reach shoppers", desc: "Get in front of buyers already looking for fashion like yours." },
+  { icon: Wallet, title: "Get paid", desc: "Money from your sales goes straight to your bank account." },
   { icon: Truck, title: "We handle delivery", desc: "Pack the order, and our courier partners pick it up from you." },
 ];
 
 const STEPS = [
   { icon: UserPlus, title: "Create your account", desc: "Sign up with your phone number, GSTIN (optional) and bank details." },
   { icon: PackagePlus, title: "List your products", desc: "Add photos, sizes and prices. Your stall goes live after a quick review." },
-  { icon: BadgeIndianRupee, title: "Start earning", desc: "Ship orders as they come in and get paid every week." },
+  { icon: BadgeIndianRupee, title: "Start earning", desc: "Ship orders as they come in and get paid for every sale." },
 ];
 
 const REQUIREMENTS = [
@@ -36,8 +34,8 @@ function SellPage() {
   return (
     <div>
       <PageHeader eyebrow="Become a seller" title="Got a stall?" accent="Open it online.">
-        Join hundreds of makers, boutiques and small brands selling on Fashion Bazar. Setup takes
-        about 10 minutes.
+        Join the makers, boutiques and small brands selling on Fashion Bazar. Setup only takes a
+        few minutes.
       </PageHeader>
 
       <div className="-mt-6 flex justify-center px-5">

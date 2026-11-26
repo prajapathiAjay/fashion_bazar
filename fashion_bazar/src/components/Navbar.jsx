@@ -23,6 +23,7 @@ import { useGetUserByIdQuery } from "../lib/api/userApi";
 import { useGetCartItemsQuery } from "../lib/api/cartApi";
 import { useGetWishlistQuery } from "../lib/api/wishlistApi";
 import { baseApi } from "../lib/api/baseApi";
+import { useFreeShipping } from "../hooks/useFreeShipping";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../lib/slices/authSlice";
 const NAV_LINKS = [
@@ -33,13 +34,6 @@ const NAV_LINKS = [
   { to: "/deals", label: "Deals", hot: true },
 ];
 
-const ANNOUNCEMENTS = [
-  "Free shipping on orders over ₹999 — this week only",
-  "Bazar days: up to 50% off across 180+ stalls",
-  "New drops land every Friday at 10am",
-];
-
-const POPULAR_SEARCHES = ["Midi dress", "Loafers", "Gold hoops", "Tote bag", "Linen"];
 
 function CountBadge({ count, className }) {
   if (!count) return null;
@@ -64,6 +58,15 @@ function Navbar() {
   const megaTimer = useRef(null);
 
  const { data: categories } = useGetCategoryQuery();
+  // top-bar messages: only things that are really true right now
+  const { freeLabel } = useFreeShipping();
+  const ANNOUNCEMENTS = [
+    ...(freeLabel ? [`Free shipping on orders over ${freeLabel}`] : []),
+    "Cash on delivery available",
+    "Secure checkout",
+  ];
+  // search shortcuts = the shop's real category names
+  const POPULAR_SEARCHES = (categories ?? []).slice(0, 5).map((c) => c.categoryName);
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   // skip until logged in, otherwise /users returns 401
@@ -115,7 +118,7 @@ function Navbar() {
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => setAnnouncement((i) => (i + 1) % ANNOUNCEMENTS.length), 4000);
+    const id = setInterval(() => setAnnouncement((i) => i + 1), 4000);
     return () => clearInterval(id);
   }, []);
 
@@ -166,11 +169,11 @@ function Navbar() {
       <div className="hidden bg-ink text-white sm:block">
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between px-6 text-xs font-semibold lg:px-8">
           <span className="flex items-center gap-1.5 text-white/90">
-            <Truck size={14} /> Ships from 1,200+ stalls
+            <Truck size={14} /> Shop from independent sellers
           </span>
           <p key={announcement} className="flex animate-fade-up items-center gap-2" aria-live="polite">
             <span className="rounded-full bg-sun px-2 py-0.5 text-[10px] font-bold uppercase text-ink">Hot</span>
-            {ANNOUNCEMENTS[announcement]}
+            {ANNOUNCEMENTS[announcement % ANNOUNCEMENTS.length]}
           </p>
           <div className="hidden items-center gap-4 md:flex">
             <Link to="/account" className="text-white/90 hover:text-white">
@@ -366,12 +369,12 @@ function Navbar() {
             />
             <span className="absolute inset-0 bg-linear-to-t from-ink/85 via-ink/30 to-transparent" />
             <span className="absolute right-4 top-4 rotate-12 rounded-full bg-pop px-3 py-1.5 text-xs font-extrabold text-white shadow-lg">
-              -50%
+              Sale
             </span>
             <span className="absolute inset-x-0 bottom-0 p-5">
               <span className="text-xs font-semibold uppercase tracking-wider text-sun">Bazar days</span>
               <span className="mt-1 block font-display text-2xl font-extrabold text-white">
-                Up to half off
+                Shop the deals
               </span>
               <span className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-white">
                 Shop the sale <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
@@ -546,7 +549,7 @@ function Navbar() {
               </span>
               <span>
                 <span className="block text-sm font-bold text-ink">Bazar days are live</span>
-                <span className="block text-xs text-muted">Up to 50% off — ends Sunday</span>
+                <span className="block text-xs text-muted">Discounted pieces across the bazar</span>
               </span>
             </Link>
           </div>

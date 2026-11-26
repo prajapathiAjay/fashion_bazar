@@ -53,9 +53,6 @@ import { useGetMyOrdersQuery } from "../lib/api/checkoutApi";
 import { useAddToCartMutation, useDeleteCartItemMutation } from "../lib/api/cartApi";
 import { baseApi } from "../lib/api/baseApi";
 import { logout, setCredentials } from "../lib/slices/authSlice";
-/* ------------------------------------------------------------------
-   Mock data (UI only — no API)
-   ------------------------------------------------------------------ */
 import { useForm } from "react-hook-form";
 import {useCart} from "../hooks/isCart"
 const NAV_ITEMS = [
@@ -573,7 +570,7 @@ function OrderCard({ order, highlighted }) {
       {order.status === "Delivered" && (
         <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-success-50 px-3.5 py-2.5 text-xs font-semibold text-success">
           <PackageCheck size={15} />
-          {order.deliveredOn} · Return window open for 30 days
+          {order.deliveredOn}
         </p>
       )}
       {order.status === "Cancelled" && (
@@ -676,7 +673,7 @@ function OrderDetails({ order }) {
         {order.status === "Delivered" && (
           <p className="mt-4 flex items-center gap-1.5 rounded-2xl bg-success-50 px-3.5 py-2.5 text-xs font-semibold text-success">
             <PackageCheck size={15} />
-            {order.deliveredOn} · Return window open for 30 days
+            {order.deliveredOn}
           </p>
         )}
         {order.status === "Cancelled" && (
@@ -1691,15 +1688,15 @@ function SupportCard({ className = "" }) {
           Need help?
         </p>
         <p className="mt-1 text-xs leading-relaxed text-muted">
-          Real humans, 7 days a week. Average reply in under 5 minutes.
+          Questions about an order? Send us a message and we'll get back to you.
         </p>
-        <button
-          type="button"
+        <Link
+          to="/contact"
           className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-ink-hover"
         >
           <MessageCircle size={14} />
-          Chat with us
-        </button>
+          Contact us
+        </Link>
       </div>
     </div>
   );

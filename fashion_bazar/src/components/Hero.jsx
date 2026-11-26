@@ -1,25 +1,22 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Star } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import SmartImage from "./SmartImage";
 import { PHOTOS, unsplash } from "../assets/images";
-
-const TICKER_ITEMS = [
-  "Free shipping over ₹999",
-  "New arrivals every Friday",
-  "1,200+ independent stalls",
-  "Complimentary 30-day returns",
-  "Secure checkout",
-];
-
-const HIGHLIGHTS = [
-  { value: "1,200+", label: "Independent stalls" },
-  { value: "4.8", label: "Average rating", star: true },
-  { value: "48h", label: "Average delivery" },
-];
+import { useFreeShipping } from "../hooks/useFreeShipping";
+import { useGetProductsQuery } from "../lib/api/productApi";
+import { formatPrice } from "../utils/formatPrice";
+import { getPrices } from "../utils/productPrice";
 
 function Ticker() {
+  // Free-shipping amount comes from the admin's Shipping page, so it never goes out of date
+  const { freeLabel } = useFreeShipping();
+  const tickerItems = [
+    ...(freeLabel ? [`Free shipping over ${freeLabel}`] : []),
+    "Cash on delivery available",
+    "Secure checkout",
+  ];
   // Four copies: the marquee shifts by exactly half (two copies), so the loop is seamless
-  const items = [...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS];
+  const items = [...tickerItems, ...tickerItems, ...tickerItems, ...tickerItems];
   return (
     <div className="relative overflow-hidden border-y border-ink bg-ink py-3">
       <div className="flex w-max animate-marquee items-center [animation-duration:40s] [backface-visibility:hidden] [will-change:transform] hover:[animation-play-state:paused]">
@@ -33,6 +30,36 @@ function Ticker() {
         ))}
       </div>
     </div>
+  );
+}
+
+// The shop's real top-rated product, floating over the hero images (hidden until one exists)
+function FeaturedProduct() {
+  const { data } = useGetProductsQuery({ sort: "rating", limit: 1 });
+  const product = data?.items?.[0];
+  if (!product) return null;
+  const { sale, original, discount } = getPrices(product);
+
+  return (
+    <Link
+      to={`/products/${product._id}`}
+      className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex md:hidden lg:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
+    >
+      <span className="h-16 w-12 overflow-hidden">
+        <SmartImage src={product.images?.[0]} alt="" bg="var(--color-shimmer)" />
+      </span>
+      <span>
+        <span className="block text-[10px] font-medium uppercase tracking-[0.2em] text-subtle">
+          Top rated
+        </span>
+        <span className="block max-w-[180px] truncate font-display text-[15px] text-ink">{product.name}</span>
+        <span className="block text-sm text-ink">
+          {formatPrice(sale)}
+          {discount > 0 && <span className="ml-1 text-xs text-faint line-through">{formatPrice(original)}</span>}
+        </span>
+      </span>
+      <ArrowRight size={16} className="ml-2 text-ink transition-transform group-hover:translate-x-1" />
+    </Link>
   );
 }
 
@@ -60,7 +87,7 @@ function Hero() {
             </h1>
 
             <p className="mt-7 max-w-md text-[17px] md:text-base font-light leading-relaxed text-muted lg:text-lg">
-              Discover considered fashion from hundreds of independent ateliers and makers — curated,
+              Discover considered fashion from independent ateliers and makers — curated,
               collected and delivered in a single checkout.
             </p>
 
@@ -81,18 +108,6 @@ function Hero() {
               </Link>
             </div>
 
-            <dl className="mt-12 grid max-w-md grid-cols-3 md:mt-10 lg:mt-12 divide-x divide-line-strong border-t border-line-strong pt-6">
-              {HIGHLIGHTS.map(({ value, label, star }) => (
-                <div key={label} className="px-4 first:pl-0">
-                  <dt className="sr-only">{label}</dt>
-                  <dd className="flex items-center gap-1 font-display text-2xl text-ink sm:text-[28px]">
-                    {value}
-                    {star && <Star size={15} className="fill-sun text-sun" />}
-                  </dd>
-                  <dd className="mt-1 text-[11px] uppercase tracking-[0.15em] text-subtle">{label}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
           {/* ---------------- Editorial imagery ---------------- */}
@@ -149,30 +164,7 @@ function Hero() {
               </div>
             </div>
 
-            {/* Featured product card */}
-            <Link
-              to="/categories/women"
-              className="group absolute -bottom-6 left-4 hidden items-center gap-4 bg-white sm:flex md:hidden lg:flex p-3 pr-5 shadow-[0_24px_60px_-20px_rgba(28,23,20,0.35)] transition-transform hover:-translate-y-1 sm:left-8"
-            >
-              <span className="h-16 w-12 overflow-hidden">
-                <SmartImage src={unsplash(PHOTOS.floralDress, 120, 160)} alt="" bg="var(--color-shimmer)" />
-              </span>
-              <span>
-                <span className="block text-[10px] font-medium uppercase tracking-[0.2em] text-subtle">
-                  Most loved
-                </span>
-                <span className="block font-display text-[15px] text-ink">Draped midi dress</span>
-                <span className="block text-sm text-ink">
-                  ₹2,499 <span className="ml-1 text-xs text-faint line-through">₹3,299</span>
-                </span>
-              </span>
-              <ArrowRight size={16} className="ml-2 text-ink transition-transform group-hover:translate-x-1" />
-            </Link>
-
-            {/* Vertical editorial caption */}
-            <p className="absolute -right-2 top-1/2 hidden origin-center -translate-y-1/2 translate-x-1/2 rotate-90 text-[10px] font-medium uppercase tracking-[0.4em] text-subtle xl:block">
-              Fashion Bazar — Est. 2021
-            </p>
+            <FeaturedProduct />
           </div>
         </div>
       </div>

@@ -10,7 +10,6 @@ import {
   User,
   ArrowRight,
   Loader2,
-  Star,
 } from "lucide-react";
 import { useSignupMutation, useSigninMutation } from "../lib/api/userApi";
 import { useDispatch, useSelector } from "react-redux";
@@ -174,29 +173,6 @@ function AuthPage() {
               every seller on the bazar.
             </p>
 
-            <div className="mt-8 flex items-center gap-3 border-t border-white/10 pt-6">
-              <div className="flex -space-x-2">
-                {[
-                  PHOTOS.womanPlaid,
-                  PHOTOS.manSuit,
-                  PHOTOS.shopper,
-                  PHOTOS.womanCoat,
-                ].map((id) => (
-                  <img
-                    key={id}
-                    src={unsplash(id, 64, 64, "&crop=faces")}
-                    alt=""
-                    className="h-8 w-8 rounded-full bg-ink-soft object-cover ring-2 ring-ink"
-                  />
-                ))}
-              </div>
-              <div>
-                <p className="flex items-center gap-1 text-sm font-semibold text-white">
-                  <Star size={13} className="fill-sun text-sun" /> 4.8 / 5
-                </p>
-                <p className="text-xs text-white/50">rated by 20k+ buyers</p>
-              </div>
-            </div>
           </div>
         </div>
 

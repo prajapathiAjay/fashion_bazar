@@ -1,16 +1,11 @@
-import { Truck, RotateCcw, ShieldCheck, Headphones } from "lucide-react";
+import { Truck, Banknote, ShieldCheck, Headphones } from "lucide-react";
+import { useFreeShipping } from "../hooks/useFreeShipping";
 
 const TRUST_POINTS = [
   {
-    icon: Truck,
-    title: "Free shipping",
-    desc: "On orders over ₹999",
-    tone: "bg-brand-50 text-brand",
-  },
-  {
-    icon: RotateCcw,
-    title: "Easy returns",
-    desc: "30-day return window",
+    icon: Banknote,
+    title: "Cash on delivery",
+    desc: "Pay when it arrives",
     tone: "bg-pop-50 text-pop",
   },
   {
@@ -21,17 +16,25 @@ const TRUST_POINTS = [
   },
   {
     icon: Headphones,
-    title: "Seller support",
-    desc: "Real humans, 7 days a week",
+    title: "Need help?",
+    desc: "Reach us by phone or email",
     tone: "bg-sun-50 text-sun-dark",
   },
 ];
 
 function TrustBadges() {
+  // free-shipping amount from the admin's Shipping page (card hidden if nothing is free)
+  const { freeLabel } = useFreeShipping();
+  const points = [
+    ...(freeLabel
+      ? [{ icon: Truck, title: "Free shipping", desc: `On orders over ${freeLabel}`, tone: "bg-brand-50 text-brand" }]
+      : []),
+    ...TRUST_POINTS,
+  ];
   return (
     <section className="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        {TRUST_POINTS.map(({ icon: Icon, title, desc, tone }) => (
+      <div className={`grid grid-cols-2 gap-3 sm:gap-4 ${points.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+        {points.map(({ icon: Icon, title, desc, tone }) => (
           <div
             key={title}
             className="group flex flex-col items-start gap-4 rounded-3xl border border-line bg-white p-5 transition-all hover:-translate-y-1 hover:shadow-[0_14px_36px_rgba(26,16,51,0.08)] sm:flex-row sm:items-center sm:p-6"

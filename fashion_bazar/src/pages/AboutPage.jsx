@@ -2,13 +2,6 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Store, HandHeart, Sparkles, ShieldCheck } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 
-const STATS = [
-  { value: "500+", label: "Independent sellers" },
-  { value: "20k+", label: "Happy shoppers" },
-  { value: "120+", label: "Cities delivered to" },
-  { value: "4.7★", label: "Average rating" },
-];
-
 const VALUES = [
   {
     icon: Store,
@@ -18,20 +11,20 @@ const VALUES = [
   },
   {
     icon: Sparkles,
-    title: "Fresh every week",
-    desc: "New drops land every week, so the bazar never feels the same twice.",
+    title: "Always something new",
+    desc: "Sellers add new pieces all the time, so the bazar never feels the same twice.",
     tone: "bg-sun-50 text-sun-dark",
   },
   {
     icon: ShieldCheck,
     title: "One safe checkout",
-    desc: "Shop from many sellers and pay once, with secure payments and easy returns.",
+    desc: "Shop from many sellers and pay once, with secure online payments or cash on delivery.",
     tone: "bg-mint-50 text-mint",
   },
   {
     icon: HandHeart,
     title: "Fair for everyone",
-    desc: "Sellers keep 90% of every sale and get paid weekly. Shoppers get honest prices.",
+    desc: "Sellers set their own prices. Shoppers get honest prices.",
     tone: "bg-pop-50 text-pop",
   },
 ];
@@ -40,7 +33,7 @@ function AboutPage() {
   return (
     <div>
       <PageHeader eyebrow="About us" title="The whole bazar," accent="one checkout">
-        Fashion Bazar brings hundreds of independent sellers together in one place, so you can
+        Fashion Bazar brings independent sellers together in one place, so you can
         discover clothes with character without walking a hundred lanes.
       </PageHeader>
 
@@ -72,18 +65,6 @@ function AboutPage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="bg-ink">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-5 py-12 sm:px-6 lg:grid-cols-4 lg:px-8">
-          {STATS.map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="font-display text-3xl font-bold text-sun sm:text-4xl">{s.value}</p>
-              <p className="mt-1 text-sm text-white/60">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Values */}
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-6 lg:px-8 lg:py-20">
         <h2 className="text-center text-2xl font-bold text-ink sm:text-3xl">What we stand for</h2>
@@ -105,7 +86,7 @@ function AboutPage() {
         <div className="flex flex-col items-start gap-5 rounded-3xl bg-brand-gradient p-8 sm:flex-row sm:items-center sm:justify-between lg:p-10">
           <div>
             <p className="font-display text-2xl font-bold text-white">Come take a walk through the bazar</p>
-            <p className="mt-1 text-sm text-white/80">New stalls and new drops every week.</p>
+            <p className="mt-1 text-sm text-white/80">New stalls and new drops all the time.</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <Link

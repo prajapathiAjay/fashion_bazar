@@ -43,8 +43,7 @@ function Newsletter() {
             First word on <span className="text-gradient">new stalls</span>
           </h2>
           <p className="mt-4 max-w-md text-[15px] font-light leading-relaxed text-muted">
-            New makers, early drops and members-only bazar days — delivered once a week. Plus 10% off
-            your first order.
+            New makers, new drops and offers from the bazar, straight to your inbox.
           </p>
 
           {status === "idle" ? (

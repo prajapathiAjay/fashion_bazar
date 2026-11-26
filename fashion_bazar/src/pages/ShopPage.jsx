@@ -15,7 +15,7 @@ import {
   ArrowRight,
   Sparkles,
   Truck,
-  RotateCcw,
+  Banknote,
 } from "lucide-react";
 import ProductCard from "../components/ProductCard";
 import SmartImage from "../components/SmartImage";
@@ -25,6 +25,7 @@ import { formatPrice } from "../utils/formatPrice";
 import { swatchFor } from "../utils/colorSwatch";
 import { useGetProductsQuery, useGetProductFiltersQuery } from "../lib/api/productApi";
 import {useGetCategoryQuery} from "../lib/api/categoryApi";
+import { useFreeShipping } from "../hooks/useFreeShipping";
 
 
 // Sort options: "key" goes in the URL and to the API, "label" is what the shopper reads
@@ -64,7 +65,7 @@ const BANDS = {
     blobB: "bg-pop/15",
     pill: "bg-brand-50 text-brand",
     eyebrow: "The whole bazar",
-    tagline: "Hand-picked pieces from 1,200+ independent stalls — new drops every Friday.",
+    tagline: "Hand-picked pieces from independent stalls across the bazar.",
   },
   women: {
     band: "from-pop-50 via-white to-brand-50",
@@ -128,7 +129,7 @@ const BANDS = {
     blobB: "bg-sun/30",
     pill: "bg-pop text-white",
     eyebrow: "Bazar days",
-    tagline: "Up to 50% off across the bazar. Limited stock, unlimited vibes.",
+    tagline: "Discounted pieces from across the bazar. Limited stock, unlimited vibes.",
   },
   search: {
     band: "from-brand-50 via-white to-sky-50",
@@ -449,6 +450,7 @@ function NoMatches({ hasFilters, onClear }) {
 /* ------------------------------------------------------------------ */
 
 function ShopPage() {
+  const { freeLabel } = useFreeShipping();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dense, setDense] = useState(false);
 
@@ -633,11 +635,13 @@ function ShopPage() {
                 <span className="h-2 w-2 rounded-full bg-mint" />
                 {loading ? "Loading…" : `${itemCount} items`}
               </span>
-              <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white/80 px-3 py-1.5 text-ink-soft shadow-sm backdrop-blur sm:inline-flex">
-                <Truck size={13} className="text-brand" /> Free shipping ₹999+
-              </span>
+              {freeLabel && (
+                <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white/80 px-3 py-1.5 text-ink-soft shadow-sm backdrop-blur sm:inline-flex">
+                  <Truck size={13} className="text-brand" /> Free shipping {freeLabel}+
+                </span>
+              )}
               <span className="hidden items-center gap-1.5 rounded-full border border-line bg-white/80 px-3 py-1.5 text-ink-soft shadow-sm backdrop-blur lg:inline-flex">
-                <RotateCcw size={13} className="text-pop" /> 30-day returns
+                <Banknote size={13} className="text-pop" /> Cash on delivery
               </span>
             </div>
           </div>
