@@ -1400,6 +1400,16 @@ function ChangePasswordPanel() {
    ------------------------------------------------------------------ */
 
 
+// States and union territories for the address form
+const INDIAN_STATES = [
+  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh",
+  "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana",
+  "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry",
+  "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand",
+  "West Bengal",
+];
+
 const EMPTY_FORM = {
   tag: "Home",
   line1: "",
@@ -1618,12 +1628,17 @@ function AddressesPanel({ addresses }) {
                 />
               </Field>
               <Field id="addr-state" label="State">
-                <input
-                  id="addr-state"
-                  required
-                  {...register("state")}
-                  className={INPUT_CLASS}
-                />
+                {/* a list (not free text), so every order has the same spelling for the admin's region report */}
+                <select id="addr-state" required {...register("state")} className={INPUT_CLASS}>
+                  <option value="">Choose your state</option>
+                  {/* an older address typed by hand still shows until it's changed */}
+                  {watch("state") && !INDIAN_STATES.includes(watch("state")) && (
+                    <option value={watch("state")}>{watch("state")}</option>
+                  )}
+                  {INDIAN_STATES.map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
               </Field>
               <Field id="addr-pin" label="Pincode">
                 <input
